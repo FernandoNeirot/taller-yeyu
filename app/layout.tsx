@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import { JsonLd, getSiteJsonLd } from "@/lib/seo/json-ld";
+import { shareImages } from "@/lib/seo/metadata";
 import {
   getGoogleVerification,
-  getShareImage,
   getSiteUrl,
   siteConfig,
 } from "@/lib/seo/site";
@@ -62,13 +62,13 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     title: siteConfig.title,
     description: siteConfig.description,
-    images: [getShareImage()],
+    images: shareImages(),
   },
   twitter: {
     card: "summary_large_image",
     title: siteConfig.title,
     description: siteConfig.description,
-    images: [getShareImage()],
+    images: shareImages(),
   },
   appleWebApp: {
     title: siteConfig.name,

@@ -1,34 +1,16 @@
-import type { Metadata } from "next";
 import { getProducts } from "@/lib/products/repository";
 import { JsonLd, getGalleryJsonLd } from "@/lib/seo/json-ld";
-import { getShareImage } from "@/lib/seo/site";
+import { sharePageMetadata } from "@/lib/seo/metadata";
 import { GalleryContent } from "./gallery-content";
 
 const galleryDescription =
   "Inspiración y arte en cada pieza personalizada de Taller Yeyu.";
 
-export const metadata: Metadata = {
+export const metadata = sharePageMetadata({
   title: "Galería",
   description: galleryDescription,
-  alternates: {
-    canonical: "/galeria",
-  },
-  openGraph: {
-    title: "Galería | Taller Yeyu",
-    description: galleryDescription,
-    url: "/galeria",
-    type: "website",
-    locale: "es_AR",
-    siteName: "Taller Yeyu",
-    images: [getShareImage()],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Galería | Taller Yeyu",
-    description: galleryDescription,
-    images: [getShareImage()],
-  },
-};
+  path: "/galeria",
+});
 
 export default async function GaleriaPage() {
   const products = await getProducts();

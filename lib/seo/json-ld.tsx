@@ -105,6 +105,10 @@ export function getGalleryJsonLd(
           "Inspiración y arte en cada pieza personalizada de Taller Yeyu.",
         inLanguage: siteConfig.language,
         isPartOf: { "@id": `${url}/#website` },
+        primaryImageOfPage: {
+          "@type": "ImageObject",
+          url: absoluteUrl(siteConfig.ogImagePath),
+        },
         mainEntity: {
           "@type": "ItemList",
           numberOfItems: products.length,
