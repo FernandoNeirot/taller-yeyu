@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getProducts } from "@/lib/products/repository";
 import { GalleryContent } from "./gallery-content";
 
 export const metadata: Metadata = {
@@ -7,10 +8,12 @@ export const metadata: Metadata = {
     "Inspiración y arte en cada pieza personalizada de Taller Yeyu.",
 };
 
-export default function GaleriaPage() {
+export default async function GaleriaPage() {
+  const products = await getProducts();
+
   return (
     <main className="w-full">
-      <GalleryContent />
+      <GalleryContent products={products} />
     </main>
   );
 }
