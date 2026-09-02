@@ -3,6 +3,7 @@ import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import { JsonLd, getSiteJsonLd } from "@/lib/seo/json-ld";
 import {
   getGoogleVerification,
+  getShareImage,
   getSiteUrl,
   siteConfig,
 } from "@/lib/seo/site";
@@ -61,11 +62,13 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     title: siteConfig.title,
     description: siteConfig.description,
+    images: [getShareImage()],
   },
   twitter: {
     card: "summary_large_image",
     title: siteConfig.title,
     description: siteConfig.description,
+    images: [getShareImage()],
   },
   appleWebApp: {
     title: siteConfig.name,

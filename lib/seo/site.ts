@@ -1,3 +1,5 @@
+export const PRODUCTION_SITE_URL = "https://talleryeyu.com";
+
 export const siteConfig = {
   name: "Taller Yeyu",
   shortName: "Yeyu",
@@ -18,21 +20,33 @@ export const siteConfig = {
     "madera",
   ],
   logoPath: "/brand/logo-dark.png",
+  ogImagePath: "/og.png",
   category: "shopping",
 } as const;
 
 export function getSiteUrl() {
   const fromEnv = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  if (fromEnv) {
+  if (
+    fromEnv &&
+    !fromEnv.includes("localhost") &&
+    !fromEnv.includes("127.0.0.1") &&
+    !fromEnv.includes("vercel.app")
+  ) {
     return fromEnv;
   }
 
-  const vercel = process.env.VERCEL_URL?.replace(/\/$/, "");
-  if (vercel) {
-    return vercel.startsWith("http") ? vercel : `https://${vercel}`;
-  }
+  return PRODUCTION_SITE_URL;
+}
 
-  return "http://localhost:3000";
+export function getShareImage() {
+  return {
+    url: absoluteUrl(siteConfig.ogImagePath),
+    secureUrl: absoluteUrl(siteConfig.ogImagePath),
+    width: 1200,
+    height: 630,
+    type: "image/png",
+    alt: siteConfig.name,
+  };
 }
 
 export function absoluteUrl(path = "/") {

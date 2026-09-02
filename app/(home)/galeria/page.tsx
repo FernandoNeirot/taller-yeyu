@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getProducts } from "@/lib/products/repository";
 import { JsonLd, getGalleryJsonLd } from "@/lib/seo/json-ld";
+import { getShareImage } from "@/lib/seo/site";
 import { GalleryContent } from "./gallery-content";
 
 const galleryDescription =
@@ -19,11 +20,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_AR",
     siteName: "Taller Yeyu",
+    images: [getShareImage()],
   },
   twitter: {
     card: "summary_large_image",
     title: "Galería | Taller Yeyu",
     description: galleryDescription,
+    images: [getShareImage()],
   },
 };
 

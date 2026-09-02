@@ -30,7 +30,7 @@ export function getSiteJsonLd() {
           "@type": "ImageObject",
           url: absoluteUrl(siteConfig.logoPath),
         },
-        image: absoluteUrl("/opengraph-image"),
+        image: absoluteUrl(siteConfig.ogImagePath),
         ...(telephone
           ? {
               telephone,
@@ -63,7 +63,7 @@ export function getSiteJsonLd() {
         about: { "@id": `${url}/#organization` },
         primaryImageOfPage: {
           "@type": "ImageObject",
-          url: absoluteUrl("/opengraph-image"),
+          url: absoluteUrl(siteConfig.ogImagePath),
         },
       },
     ],
