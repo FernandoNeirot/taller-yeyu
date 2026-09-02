@@ -1,10 +1,17 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Logo } from "./_components/logo";
 import { MaterialIcon } from "./_components/material-icon";
 
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/",
+  },
+};
+
 const HERO_IMAGE =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuBGqOdrwdju6_TdCTAP32mAUTkDNeq7sBJKc4dLH_iJWJYwgi-gUdo19ouNp5tq6l8IIMZyInrGext-2Dw1mEl72j0taRYZNFDBiIxOu1eOebRCRO3DXRdsud_acJDbzk_XZWEP8AiGpb_RmRvJ1lsnSMQyuk5CKY0ygKDMgjNYv8GVfzAsb-H2MRvD2JSU1F1mBgCPXnwhCaj5FLUXSDOVie1nitdMeIuYW8P0kEIoDELnJnf4bpff";
+  "/principal.png";
 
 const PROCESS_IMAGE =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDXdThLsiPpi2lVmLN1j8tOrCnXRL_ZFl28S7bR094mQyg7AyJc8yc6KCZeKruPW-hCclEJDfgHa4XRUfvMxQiZF0AUlJDx-zEqvsTc0TQpxHB3ZLE9gCTd2AO_Udisj6vHKN6kaspdWYp8ikTdIBf4_DSY1EUHqiq5geu2py4RWsa11AiilZ9lSMnKP8LobiWi90MQuJTwGsGqJjQ9xFFtJkQMp1-dtmVwXuSkUuG0Wf05Zy4TmC__PQbOd3h2VjGnaA";
