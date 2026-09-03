@@ -37,3 +37,4 @@ export function getAdminFirestore() {
 }
 
 export const PRODUCTS_COLLECTION = "talleryeu-productos";
+export const FAMILY_FINANCE_COLLECTION = "taller-yeyu-financiero-familiar";

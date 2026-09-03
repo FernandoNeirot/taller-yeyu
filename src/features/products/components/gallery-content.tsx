@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { MaterialIcon } from "../_components/material-icon";
-import type { Product, ProductCategory } from "@/lib/products/types";
+import { MaterialIcon } from "@/components/ui/material-icon";
+import type { ProductCategory } from "../types";
+import { useProducts } from "../hooks/use-products";
 
 const filters = [
   { id: "todos", label: "Todos" },
@@ -19,7 +20,8 @@ function normalize(value: string) {
   return value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
 }
 
-export function GalleryContent({ products }: { products: Product[] }) {
+export function GalleryContent() {
+  const { data: products = [] } = useProducts();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterId>("todos");
 

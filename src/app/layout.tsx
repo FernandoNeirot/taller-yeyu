@@ -8,6 +8,7 @@ import {
   siteConfig,
 } from "@/lib/seo/site";
 import "./globals.css";
+import { Providers } from "./providers";
 
 const manrope = Manrope({
   subsets: ["latin", "latin-ext"],
@@ -85,6 +86,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`dark ${manrope.variable} ${plusJakartaSans.variable} h-full`}
     >
       <head>
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,100..700,0..1,0&display=swap"
@@ -92,7 +94,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full antialiased bg-background text-on-background">
         <JsonLd data={getSiteJsonLd()} />
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

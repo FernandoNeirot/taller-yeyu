@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Logo } from "./_components/logo";
-import { MaterialIcon } from "./_components/material-icon";
+import { Logo } from "@/components/layout/logo";
+import { MaterialIcon } from "@/components/ui/material-icon";
 
 export const metadata: Metadata = {
   alternates: {
@@ -259,12 +259,11 @@ export default function Home() {
             className="text-4xl text-primary mb-xs"
           />
           <h2 className="font-headline-md md:font-headline-lg text-headline-md md:text-headline-lg text-on-surface">
-            ¿Tienes un proyecto en mente?
+            Contanos tu ocasión
           </h2>
           <p className="font-body-md text-body-md text-on-surface-variant w-full">
-            Realizamos trabajos a medida para estudios de arquitectura,
-            diseñadores de interiores y clientes particulares que buscan
-            exclusividad.
+            Baby shower, cumpleaños o un regalo especial: decinos la temática y
+            te armamos sugerencias a medida.
           </p>
           <a
             className="mt-md inline-flex items-center gap-sm px-6 py-3 border border-primary text-primary font-label-caps text-label-caps tracking-widest hover:bg-primary/10 transition-colors duration-300 active:scale-95 uppercase"

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MaterialIcon } from "./material-icon";
+import { MaterialIcon } from "@/components/ui/material-icon";
 import { isNavActive, navItems } from "./nav";
 
 export function BottomNav() {

@@ -1,5 +1,5 @@
-import { PRODUCTS_COLLECTION, getAdminFirestore } from "@/lib/firebase/admin";
-import type { Product, ProductCategory } from "./types";
+import { PRODUCTS_COLLECTION, getAdminFirestore } from "@/lib/firebase-admin";
+import type { Product, ProductCategory } from "../types";
 
 function isCategory(value: unknown): value is ProductCategory {
   return value === "iluminacion" || value === "kits" || value === "souvenirs";
