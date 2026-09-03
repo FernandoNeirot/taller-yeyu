@@ -1,5 +1,6 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
 function getPrivateKey() {
   const key = process.env.FIREBASE_PRIVATE_KEY;
@@ -29,11 +30,21 @@ export function getFirebaseAdminApp() {
       privateKey: getPrivateKey(),
     }),
     projectId,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   });
 }
 
 export function getAdminFirestore() {
   return getFirestore(getFirebaseAdminApp());
+}
+
+export function getAdminBucket() {
+  const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+  if (!bucketName) {
+    throw new Error("Falta NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET en el entorno.");
+  }
+
+  return getStorage(getFirebaseAdminApp()).bucket(bucketName);
 }
 
 export const PRODUCTS_COLLECTION = "talleryeu-productos";

@@ -9,7 +9,7 @@ import { useProducts } from "../hooks/use-products";
 
 const filters = [
   { id: "todos", label: "Todos" },
-  { id: "iluminacion", label: "Iluminación" },
+  { id: "veladores", label: "Veladores" },
   { id: "kits", label: "Kits" },
   { id: "souvenirs", label: "Souvenirs" },
 ] as const;

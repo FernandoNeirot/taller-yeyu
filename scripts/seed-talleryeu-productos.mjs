@@ -28,8 +28,8 @@ const products = [
   {
     title: "Veladores Geométricos",
     description: "Iluminación cálida con cortes precisos en madera.",
-    category: "iluminacion",
-    tag: "Iluminación",
+    category: "veladores",
+    tag: "Veladores",
     alt: "Veladores Geométricos premium wood lighting",
     image:
       "https://lh3.googleusercontent.com/aida/AEtjO1XkWecc9_LhyLt4Wjrv6wSkBLoMz144x8SW9x1-5YO2ycZLAkFW_SOOkj81v66l63RCuk2GOE5p_OD_MtucSag5rSXArI3yN2Qd_2nAJE8vhcyqcE3XG5YSAAyHNScnuNKPBy0DssjQigptKN6QXHdDQT3HE6IXOv5x6-4vcjwouUsvLdvKq2tefu9xTds6MVL6JxVbwLvOsHXRyRtXivICQdD214IobxbguNuodRacpR9ka1GeuqCl4Pw",
@@ -72,8 +72,8 @@ const products = [
   {
     title: "Aventura Espacial",
     description: "Diseños infantiles con recortes láser y luz cálida.",
-    category: "iluminacion",
-    tag: "Iluminación",
+    category: "veladores",
+    tag: "Veladores",
     alt: "Temática Infantil 3",
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuDXtqBBWMTFqJ2iEOiU1RMN1JNimLDK_xS5-Z9lt0AY0bWsiHnw52WZPa-h_POMOV1GHGE7yBnHS5DP1n_RBpJmC_rjtxz6IxZRFyGJzGEmgl5K6sCeCM9gHJ2iuwHf9NhuwnZ0lx4OArwWvsmL97gxRwfasqbodQcQdo0Xl-bMUDXJW8_hAzzfWLhLrVJyFq7zsy7vdom_iP_k6STAGR7PO4nn6PZ_-OTk_GdGSOF_97Zp8sUf2PYjQV9fBfJ7jh_gzA",
@@ -83,8 +83,8 @@ const products = [
   {
     title: "Lámparas Personalizadas",
     description: "Luz cálida con tu nombre y diseño favorito.",
-    category: "iluminacion",
-    tag: "Iluminación",
+    category: "veladores",
+    tag: "Veladores",
     alt: "Lámparas Personalizadas glowing warm light",
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuBAapKZGhAxZOAcntsqsobhvwieVxetZtrXgTPZs9i98sRtPxV_lxeBt1K4nYyZpCuQZl7gNOZrNE-TenrEm7mxF1pbf460UKmUcQcTLS716gB_KhcsIZ3xE5iFbBjJn8JUdGKsXun2zDfj_7sGqCRnVTB9pWNiQSpK60rH6E8vqfVsvJVYwJPD2dbYYyiMHavWXBtzz0oXjobaDiEJuPw-EN-n-EUPwDcclgms4R2OqlUQcUT7HNMygrKs5hVr5DwtTQ",
@@ -95,8 +95,8 @@ const products = [
   {
     title: "Detalle de Lámpara",
     description: "Cortes finos y siluetas que cobran vida con la luz.",
-    category: "iluminacion",
-    tag: "Iluminación",
+    category: "veladores",
+    tag: "Veladores",
     alt: "Detail of custom lamp cutouts",
     image:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuC9RRZ3oS7CyWyy40N1WFv3YyZbS1vlCK3msbNVuSVRMwI_yxVj8mYbnKo6YmDTYnRCOM7kVDUEh57LpVaW_QGDcqwS4qG01gB5aeiWlIHWOJYDjoy4WlKmkf6d-IzZDGcPzThSkQse4N30kD3uZVSSVI_7uhz-h7DIHzjeKJjrr-FyRP8TtxjALRWtUyWO_TbXmWn_M7Vq_FBbun7CeEGXA95sTOnUhYZ3d1Z4TZwYr7_CqfiXAiPmNmajqGUopz3c2A",
