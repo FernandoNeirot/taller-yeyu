@@ -4,9 +4,10 @@ export type MovementType = (typeof movementTypes)[number];
 export const familyCategories = [
   "Auto",
   "Casa",
+  "Cecilia",
   "Elizabeth",
   "Farmacia",
-  "Fernando Cecilia",
+  "Fernando",
   "Mascotas",
   "Servicios",
   "Sueldo",
