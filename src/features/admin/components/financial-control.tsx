@@ -4,8 +4,12 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { MoneyInput, moneyToNumber } from "@/components/ui/money-input";
 import { saveFamilyEntryAction } from "@/features/finance/actions/create-family-entry";
-import type { FamilyFinanceEntry } from "@/features/finance/types";
-import { getPaymentStatus, type MovementType } from "@/features/finance/types";
+import {
+  familyCategories,
+  getPaymentStatus,
+  type FamilyFinanceEntry,
+  type MovementType,
+} from "@/features/finance/types";
 
 type Scope = "familiar" | "emprendimiento";
 
@@ -54,15 +58,21 @@ function entryToForm(entry: {
     isPaid: entry.isPaid,
   };
 }
-const initialForm: FormState = {
-  date: "",
-  category: "",
-  description: "",
-  movementType: "egreso",
-  totalAmount: "",
-  paidAmount: "",
-  isPaid: false,
-};
+function getTodayDate() {
+  return new Date().toLocaleDateString("en-CA");
+}
+
+function emptyForm(): FormState {
+  return {
+    date: getTodayDate(),
+    category: "",
+    description: "",
+    movementType: "egreso",
+    totalAmount: "",
+    paidAmount: "",
+    isPaid: false,
+  };
+}
 
 function settlementLabel(
   movementType: MovementType,
@@ -84,8 +94,8 @@ export function FinancialControl({
   familyEntries: FamilyFinanceEntry[];
 }) {
   const [scope, setScope] = useState<Scope>("familiar");
-  const [familyForm, setFamilyForm] = useState<FormState>(initialForm);
-  const [ventureForm, setVentureForm] = useState<FormState>(initialForm);
+  const [familyForm, setFamilyForm] = useState<FormState>(emptyForm);
+  const [ventureForm, setVentureForm] = useState<FormState>(emptyForm);
   const [familyEntries, setFamilyEntries] = useState(initialFamilyEntries);
   const [ventureEntries, setVentureEntries] = useState<VentureEntry[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -126,10 +136,10 @@ export function FinancialControl({
   function cancelEdit() {
     setEditingId(null);
     if (scope === "familiar") {
-      setFamilyForm(initialForm);
+      setFamilyForm(emptyForm());
       return;
     }
-    setVentureForm(initialForm);
+    setVentureForm(emptyForm());
   }
 
   useEffect(() => {
@@ -146,7 +156,7 @@ export function FinancialControl({
 
       return [savedEntry, ...prev];
     });
-    setFamilyForm(initialForm);
+    setFamilyForm(emptyForm());
     setEditingId(null);
   }, [familyState]);
 
@@ -222,7 +232,7 @@ export function FinancialControl({
 
       return [nextEntry, ...prev];
     });
-    setVentureForm(initialForm);
+    setVentureForm(emptyForm());
     setEditingId(null);
   }
 
@@ -299,21 +309,45 @@ export function FinancialControl({
 
           <label className="flex flex-col gap-xs">
             <span className="text-sm text-on-surface-variant">Categoría</span>
-            <input
-              name="category"
-              type="text"
-              placeholder={
-                scope === "familiar"
-                  ? "Hogar, Servicios, Comida..."
-                  : "Ventas, Insumos, Envíos..."
-              }
-              value={currentForm.category}
-              onChange={(event) =>
-                setCurrentForm({ category: event.target.value })
-              }
-              required
-              className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
-            />
+            {scope === "familiar" ? (
+              <select
+                name="category"
+                value={currentForm.category}
+                onChange={(event) =>
+                  setCurrentForm({ category: event.target.value })
+                }
+                required
+                className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
+              >
+                <option value="">Seleccioná una categoría</option>
+                {(familyCategories as readonly string[]).includes(
+                  currentForm.category,
+                ) || !currentForm.category
+                  ? null
+                  : (
+                      <option value={currentForm.category}>
+                        {currentForm.category}
+                      </option>
+                    )}
+                {familyCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                name="category"
+                type="text"
+                placeholder="Ventas, Insumos, Envíos..."
+                value={currentForm.category}
+                onChange={(event) =>
+                  setCurrentForm({ category: event.target.value })
+                }
+                required
+                className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
+              />
+            )}
           </label>
 
           <label className="flex flex-col gap-xs">

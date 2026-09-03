@@ -1,6 +1,19 @@
 export const movementTypes = ["ingreso", "egreso"] as const;
 export type MovementType = (typeof movementTypes)[number];
 
+export const familyCategories = [
+  "Auto",
+  "Casa",
+  "Elizabeth",
+  "Farmacia",
+  "Fernando Cecilia",
+  "Mascotas",
+  "Servicios",
+  "Sueldo",
+] as const;
+
+export type FamilyCategory = (typeof familyCategories)[number];
+
 export const paymentStatuses = ["pagado", "parcial", "pendiente"] as const;
 export type PaymentStatus = (typeof paymentStatuses)[number];
 

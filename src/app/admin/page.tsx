@@ -25,13 +25,6 @@ const modules = [
     color: "bg-secondary-container",
   },
   {
-    title: "Materiales",
-    description: "Stock y control de materias primas",
-    icon: "warehouse",
-    href: "/admin/materiales",
-    color: "bg-tertiary-container",
-  },
-  {
     title: "Cotizador",
     description: "Cotizaciones y presupuestos",
     icon: "calculate",
