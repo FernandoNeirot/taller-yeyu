@@ -340,12 +340,10 @@ export function VentureFinancePanel({
                     required
                   />
                 </div>
-                {isMaterials ? (
-                  <CalculatorButton
-                    value={form.totalAmount}
-                    onApply={(value) => setForm({ ...form, totalAmount: value })}
-                  />
-                ) : null}
+                <CalculatorButton
+                  value={form.totalAmount}
+                  onApply={(value) => setForm({ ...form, totalAmount: value })}
+                />
               </div>
             </label>
             <label className="flex flex-col gap-xs">

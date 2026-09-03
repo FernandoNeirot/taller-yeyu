@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { MoneyInput } from "@/components/ui/money-input";
+import { CalculatorButton } from "@/components/ui/price-calculator";
 import { saveFamilyEntryAction } from "@/features/finance/actions/create-family-entry";
 import {
   familyCategories,
@@ -322,13 +323,25 @@ export function FinancialControl({
                   <span className="text-sm text-on-surface-variant">
                     Monto total
                   </span>
-                  <MoneyInput
-                    name="totalAmount"
-                    value={familyForm.totalAmount}
-                    onChange={(value) => setCurrentForm({ totalAmount: value })}
-                    required
-                    placeholder="$ 0"
-                  />
+                  <div className="flex gap-sm">
+                    <div className="flex-1">
+                      <MoneyInput
+                        name="totalAmount"
+                        value={familyForm.totalAmount}
+                        onChange={(value) =>
+                          setCurrentForm({ totalAmount: value })
+                        }
+                        required
+                        placeholder="$ 0"
+                      />
+                    </div>
+                    <CalculatorButton
+                      value={familyForm.totalAmount}
+                      onApply={(value) =>
+                        setCurrentForm({ totalAmount: value })
+                      }
+                    />
+                  </div>
                 </label>
                 <label className="flex flex-col gap-xs">
                   <span className="text-sm text-on-surface-variant">
