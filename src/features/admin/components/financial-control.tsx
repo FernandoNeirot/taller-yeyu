@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { MoneyInput } from "@/components/ui/money-input";
 import { saveFamilyEntryAction } from "@/features/finance/actions/create-family-entry";
@@ -130,6 +130,26 @@ export function FinancialControl({
     saveFamilyEntryAction,
     null,
   );
+  const [prevFamilyState, setPrevFamilyState] = useState(familyState);
+
+  if (familyState !== prevFamilyState) {
+    setPrevFamilyState(familyState);
+    const savedEntry = familyState?.entry;
+    if (savedEntry) {
+      setFamilyEntries((prev) => {
+        const exists = prev.some((entry) => entry.id === savedEntry.id);
+        if (exists) {
+          return prev.map((entry) =>
+            entry.id === savedEntry.id ? savedEntry : entry,
+          );
+        }
+
+        return [savedEntry, ...prev];
+      });
+      setFamilyForm(emptyForm());
+      setEditingId(null);
+    }
+  }
 
   function setCurrentForm(updater: Partial<FormState>) {
     setFamilyForm((prev) => ({ ...prev, ...updater }));
@@ -144,24 +164,6 @@ export function FinancialControl({
     setEditingId(null);
     setFamilyForm(emptyForm());
   }
-
-  useEffect(() => {
-    const savedEntry = familyState?.entry;
-    if (!savedEntry) return;
-
-    setFamilyEntries((prev) => {
-      const exists = prev.some((entry) => entry.id === savedEntry.id);
-      if (exists) {
-        return prev.map((entry) =>
-          entry.id === savedEntry.id ? savedEntry : entry,
-        );
-      }
-
-      return [savedEntry, ...prev];
-    });
-    setFamilyForm(emptyForm());
-    setEditingId(null);
-  }, [familyState]);
 
   const totalIngresos = useMemo(
     () =>

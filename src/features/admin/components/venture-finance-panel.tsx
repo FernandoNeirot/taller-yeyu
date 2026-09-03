@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { MoneyInput, moneyToNumber } from "@/components/ui/money-input";
 import { CalculatorButton } from "@/components/ui/price-calculator";
@@ -157,23 +157,10 @@ export function VentureFinancePanel({
     emptyAccessory(),
   ]);
   const [state, action, pending] = useActionState(saveVentureEntryAction, null);
+  const [prevState, setPrevState] = useState(state);
 
   const isMaterials = form.category === "Materiales";
   const subcategory = form.subcategory as MaterialSubcategory | "";
-
-  useEffect(() => {
-    const saved = state?.entry;
-    if (!saved) return;
-
-    setEntries((prev) => {
-      const exists = prev.some((entry) => entry.id === saved.id);
-      if (exists) {
-        return prev.map((entry) => (entry.id === saved.id ? saved : entry));
-      }
-      return [saved, ...prev];
-    });
-    resetForm();
-  }, [state]);
 
   function resetForm() {
     setForm(emptyForm());
@@ -181,6 +168,21 @@ export function VentureFinancePanel({
     setWoodRows([emptyWood()]);
     setPaintRows([emptyPaint()]);
     setAccessoryRows([emptyAccessory()]);
+  }
+
+  if (state !== prevState) {
+    setPrevState(state);
+    const saved = state?.entry;
+    if (saved) {
+      setEntries((prev) => {
+        const exists = prev.some((entry) => entry.id === saved.id);
+        if (exists) {
+          return prev.map((entry) => (entry.id === saved.id ? saved : entry));
+        }
+        return [saved, ...prev];
+      });
+      resetForm();
+    }
   }
 
   function startEdit(entry: VentureFinanceEntry) {
