@@ -29,7 +29,7 @@ const modules = [
     description: "Cotizaciones y presupuestos",
     icon: "calculate",
     href: "/admin/cotizador",
-    color: "bg-surface-container-highest",
+    color: "bg-tertiary-container",
   },
 ];
 

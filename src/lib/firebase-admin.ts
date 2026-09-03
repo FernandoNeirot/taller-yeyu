@@ -49,3 +49,7 @@ export function getAdminBucket() {
 
 export const PRODUCTS_COLLECTION = "talleryeu-productos";
 export const FAMILY_FINANCE_COLLECTION = "taller-yeyu-financiero-familiar";
+export const VENTURE_FINANCE_COLLECTION =
+  "taller-yeyu-financiero-emprendimiento";
+export const MATERIALS_COLLECTION = "taller-yeyu-materiales";
+export const QUOTES_COLLECTION = "taller-yeyu-cotizaciones";

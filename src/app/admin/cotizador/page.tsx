@@ -1,21 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdmin } from "@/features/admin/services/auth";
-import { FinancialControl } from "@/features/admin/components/financial-control";
-import { getFamilyFinanceEntries } from "@/features/finance/services/family-finance";
-import { getVentureFinanceEntries } from "@/features/finance/services/venture-finance";
+import { getMaterials } from "@/features/finance/services/venture-finance";
+import { QuoteBuilder } from "@/features/quotes/components/quote-builder";
+import { getQuotes } from "@/features/quotes/services/quotes";
 
 export const metadata: Metadata = {
-  title: "Control Financiero",
+  title: "Cotizador",
   robots: { index: false, follow: false },
 };
 
-export default async function AdminFinancialPage() {
+export default async function AdminQuotesPage() {
   await requireAdmin();
-  const [familyEntries, ventureEntries] = await Promise.all([
-    getFamilyFinanceEntries(),
-    getVentureFinanceEntries(),
-  ]);
+  const [materials, quotes] = await Promise.all([getMaterials(), getQuotes()]);
 
   return (
     <main className="min-h-screen px-container-margin py-xl max-w-6xl mx-auto">
@@ -27,17 +24,14 @@ export default async function AdminFinancialPage() {
           ← Volver al panel
         </Link>
         <h1 className="font-headline-lg text-headline-lg text-on-surface">
-          Control Financiero
+          Cotizador
         </h1>
         <p className="font-body-md text-body-md text-on-surface-variant">
-          Registrá movimientos familiares y del emprendimiento en un solo lugar.
+          Armá un presupuesto con maderas, pinturas y accesorios del catálogo.
         </p>
       </div>
 
-      <FinancialControl
-        familyEntries={familyEntries}
-        ventureEntries={ventureEntries}
-      />
+      <QuoteBuilder materials={materials} quotes={quotes} />
     </main>
   );
 }
