@@ -24,7 +24,7 @@ export function LoginForm() {
           autoComplete="username"
           required
           className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 font-body-md text-body-md text-on-surface outline-none focus:border-primary transition-colors"
-          placeholder="elizabeth o fernando"
+          placeholder="Usuario"
         />
       </label>
 

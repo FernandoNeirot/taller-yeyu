@@ -9,6 +9,7 @@ import type {
   ProductInput,
 } from "../types";
 import { productCategories, productCategoryLabels } from "../types";
+import { deleteProductImages } from "./upload-product-images";
 
 export function slugify(value: string) {
   return value
@@ -146,4 +147,19 @@ export async function updateProduct(
   });
 
   return { id, ...payload } satisfies Product;
+}
+
+export async function deleteProduct(id: string) {
+  const docRef = getAdminFirestore().collection(PRODUCTS_COLLECTION).doc(id);
+  const existing = await docRef.get();
+
+  if (!existing.exists) {
+    throw new Error("El producto no existe.");
+  }
+
+  const product = mapProductDoc(id, existing.data() ?? {});
+  await deleteProductImages(product.images);
+  await docRef.delete();
+
+  return id;
 }

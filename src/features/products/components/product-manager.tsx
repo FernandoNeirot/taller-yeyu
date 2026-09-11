@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { MoneyInput } from "@/components/ui/money-input";
+import { deleteProductAction } from "../actions/delete-product";
 import { saveProductAction } from "../actions/save-product";
 import {
   productCategories,
@@ -84,22 +85,54 @@ export function ProductManager({
   const [imageError, setImageError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [state, action, pending] = useActionState(saveProductAction, null);
+  const [deleteState, deleteAction, deletePending] = useActionState(
+    deleteProductAction,
+    null,
+  );
+  const [prevState, setPrevState] = useState(state);
+  const [prevDeleteState, setPrevDeleteState] = useState(deleteState);
 
   const remainingSlots = MAX_PRODUCT_IMAGES - existingImages.length - newFiles.length;
 
-  useEffect(() => {
+  if (state !== prevState) {
+    setPrevState(state);
     const saved = state?.product;
-    if (!saved) return;
+    if (saved) {
+      setProducts((prev) => {
+        const exists = prev.some((item) => item.id === saved.id);
+        const next = exists
+          ? prev.map((item) => (item.id === saved.id ? saved : item))
+          : [...prev, saved];
+        return [...next].sort((a, b) => a.title.localeCompare(b.title, "es"));
+      });
+      setForm(emptyForm);
+      setEditingId(null);
+      setExistingImages([]);
+      setNewFiles((current) => {
+        current.forEach((file) => URL.revokeObjectURL(file.preview));
+        return [];
+      });
+      setImageError("");
+    }
+  }
 
-    setProducts((prev) => {
-      const exists = prev.some((item) => item.id === saved.id);
-      const next = exists
-        ? prev.map((item) => (item.id === saved.id ? saved : item))
-        : [...prev, saved];
-      return [...next].sort((a, b) => a.title.localeCompare(b.title, "es"));
-    });
-    resetForm();
-  }, [state]);
+  if (deleteState !== prevDeleteState) {
+    setPrevDeleteState(deleteState);
+    const deletedId = deleteState?.deletedId;
+    if (deletedId) {
+      setProducts((prev) => prev.filter((item) => item.id !== deletedId));
+      if (editingId === deletedId) {
+        setForm(emptyForm);
+        setEditingId(null);
+        setExistingImages([]);
+        setNewFiles((current) => {
+          current.forEach((file) => URL.revokeObjectURL(file.preview));
+          return [];
+        });
+        setImageError("");
+      }
+    }
+  }
 
   useEffect(() => {
     return () => {
@@ -172,14 +205,16 @@ export function ProductManager({
         <h2 className="font-headline-md text-headline-md text-on-surface mb-xs">
           {editingId ? "Editar producto" : "Crear producto"}
         </h2>
-        <p className="font-body-md text-body-md text-on-surface-variant mb-md">
-          Hasta 3 fotos en WebP, cada una de menos de 50KB.
-        </p>
 
         <form action={action} className="flex flex-col gap-sm">
           {state?.error ? (
             <div className="rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
               {state.error}
+            </div>
+          ) : null}
+          {deleteState?.error ? (
+            <div className="rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
+              {deleteState.error}
             </div>
           ) : null}
           {imageError ? (
@@ -499,15 +534,40 @@ export function ProductManager({
                       : ""}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => startEdit(product)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10"
-                  aria-label={`Editar ${product.title}`}
-                  title="Editar"
-                >
-                  <MaterialIcon name="edit" className="text-base" />
-                </button>
+                <div className="flex shrink-0 items-start gap-xs">
+                  <button
+                    type="button"
+                    onClick={() => startEdit(product)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10"
+                    aria-label={`Editar ${product.title}`}
+                    title="Editar"
+                  >
+                    <MaterialIcon name="edit" className="text-base" />
+                  </button>
+                  <form
+                    action={deleteAction}
+                    onSubmit={(event) => {
+                      if (
+                        !window.confirm(
+                          `¿Eliminar "${product.title}"? Esta acción no se puede deshacer.`,
+                        )
+                      ) {
+                        event.preventDefault();
+                      }
+                    }}
+                  >
+                    <input type="hidden" name="id" value={product.id} />
+                    <button
+                      type="submit"
+                      disabled={deletePending}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-error hover:bg-error/10 disabled:opacity-50"
+                      aria-label={`Eliminar ${product.title}`}
+                      title="Eliminar"
+                    >
+                      <MaterialIcon name="delete" className="text-base" />
+                    </button>
+                  </form>
+                </div>
               </div>
             ))}
           </div>

@@ -70,3 +70,31 @@ export async function uploadProductImageBuffers(
 
   return urls;
 }
+
+function storagePathFromUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    const encodedPath = parsed.pathname.split("/o/")[1];
+    if (!encodedPath) return null;
+    return decodeURIComponent(encodedPath);
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteProductImages(urls: string[]) {
+  const bucket = getAdminBucket();
+
+  await Promise.all(
+    urls.filter(Boolean).map(async (url) => {
+      const path = storagePathFromUrl(url);
+      if (!path) return;
+
+      try {
+        await bucket.file(path).delete({ ignoreNotFound: true });
+      } catch (error) {
+        console.error("No se pudo borrar la imagen del producto.", path, error);
+      }
+    }),
+  );
+}

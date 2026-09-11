@@ -53,3 +53,4 @@ export const VENTURE_FINANCE_COLLECTION =
   "taller-yeyu-financiero-emprendimiento";
 export const MATERIALS_COLLECTION = "taller-yeyu-materiales";
 export const QUOTES_COLLECTION = "taller-yeyu-cotizaciones";
+export const ADMIN_USERS_COLLECTION = "taller-yeyu-admin-usuarios";
