@@ -40,6 +40,8 @@ export const initialProducts: Product[] = [
       finish: "Barnizado / Pintado",
       customizable: true,
     },
+    galleryImages: ["/principal.png", "/og.png"],
+    price: 22500,
   }),
   createProduct({
     title: "Kit Creativo de Figuras para Pintar",

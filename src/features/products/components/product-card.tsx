@@ -5,6 +5,8 @@ import { useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { categoryLabel } from "@/types/product";
 import type { Product } from "@/types/product";
+import { formatProductPrice } from "../lib/format-price";
+import { ProductDetailModal } from "./product-detail-modal";
 import { ProductWhatsAppCTA } from "./product-whatsapp-cta";
 
 type ProductCardProps = {
@@ -12,7 +14,7 @@ type ProductCardProps = {
 };
 
 export function ProductCard({ product }: ProductCardProps) {
-  const [showSpecs, setShowSpecs] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
   const primaryCategory = product.categories[0];
 
   return (
@@ -45,45 +47,37 @@ export function ProductCard({ product }: ProductCardProps) {
         <h3 className="mt-2 font-headline-md text-[15px] leading-snug text-on-surface line-clamp-2 md:text-headline-md md:leading-tight">
           {product.title}
         </h3>
+        {product.price != null ? (
+          <p className="mt-1 font-headline-md text-[15px] leading-snug text-primary md:text-headline-md">
+            {formatProductPrice(product.price)}
+          </p>
+        ) : null}
         <p className="mt-1 hidden font-body-md text-body-md text-on-surface-variant line-clamp-2 sm:block">
           {product.shortDescription}
         </p>
 
-        {showSpecs ? (
-          <dl className="mt-3 space-y-1 font-body-md text-body-md text-on-surface-variant">
-            <div>
-              <dt className="inline font-label-caps text-label-caps text-secondary tracking-widest">
-                Material:{" "}
-              </dt>
-              <dd className="inline">{product.specifications.material}</dd>
-            </div>
-            <div>
-              <dt className="inline font-label-caps text-label-caps text-secondary tracking-widest">
-                Medidas:{" "}
-              </dt>
-              <dd className="inline">{product.specifications.dimensions}</dd>
-            </div>
-            <div>
-              <dt className="inline font-label-caps text-label-caps text-secondary tracking-widest">
-                Acabado:{" "}
-              </dt>
-              <dd className="inline">{product.specifications.finish}</dd>
-            </div>
-          </dl>
-        ) : null}
-
         <div className="mt-auto pt-3 flex flex-col gap-2">
           <button
             type="button"
-            onClick={() => setShowSpecs((open) => !open)}
+            onClick={() => setShowDetail(true)}
             className="touch-target inline-flex w-full items-center justify-center gap-1 rounded border border-primary px-2 text-center text-primary font-label-caps text-label-caps tracking-widest hover:bg-primary/10 transition-colors"
           >
-            {showSpecs ? "Ocultar especificaciones" : "Ver especificaciones"}
+            <span aria-hidden="true">
+              <MaterialIcon name="visibility" className="shrink-0 text-sm" />
+            </span>
+            Ver
           </button>
 
           <ProductWhatsAppCTA product={product} />
         </div>
       </div>
+
+      {showDetail ? (
+        <ProductDetailModal
+          product={product}
+          onClose={() => setShowDetail(false)}
+        />
+      ) : null}
     </article>
   );
 }

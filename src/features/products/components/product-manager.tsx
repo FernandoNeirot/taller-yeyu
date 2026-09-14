@@ -3,15 +3,17 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { MaterialIcon } from "@/components/ui/material-icon";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { MoneyInput } from "@/components/ui/money-input";
+import {
+  catalogCategories,
+  categoryLabel,
+  topicLabel,
+  type Product,
+} from "@/types/product";
 import { deleteProductAction } from "../actions/delete-product";
 import { saveProductAction } from "../actions/save-product";
-import {
-  productCategories,
-  productCategoryLabels,
-  type Product,
-} from "../types";
+import { toggleProductVisibilityAction } from "../actions/toggle-product-visibility";
+import { formatProductPrice } from "../lib/format-price";
 import {
   MAX_PRODUCT_IMAGES,
   compressImageToWebp,
@@ -20,63 +22,58 @@ import {
 
 type FormState = {
   title: string;
-  description: string;
-  category: Product["category"];
-  tag: string;
-  alt: string;
-  material: string;
+  shortDescription: string;
+  fullDescription: string;
+  categories: string[];
+  topics: string;
+  dimensions: string;
   finish: string;
   customizable: boolean;
-  featured: boolean;
-  available: boolean;
-  stock: string;
+  hidden: boolean;
   price: string;
-  instagramUrl: string;
-  mercadoLibreUrl: string;
 };
 
 const emptyForm: FormState = {
   title: "",
-  description: "",
-  category: "souvenirs",
-  tag: "",
-  alt: "",
-  material: "Madera",
+  shortDescription: "",
+  fullDescription: "",
+  categories: [],
+  topics: "",
+  dimensions: "",
   finish: "",
   customizable: true,
-  featured: false,
-  available: true,
-  stock: "",
+  hidden: false,
   price: "",
-  instagramUrl: "",
-  mercadoLibreUrl: "",
 };
+
+const fieldClassName =
+  "w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary";
+
+function productId(product: Product) {
+  return product.id ?? product.slug;
+}
 
 function productToForm(product: Product): FormState {
   return {
     title: product.title,
-    description: product.description,
-    category: product.category,
-    tag: product.tag,
-    alt: product.alt,
-    material: product.material,
-    finish: product.finish,
-    customizable: product.customizable,
-    featured: product.featured,
-    available: product.available,
-    stock: product.stock == null ? "" : String(product.stock),
+    shortDescription: product.shortDescription,
+    fullDescription: product.fullDescription,
+    categories: product.categories,
+    topics: product.topics.map(topicLabel).join(", "),
+    dimensions: product.specifications.dimensions,
+    finish: product.specifications.finish,
+    customizable: product.specifications.customizable,
+    hidden: !product.isActive,
     price: product.price == null ? "" : String(product.price),
-    instagramUrl: product.instagramUrl,
-    mercadoLibreUrl: product.mercadoLibreUrl,
   };
 }
 
 export function ProductManager({
-  products: initialProducts,
+  products: initialList,
 }: {
   products: Product[];
 }) {
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState(initialList);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -90,8 +87,13 @@ export function ProductManager({
     deleteProductAction,
     null,
   );
+  const [visibilityState, visibilityAction, visibilityPending] = useActionState(
+    toggleProductVisibilityAction,
+    null,
+  );
   const [prevState, setPrevState] = useState(state);
   const [prevDeleteState, setPrevDeleteState] = useState(deleteState);
+  const [prevVisibilityState, setPrevVisibilityState] = useState(visibilityState);
 
   const remainingSlots = MAX_PRODUCT_IMAGES - existingImages.length - newFiles.length;
 
@@ -100,9 +102,10 @@ export function ProductManager({
     const saved = state?.product;
     if (saved) {
       setProducts((prev) => {
-        const exists = prev.some((item) => item.id === saved.id);
+        const id = productId(saved);
+        const exists = prev.some((item) => productId(item) === id);
         const next = exists
-          ? prev.map((item) => (item.id === saved.id ? saved : item))
+          ? prev.map((item) => (productId(item) === id ? saved : item))
           : [...prev, saved];
         return [...next].sort((a, b) => a.title.localeCompare(b.title, "es"));
       });
@@ -121,7 +124,7 @@ export function ProductManager({
     setPrevDeleteState(deleteState);
     const deletedId = deleteState?.deletedId;
     if (deletedId) {
-      setProducts((prev) => prev.filter((item) => item.id !== deletedId));
+      setProducts((prev) => prev.filter((item) => productId(item) !== deletedId));
       if (editingId === deletedId) {
         setForm(emptyForm);
         setEditingId(null);
@@ -135,13 +138,28 @@ export function ProductManager({
     }
   }
 
+  if (visibilityState !== prevVisibilityState) {
+    setPrevVisibilityState(visibilityState);
+    const updated = visibilityState?.product;
+    if (updated) {
+      setProducts((prev) =>
+        prev.map((item) =>
+          productId(item) === productId(updated) ? updated : item,
+        ),
+      );
+      if (editingId === productId(updated)) {
+        setForm(productToForm(updated));
+      }
+    }
+  }
+
   useEffect(() => {
     return () => {
       newFiles.forEach((file) => URL.revokeObjectURL(file.preview));
     };
   }, [newFiles]);
 
-  function resetForm() {
+  function resetFormFields() {
     setForm(emptyForm);
     setEditingId(null);
     setExistingImages([]);
@@ -153,15 +171,28 @@ export function ProductManager({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
+  function resetForm() {
+    resetFormFields();
+  }
+
   function startEdit(product: Product) {
     setForm(productToForm(product));
-    setEditingId(product.id);
-    setExistingImages(product.images.slice(0, MAX_PRODUCT_IMAGES));
+    setEditingId(productId(product));
+    setExistingImages(product.galleryImages.slice(0, MAX_PRODUCT_IMAGES));
     setNewFiles((current) => {
       current.forEach((file) => URL.revokeObjectURL(file.preview));
       return [];
     });
     setImageError("");
+  }
+
+  function toggleCategory(categoryId: string) {
+    setForm((current) => ({
+      ...current,
+      categories: current.categories.includes(categoryId)
+        ? current.categories.filter((item) => item !== categoryId)
+        : [...current.categories, categoryId],
+    }));
   }
 
   async function onSelectImages(files: FileList | null) {
@@ -218,6 +249,11 @@ export function ProductManager({
               {deleteState.error}
             </div>
           ) : null}
+          {visibilityState?.error ? (
+            <div className="rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
+              {visibilityState.error}
+            </div>
+          ) : null}
           {imageError ? (
             <div className="rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
               {imageError}
@@ -228,6 +264,9 @@ export function ProductManager({
           {existingImages.map((url) => (
             <input key={url} type="hidden" name="existingImages" value={url} />
           ))}
+          {form.categories.map((category) => (
+            <input key={category} type="hidden" name="categories" value={category} />
+          ))}
 
           <label className="flex flex-col gap-xs">
             <span className="text-sm text-on-surface-variant">Título</span>
@@ -236,65 +275,83 @@ export function ProductManager({
               required
               value={form.title}
               onChange={(event) => setForm({ ...form, title: event.target.value })}
-              className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
+              className={fieldClassName}
+              style={{ width: "100%" }}
+            />
+          </label>
+
+          <label className="flex flex-col gap-xs">
+            <span className="text-sm text-on-surface-variant">
+              Descripción corta
+            </span>
+            <textarea
+              name="shortDescription"
+              rows={2}
+              value={form.shortDescription}
+              onChange={(event) =>
+                setForm({ ...form, shortDescription: event.target.value })
+              }
+              className={fieldClassName}
+              style={{ width: "100%" }}
             />
           </label>
 
           <label className="flex flex-col gap-xs">
             <span className="text-sm text-on-surface-variant">Descripción</span>
             <textarea
-              name="description"
+              name="fullDescription"
               required
-              rows={3}
-              value={form.description}
+              rows={4}
+              value={form.fullDescription}
               onChange={(event) =>
-                setForm({ ...form, description: event.target.value })
+                setForm({ ...form, fullDescription: event.target.value })
               }
-              className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
+              className={fieldClassName}
+              style={{ width: "100%" }}
+            />
+          </label>
+
+          <fieldset className="flex flex-col gap-xs">
+            <legend className="text-sm text-on-surface-variant">Categorías</legend>
+            <div className="flex flex-col gap-xs">
+              {catalogCategories.map((category) => (
+                <label key={category.id} className="inline-flex items-center gap-xs">
+                  <input
+                    type="checkbox"
+                    checked={form.categories.includes(category.id)}
+                    onChange={() => toggleCategory(category.id)}
+                  />
+                  <span className="text-on-surface">{category.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <label className="flex flex-col gap-xs">
+            <span className="text-sm text-on-surface-variant">
+              Temáticas (separadas por coma)
+            </span>
+            <input
+              name="topics"
+              value={form.topics}
+              placeholder="infantil, personajes, iluminacion"
+              onChange={(event) => setForm({ ...form, topics: event.target.value })}
+              className={fieldClassName}
+              style={{ width: "100%" }}
             />
           </label>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
-            <div className="flex flex-col gap-xs">
-              <span className="text-sm text-on-surface-variant">Categoría</span>
-              <SearchableSelect
-                name="category"
-                value={form.category}
-                onChange={(category) =>
-                  setForm({
-                    ...form,
-                    category: category as Product["category"],
-                  })
-                }
-                searchPlaceholder="Buscar categoría..."
-                options={productCategories.map((category) => ({
-                  value: category,
-                  label: productCategoryLabels[category],
-                }))}
-              />
-            </div>
             <label className="flex flex-col gap-xs">
-              <span className="text-sm text-on-surface-variant">Etiqueta</span>
+              <span className="text-sm text-on-surface-variant">Medidas</span>
               <input
-                name="tag"
-                value={form.tag}
-                placeholder={productCategoryLabels[form.category]}
-                onChange={(event) => setForm({ ...form, tag: event.target.value })}
-                className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
-              />
-            </label>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
-            <label className="flex flex-col gap-xs">
-              <span className="text-sm text-on-surface-variant">Material</span>
-              <input
-                name="material"
-                value={form.material}
+                name="dimensions"
+                value={form.dimensions}
                 onChange={(event) =>
-                  setForm({ ...form, material: event.target.value })
+                  setForm({ ...form, dimensions: event.target.value })
                 }
-                className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
+                className={fieldClassName}
+                style={{ width: "100%" }}
               />
             </label>
             <label className="flex flex-col gap-xs">
@@ -303,69 +360,18 @@ export function ProductManager({
                 name="finish"
                 value={form.finish}
                 onChange={(event) => setForm({ ...form, finish: event.target.value })}
-                className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
+                className={fieldClassName}
+                style={{ width: "100%" }}
               />
             </label>
           </div>
 
           <label className="flex flex-col gap-xs">
-            <span className="text-sm text-on-surface-variant">Texto alternativo</span>
-            <input
-              name="alt"
-              value={form.alt}
-              placeholder={form.title || "Descripción de la imagen"}
-              onChange={(event) => setForm({ ...form, alt: event.target.value })}
-              className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
-            />
-          </label>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
-            <label className="flex flex-col gap-xs">
-              <span className="text-sm text-on-surface-variant">Precio</span>
-              <MoneyInput
-                name="price"
-                value={form.price}
-                onChange={(value) => setForm({ ...form, price: value })}
-              />
-            </label>
-            <label className="flex flex-col gap-xs">
-              <span className="text-sm text-on-surface-variant">Stock</span>
-              <input
-                name="stock"
-                type="number"
-                min="0"
-                value={form.stock}
-                onChange={(event) => setForm({ ...form, stock: event.target.value })}
-                className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
-              />
-            </label>
-          </div>
-
-          <label className="flex flex-col gap-xs">
-            <span className="text-sm text-on-surface-variant">Instagram</span>
-            <input
-              name="instagramUrl"
-              type="text"
-              placeholder="https://instagram.com/p/..."
-              value={form.instagramUrl}
-              onChange={(event) =>
-                setForm({ ...form, instagramUrl: event.target.value })
-              }
-              className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
-            />
-          </label>
-
-          <label className="flex flex-col gap-xs">
-            <span className="text-sm text-on-surface-variant">Mercado Libre</span>
-            <input
-              name="mercadoLibreUrl"
-              type="text"
-              placeholder="https://www.mercadolibre.com.ar/..."
-              value={form.mercadoLibreUrl}
-              onChange={(event) =>
-                setForm({ ...form, mercadoLibreUrl: event.target.value })
-              }
-              className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
+            <span className="text-sm text-on-surface-variant">Precio</span>
+            <MoneyInput
+              name="price"
+              value={form.price}
+              onChange={(value) => setForm({ ...form, price: value })}
             />
           </label>
 
@@ -383,25 +389,14 @@ export function ProductManager({
             </label>
             <label className="inline-flex items-center gap-xs">
               <input
-                name="featured"
+                name="hidden"
                 type="checkbox"
-                checked={form.featured}
+                checked={form.hidden}
                 onChange={(event) =>
-                  setForm({ ...form, featured: event.target.checked })
+                  setForm({ ...form, hidden: event.target.checked })
                 }
               />
-              <span className="text-on-surface">Destacado</span>
-            </label>
-            <label className="inline-flex items-center gap-xs">
-              <input
-                name="available"
-                type="checkbox"
-                checked={form.available}
-                onChange={(event) =>
-                  setForm({ ...form, available: event.target.checked })
-                }
-              />
-              <span className="text-on-surface">Disponible</span>
+              <span className="text-on-surface">Ocultar de la galería</span>
             </label>
           </div>
 
@@ -411,7 +406,10 @@ export function ProductManager({
             </span>
             <div className="grid grid-cols-3 gap-sm">
               {existingImages.map((url, index) => (
-                <div key={url} className="relative aspect-square overflow-hidden rounded-lg bg-surface-container-low">
+                <div
+                  key={url}
+                  className="relative aspect-square overflow-hidden rounded-lg bg-surface-container-low"
+                >
                   <Image src={url} alt="" fill className="object-cover" unoptimized />
                   <button
                     type="button"
@@ -424,7 +422,10 @@ export function ProductManager({
                 </div>
               ))}
               {newFiles.map((file) => (
-                <div key={file.preview} className="relative aspect-square overflow-hidden rounded-lg bg-surface-container-low">
+                <div
+                  key={file.preview}
+                  className="relative aspect-square overflow-hidden rounded-lg bg-surface-container-low"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={file.preview} alt="" className="h-full w-full object-cover" />
                   <button
@@ -447,7 +448,8 @@ export function ProductManager({
                 accept="image/*"
                 multiple
                 onChange={(event) => onSelectImages(event.target.files)}
-                className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface"
+                className={fieldClassName}
+                style={{ width: "100%" }}
               />
             ) : null}
             {newFiles.map((file) => (
@@ -495,80 +497,110 @@ export function ProductManager({
           </div>
         ) : (
           <div className="flex flex-col gap-sm">
-            {products.map((product) => (
-              <div
-                key={product.id}
-                className={
-                  product.id === editingId
-                    ? "flex gap-sm rounded-xl border border-primary/40 bg-primary/10 p-sm"
-                    : "flex gap-sm rounded-xl border border-outline-variant/20 bg-surface-container-low p-sm"
-                }
-              >
-                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-surface-container">
-                  {product.image ? (
-                    <Image
-                      src={product.image}
-                      alt={product.alt}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-on-surface-variant">
-                      <MaterialIcon name="image" />
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-headline-md text-on-surface truncate">
-                    {product.title}
-                  </p>
-                  <p className="text-sm text-on-surface-variant">
-                    {productCategoryLabels[product.category]}
-                    {product.price != null
-                      ? ` · ${product.price.toLocaleString("es-AR", {
-                          style: "currency",
-                          currency: "ARS",
-                        })}`
-                      : ""}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-start gap-xs">
-                  <button
-                    type="button"
-                    onClick={() => startEdit(product)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10"
-                    aria-label={`Editar ${product.title}`}
-                    title="Editar"
-                  >
-                    <MaterialIcon name="edit" className="text-base" />
-                  </button>
-                  <form
-                    action={deleteAction}
-                    onSubmit={(event) => {
-                      if (
-                        !window.confirm(
-                          `¿Eliminar "${product.title}"? Esta acción no se puede deshacer.`,
-                        )
-                      ) {
-                        event.preventDefault();
-                      }
-                    }}
-                  >
-                    <input type="hidden" name="id" value={product.id} />
+            {products.map((product) => {
+              const id = productId(product);
+              const hidden = !product.isActive;
+
+              return (
+                <div
+                  key={id}
+                  className={
+                    id === editingId
+                      ? "flex gap-sm rounded-xl border border-primary/40 bg-primary/10 p-sm"
+                      : "flex gap-sm rounded-xl border border-outline-variant/20 bg-surface-container-low p-sm"
+                  }
+                  style={{ opacity: hidden ? 0.65 : 1 }}
+                >
+                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-surface-container">
+                    {product.featuredImage ? (
+                      <Image
+                        src={product.featuredImage}
+                        alt={product.title}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-on-surface-variant">
+                        <MaterialIcon name="image" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-headline-md text-on-surface truncate">
+                      {product.title}
+                    </p>
+                    <p className="text-sm text-on-surface-variant">
+                      {product.categories.map(categoryLabel).join(" · ")}
+                      {product.price != null
+                        ? ` · ${formatProductPrice(product.price)}`
+                        : ""}
+                    </p>
+                    {hidden ? (
+                      <p className="mt-1 text-sm text-secondary">Oculto</p>
+                    ) : null}
+                  </div>
+                  <div className="flex shrink-0 items-start gap-xs">
+                    <form action={visibilityAction}>
+                      <input type="hidden" name="id" value={id} />
+                      <input
+                        type="hidden"
+                        name="isActive"
+                        value={hidden ? "true" : "false"}
+                      />
+                      <button
+                        type="submit"
+                        disabled={visibilityPending}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10 disabled:opacity-50"
+                        aria-label={
+                          hidden
+                            ? `Mostrar ${product.title}`
+                            : `Ocultar ${product.title}`
+                        }
+                        title={hidden ? "Mostrar en galería" : "Ocultar de la galería"}
+                      >
+                        <MaterialIcon
+                          name={hidden ? "visibility" : "visibility_off"}
+                          className="text-base"
+                        />
+                      </button>
+                    </form>
                     <button
-                      type="submit"
-                      disabled={deletePending}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-error hover:bg-error/10 disabled:opacity-50"
-                      aria-label={`Eliminar ${product.title}`}
-                      title="Eliminar"
+                      type="button"
+                      onClick={() => startEdit(product)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10"
+                      aria-label={`Editar ${product.title}`}
+                      title="Editar"
                     >
-                      <MaterialIcon name="delete" className="text-base" />
+                      <MaterialIcon name="edit" className="text-base" />
                     </button>
-                  </form>
+                    <form
+                      action={deleteAction}
+                      onSubmit={(event) => {
+                        if (
+                          !window.confirm(
+                            `¿Eliminar "${product.title}"? Esta acción no se puede deshacer.`,
+                          )
+                        ) {
+                          event.preventDefault();
+                        }
+                      }}
+                    >
+                      <input type="hidden" name="id" value={id} />
+                      <button
+                        type="submit"
+                        disabled={deletePending}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-error hover:bg-error/10 disabled:opacity-50"
+                        aria-label={`Eliminar ${product.title}`}
+                        title="Eliminar"
+                      >
+                        <MaterialIcon name="delete" className="text-base" />
+                      </button>
+                    </form>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </article>

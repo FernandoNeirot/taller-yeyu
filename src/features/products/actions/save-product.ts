@@ -1,14 +1,17 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/features/admin/services/auth";
 import {
   createProduct,
-  isProductCategory,
+  isCatalogCategory,
+  parseTopicList,
   slugify,
   updateProduct,
 } from "../services/get-products";
 import { uploadProductImageBuffers } from "../services/upload-product-images";
 import type { Product } from "../types";
+import { MAX_PRODUCT_IMAGES } from "../utils/compress-image";
 
 export type SaveProductState = {
   error?: string;
@@ -30,8 +33,12 @@ export async function saveProductAction(
 
   const id = String(formData.get("id") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
-  const category = formData.get("category");
+  const shortDescription = String(formData.get("shortDescription") ?? "").trim();
+  const fullDescription = String(formData.get("fullDescription") ?? "").trim();
+  const categories = formData
+    .getAll("categories")
+    .map(String)
+    .filter(isCatalogCategory);
   const existingImages = formData
     .getAll("existingImages")
     .map((value) => String(value))
@@ -42,20 +49,19 @@ export async function saveProductAction(
     .filter(Boolean)
     .map((value) => Buffer.from(value, "base64"));
 
-  if (!title || !description) {
+  if (!title || !fullDescription) {
     return { error: "Completá título y descripción." };
   }
 
-  if (!isProductCategory(category)) {
-    return { error: "Seleccioná una categoría válida." };
+  if (categories.length === 0) {
+    return { error: "Elegí al menos una categoría." };
   }
 
-  const images = [...existingImages];
-  if (images.length + files.length > 3) {
-    return { error: "Podés tener como máximo 3 fotos." };
+  if (existingImages.length + files.length > MAX_PRODUCT_IMAGES) {
+    return { error: `Podés tener como máximo ${MAX_PRODUCT_IMAGES} fotos.` };
   }
 
-  if (images.length + files.length === 0) {
+  if (existingImages.length + files.length === 0) {
     return { error: "Agregá al menos una foto." };
   }
 
@@ -64,27 +70,29 @@ export async function saveProductAction(
       files,
       slugify(title) || "producto",
     );
-    const allImages = [...images, ...uploaded].slice(0, 3);
+    const allImages = [...existingImages, ...uploaded].slice(
+      0,
+      MAX_PRODUCT_IMAGES,
+    );
     const input = {
       title,
-      description,
-      category,
-      tag: String(formData.get("tag") ?? ""),
-      alt: String(formData.get("alt") ?? ""),
-      material: String(formData.get("material") ?? "Madera"),
+      shortDescription,
+      fullDescription,
+      categories,
+      topics: parseTopicList(String(formData.get("topics") ?? "")),
+      dimensions: String(formData.get("dimensions") ?? ""),
       finish: String(formData.get("finish") ?? ""),
       customizable: formData.get("customizable") === "on",
-      featured: formData.get("featured") === "on",
-      available: formData.get("available") === "on",
-      stock: optionalNumber(formData.get("stock")),
       price: optionalNumber(formData.get("price")),
-      instagramUrl: String(formData.get("instagramUrl") ?? ""),
-      mercadoLibreUrl: String(formData.get("mercadoLibreUrl") ?? ""),
+      isActive: formData.get("hidden") !== "on",
     };
 
     const product = id
       ? await updateProduct(id, input, allImages)
       : await createProduct(input, allImages);
+
+    revalidatePath("/", "layout");
+    revalidatePath("/galeria");
 
     return { product };
   } catch (error) {

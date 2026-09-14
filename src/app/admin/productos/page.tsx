@@ -4,6 +4,8 @@ import { requireAdmin } from "@/features/admin/services/auth";
 import { ProductManager } from "@/features/products/components/product-manager";
 import { getProducts } from "@/features/products/services/get-products";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Productos",
   robots: { index: false, follow: false },
@@ -26,7 +28,8 @@ export default async function AdminProductsPage() {
           Productos
         </h1>
         <p className="font-body-md text-body-md text-on-surface-variant">
-          Creá y editá el catálogo. Las fotos se guardan en Firebase Storage.
+          Creá, editá y ocultá productos del catálogo. Las fotos se guardan en
+          Firebase Storage.
         </p>
       </div>
 

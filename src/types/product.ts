@@ -39,6 +39,12 @@ export const galleryCategoryLabels: Record<Exclude<GalleryCategoryId, "todos">, 
     "regalos-especiales": "Regalos",
   };
 
+export type CatalogCategoryId = Exclude<GalleryCategoryId, "todos">;
+
+export const catalogCategories = galleryCategories.filter(
+  (category) => category.id !== "todos",
+) as { id: CatalogCategoryId; label: string }[];
+
 export function topicLabel(topic: string) {
   return topic
     .split("-")

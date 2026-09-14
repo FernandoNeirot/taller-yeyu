@@ -2,7 +2,7 @@ import sharp from "sharp";
 import { getAdminBucket } from "@/lib/firebase-admin";
 
 const MAX_IMAGE_BYTES = 50 * 1024;
-const MAX_IMAGES = 3;
+const MAX_IMAGES = 8;
 
 export async function compressToWebp(buffer: Buffer) {
   let width = 1200;
@@ -39,7 +39,7 @@ export async function uploadProductImageBuffers(
   slug: string,
 ) {
   if (buffers.length > MAX_IMAGES) {
-    throw new Error("Podés subir como máximo 3 fotos.");
+    throw new Error("Podés subir como máximo 8 fotos.");
   }
 
   const bucket = getAdminBucket();

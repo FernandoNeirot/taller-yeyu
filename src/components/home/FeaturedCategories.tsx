@@ -1,46 +1,15 @@
-import { initialProducts } from "@/data/initialProducts";
 import { FeaturedCategoryBannerCarousel } from "@/components/home/FeaturedCategoryBannerCarousel";
 import { FeaturedCategoryGrid } from "@/components/home/FeaturedCategoryGrid";
 import { FeaturedCategoryHero } from "@/components/home/FeaturedCategoryHero";
 import { FeaturedCategorySlim } from "@/components/home/FeaturedCategorySlim";
+import { getCatalogProducts } from "@/features/products/services/get-catalog-products";
 import type { Product } from "@/types/product";
 
-function bySlug(slugs: string[]): Product[] {
+function bySlug(products: Product[], slugs: string[]) {
   return slugs
-    .map((slug) => initialProducts.find((product) => product.slug === slug))
+    .map((slug) => products.find((product) => product.slug === slug))
     .filter((product): product is Product => Boolean(product));
 }
-
-const infantilProducts = bySlug([
-  "cartel-redondo-de-pared-bienvenida-iniciales",
-  "medidor-infantil-de-altura-con-riel",
-  "reloj-didactico-infantil-aprende-la-hora",
-  "kit-creativo-de-figuras-para-pintar",
-]);
-
-const hogarProducts = bySlug([
-  "cuadro-wall-art-geometrico",
-  "velador-tematico-led",
-  "set-portallaves-de-pared-con-llaveros-encajables",
-  "adorno-mural-bicapa-profundidad",
-  "cuadro-calado-artistico",
-  "frase-decorativa-en-mdf-troquelado",
-]);
-
-const eventosProducts = bySlug([
-  "centro-de-mesa-tematico",
-  "cake-topper-personalizado-nombre-edad",
-  "caja-calada-multiuso-lapicero-souvenir",
-  "numeros-decorativos-para-cumpleanos-de-decadas",
-]);
-
-const organizadoresProducts = bySlug([
-  "organizador-multiuso-de-escritorio",
-  "caja-organizadora-porta-te-con-tapa",
-  "sistema-de-separadores-de-cajon-modulares",
-  "porta-servilletas-decorativo",
-  "porta-llaves-ganchera-rustica-de-cocina",
-]);
 
 const eventTopics = [
   { id: "cumpleanos", label: "Cumpleaños" },
@@ -49,7 +18,36 @@ const eventTopics = [
   { id: "fiestas", label: "Fiestas" },
 ];
 
-export function FeaturedCategories() {
+export async function FeaturedCategories() {
+  const catalog = await getCatalogProducts();
+  const infantilProducts = bySlug(catalog, [
+    "cartel-redondo-de-pared-bienvenida-iniciales",
+    "medidor-infantil-de-altura-con-riel",
+    "reloj-didactico-infantil-aprende-la-hora",
+    "kit-creativo-de-figuras-para-pintar",
+  ]);
+  const hogarProducts = bySlug(catalog, [
+    "cuadro-wall-art-geometrico",
+    "velador-tematico-led",
+    "set-portallaves-de-pared-con-llaveros-encajables",
+    "adorno-mural-bicapa-profundidad",
+    "cuadro-calado-artistico",
+    "frase-decorativa-en-mdf-troquelado",
+  ]);
+  const eventosProducts = bySlug(catalog, [
+    "centro-de-mesa-tematico",
+    "cake-topper-personalizado-nombre-edad",
+    "caja-calada-multiuso-lapicero-souvenir",
+    "numeros-decorativos-para-cumpleanos-de-decadas",
+  ]);
+  const organizadoresProducts = bySlug(catalog, [
+    "organizador-multiuso-de-escritorio",
+    "caja-organizadora-porta-te-con-tapa",
+    "sistema-de-separadores-de-cajon-modulares",
+    "porta-servilletas-decorativo",
+    "porta-llaves-ganchera-rustica-de-cocina",
+  ]);
+
   return (
     <section
       className="w-full px-container-margin py-xl"

@@ -6,6 +6,8 @@ import { FeaturedCategories } from "@/components/home/FeaturedCategories";
 import { Logo } from "@/components/layout/logo";
 import { MaterialIcon } from "@/components/ui/material-icon";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   alternates: {
     canonical: "/",

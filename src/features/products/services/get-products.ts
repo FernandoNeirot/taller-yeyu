@@ -1,15 +1,31 @@
-import { FieldValue, type DocumentData } from "firebase-admin/firestore";
+import {
+  FieldValue,
+  type CollectionReference,
+  type QuerySnapshot,
+} from "firebase-admin/firestore";
+import { revalidatePath } from "next/cache";
+import { initialProducts } from "@/data/initialProducts";
 import {
   PRODUCTS_COLLECTION,
   getAdminFirestore,
 } from "@/lib/firebase-admin";
-import type {
-  Product,
-  ProductCategory,
-  ProductInput,
-} from "../types";
-import { productCategories, productCategoryLabels } from "../types";
+import { catalogCategories, type Product } from "@/types/product";
+import type { ProductInput } from "../types";
+import { mapCatalogDoc } from "./map-catalog-product";
+import {
+  getCachedProducts,
+  getStaleCachedProducts,
+  isProductCacheFresh,
+  peekCachedProduct,
+  removeCachedProduct,
+  replaceProductCache,
+  upsertCachedProduct,
+} from "./product-cache";
 import { deleteProductImages } from "./upload-product-images";
+
+const catalogCategoryIds = new Set<string>(
+  catalogCategories.map((item) => item.id),
+);
 
 export function slugify(value: string) {
   return value
@@ -20,112 +36,172 @@ export function slugify(value: string) {
     .replace(/(^-|-$)/g, "");
 }
 
-export function isProductCategory(value: unknown): value is ProductCategory {
-  return productCategories.includes(value as ProductCategory);
+export function parseTopicList(value: string) {
+  return [
+    ...new Set(
+      value
+        .split(/[,\n]/)
+        .map((item) => slugify(item))
+        .filter(Boolean),
+    ),
+  ];
 }
 
-function normalizeCategory(value: unknown): ProductCategory {
-  if (value === "iluminacion") return "veladores";
-  return isProductCategory(value) ? value : "souvenirs";
+export function isCatalogCategory(value: unknown): value is string {
+  return typeof value === "string" && catalogCategoryIds.has(value);
 }
 
-function toNumberOrNull(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
+function revalidateCatalog() {
+  revalidatePath("/", "layout");
+  revalidatePath("/galeria");
+  revalidatePath("/admin/productos");
 }
 
-export function mapProductDoc(
-  id: string,
-  data: DocumentData,
-): Product {
-  const title = String(data.title ?? "");
-  const description = String(data.description ?? "");
-  const image = String(data.image ?? "");
-  const images = Array.isArray(data.images)
-    ? data.images.map(String).filter(Boolean)
-    : [];
-  const gallery = images.length > 0 ? images : image ? [image] : [];
-
-  return {
-    id,
-    slug: String(data.slug ?? id),
-    title,
-    description,
-    category: normalizeCategory(data.category),
-    tag: String(data.tag ?? ""),
-    alt: String(data.alt ?? title),
-    image: gallery[0] ?? "",
-    images: gallery,
-    material: String(data.material ?? "Madera"),
-    finish: String(data.finish ?? ""),
-    customizable: Boolean(data.customizable),
-    featured: Boolean(data.featured),
-    available: data.available !== false,
-    stock: toNumberOrNull(data.stock),
-    price: toNumberOrNull(data.price),
-    currency: "ARS",
-    searchText: String(data.searchText ?? `${title} ${description}`),
-    instagramUrl: String(data.instagramUrl ?? ""),
-    mercadoLibreUrl: String(data.mercadoLibreUrl ?? ""),
-  };
-}
-
-export function buildProductPayload(input: ProductInput, images: string[]) {
+function toFirestorePayload(input: ProductInput, images: string[]) {
   const title = input.title.trim();
-  const description = input.description.trim();
-  const gallery = images.filter(Boolean).slice(0, 3);
-  const category = input.category;
-  const tag = input.tag.trim() || productCategoryLabels[category];
+  const fullDescription = input.fullDescription.trim();
+  const shortDescription = input.shortDescription.trim() || fullDescription;
+  const galleryImages = images.filter(Boolean);
+  const categories = input.categories.filter(isCatalogCategory);
 
   return {
     slug: slugify(title),
     title,
-    description,
-    category,
-    tag,
-    alt: input.alt.trim() || title,
-    image: gallery[0] ?? "",
-    images: gallery,
-    material: input.material.trim() || "Madera",
-    finish: input.finish.trim(),
-    customizable: input.customizable,
-    featured: input.featured,
-    available: input.available,
-    stock: input.stock,
+    shortDescription,
+    fullDescription,
+    categories,
+    topics: input.topics.map(slugify).filter(Boolean),
+    specifications: {
+      material: "",
+      dimensions: input.dimensions.trim(),
+      finish: input.finish.trim(),
+      customizable: input.customizable,
+    },
+    featuredImage: galleryImages[0] ?? "/principal.png",
+    galleryImages,
     price: input.price,
-    currency: "ARS" as const,
-    searchText: `${title} ${description} ${tag} ${input.material} ${input.finish}`.toLowerCase(),
-    instagramUrl: input.instagramUrl.trim(),
-    mercadoLibreUrl: input.mercadoLibreUrl.trim(),
+    isActive: input.isActive,
+    available: input.isActive,
   };
 }
 
-export async function getProducts(): Promise<Product[]> {
-  let snapshot;
-
-  try {
-    snapshot = await getAdminFirestore()
-      .collection(PRODUCTS_COLLECTION)
-      .orderBy("title")
-      .get();
-  } catch (error) {
-    console.error("No se pudieron leer los productos de Firestore.", error);
-    return [];
-  }
-
-  return snapshot.docs.map((doc) => mapProductDoc(doc.id, doc.data()));
+function mapSnapshotProducts(snapshot: QuerySnapshot): Product[] {
+  return snapshot.docs
+    .map((doc) => mapCatalogDoc(doc.id, doc.data()))
+    .filter((product): product is Product => product !== null)
+    .sort((a, b) => a.title.localeCompare(b.title, "es"));
 }
 
-export async function createProduct(input: ProductInput, images: string[]) {
-  const payload = buildProductPayload(input, images);
-  const docRef = await getAdminFirestore()
-    .collection(PRODUCTS_COLLECTION)
-    .add({
-      ...payload,
+async function seedCatalog(collection: CollectionReference) {
+  const batch = getAdminFirestore().batch();
+
+  for (const product of initialProducts) {
+    const ref = collection.doc(product.slug);
+    batch.set(ref, {
+      slug: product.slug,
+      title: product.title,
+      shortDescription: product.shortDescription,
+      fullDescription: product.fullDescription,
+      categories: product.categories,
+      topics: product.topics,
+      specifications: product.specifications,
+      featuredImage: product.featuredImage,
+      galleryImages: product.galleryImages,
+      price: product.price ?? null,
+      isActive: product.isActive,
+      available: product.isActive,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
+  }
 
-  return { id: docRef.id, ...payload } satisfies Product;
+  await batch.commit();
+}
+
+async function loadProductsFromFirebase(): Promise<Product[]> {
+  const collection = getAdminFirestore().collection(PRODUCTS_COLLECTION);
+  let snapshot = await collection.get();
+  const hasCatalog = snapshot.docs.some((doc) =>
+    Array.isArray(doc.data().categories),
+  );
+
+  if (!hasCatalog) {
+    await seedCatalog(collection);
+    snapshot = await collection.get();
+  }
+
+  replaceProductCache(mapSnapshotProducts(snapshot));
+  return getCachedProducts() ?? [];
+}
+
+let inflightProducts: Promise<Product[]> | null = null;
+
+export async function getProducts(): Promise<Product[]> {
+  const cached = getCachedProducts();
+  if (cached) return cached;
+
+  if (!inflightProducts) {
+    inflightProducts = loadProductsFromFirebase()
+      .catch((error) => {
+        console.error("No se pudieron leer los productos de Firestore.", error);
+        return getStaleCachedProducts() ?? [];
+      })
+      .finally(() => {
+        inflightProducts = null;
+      });
+  }
+
+  return inflightProducts;
+}
+
+async function getProductForMutation(id: string) {
+  const cached = peekCachedProduct(id);
+  if (cached) return cached;
+
+  const existing = await getAdminFirestore()
+    .collection(PRODUCTS_COLLECTION)
+    .doc(id)
+    .get();
+
+  if (!existing.exists) return null;
+  return mapCatalogDoc(id, existing.data() ?? {});
+}
+
+export async function createProduct(input: ProductInput, images: string[]) {
+  const payload = toFirestorePayload(input, images);
+  if (!payload.slug) {
+    throw new Error("El título no es válido.");
+  }
+
+  if (peekCachedProduct(payload.slug)) {
+    throw new Error("Ya existe un producto con ese título.");
+  }
+
+  const collection = getAdminFirestore().collection(PRODUCTS_COLLECTION);
+
+  if (!isProductCacheFresh()) {
+    const existing = await collection.doc(payload.slug).get();
+    if (existing.exists) {
+      throw new Error("Ya existe un producto con ese título.");
+    }
+  }
+
+  await collection.doc(payload.slug).set({
+    ...payload,
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  const product = {
+    id: payload.slug,
+    ...payload,
+    price: payload.price ?? undefined,
+    createdAt: new Date().toISOString(),
+  } satisfies Product;
+
+  upsertCachedProduct(product);
+  revalidateCatalog();
+  return product;
 }
 
 export async function updateProduct(
@@ -133,33 +209,58 @@ export async function updateProduct(
   input: ProductInput,
   images: string[],
 ) {
-  const payload = buildProductPayload(input, images);
-  const docRef = getAdminFirestore().collection(PRODUCTS_COLLECTION).doc(id);
-  const existing = await docRef.get();
+  const payload = toFirestorePayload(input, images);
+  const current = await getProductForMutation(id);
 
-  if (!existing.exists) {
+  if (!current) {
     throw new Error("El producto no existe.");
   }
 
-  await docRef.update({
+  await getAdminFirestore().collection(PRODUCTS_COLLECTION).doc(id).update({
     ...payload,
     updatedAt: FieldValue.serverTimestamp(),
   });
 
-  return { id, ...payload } satisfies Product;
+  const product = {
+    id,
+    ...payload,
+    price: payload.price ?? undefined,
+    createdAt: current.createdAt,
+  } satisfies Product;
+
+  upsertCachedProduct(product);
+  revalidateCatalog();
+  return product;
 }
 
-export async function deleteProduct(id: string) {
-  const docRef = getAdminFirestore().collection(PRODUCTS_COLLECTION).doc(id);
-  const existing = await docRef.get();
-
-  if (!existing.exists) {
+export async function setProductActive(id: string, isActive: boolean) {
+  const current = await getProductForMutation(id);
+  if (!current) {
     throw new Error("El producto no existe.");
   }
 
-  const product = mapProductDoc(id, existing.data() ?? {});
-  await deleteProductImages(product.images);
-  await docRef.delete();
+  await getAdminFirestore().collection(PRODUCTS_COLLECTION).doc(id).update({
+    isActive,
+    available: isActive,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  const product = { ...current, isActive };
+  upsertCachedProduct(product);
+  revalidateCatalog();
+  return product;
+}
+
+export async function deleteProduct(id: string) {
+  const current = await getProductForMutation(id);
+  if (!current) {
+    throw new Error("El producto no existe.");
+  }
+
+  await deleteProductImages(current.galleryImages);
+  await getAdminFirestore().collection(PRODUCTS_COLLECTION).doc(id).delete();
+  removeCachedProduct(id);
+  revalidateCatalog();
 
   return id;
 }

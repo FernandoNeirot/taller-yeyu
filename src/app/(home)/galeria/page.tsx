@@ -7,6 +7,8 @@ import { sharePageMetadata } from "@/lib/seo/metadata";
 const galleryDescription =
   "Inspiración y arte en cada pieza personalizada de Taller Yeyu.";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = sharePageMetadata({
   title: "Galería",
   description: galleryDescription,

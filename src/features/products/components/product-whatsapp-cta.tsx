@@ -15,7 +15,7 @@ export function ProductWhatsAppCTA({ product }: { product: Product }) {
         fullWidth
         onClick={() => setOpen(true)}
       >
-        Consultar por este Producto
+        Consultar
       </WhatsAppButton>
       {open ? (
         <ProductInquiryModal
