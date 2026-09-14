@@ -18,58 +18,88 @@ export function ProductCard({ product }: ProductCardProps) {
   const primaryCategory = product.categories[0];
 
   return (
-    <article className="h-full flex flex-col overflow-hidden rounded-xl bg-surface-container border border-outline-variant/20">
-      <div className="relative aspect-square w-full shrink-0">
-        <Image
-          alt={product.title}
-          src={product.featuredImage}
-          fill
-          loading="lazy"
-          className="object-cover"
-          sizes="(min-width: 1280px) 20vw, (min-width: 768px) 33vw, 50vw"
-          unoptimized
-        />
-        {product.specifications.customizable ? (
-          <span className="absolute left-2 top-2 inline-flex max-w-[calc(100%-1rem)] items-center gap-1 truncate rounded-full bg-primary-container px-2 py-1 font-label-caps text-label-caps text-on-primary-container">
-            <MaterialIcon name="draw" className="shrink-0 text-sm" />
-            <span className="truncate">Personalizable</span>
-          </span>
-        ) : null}
-      </div>
-
-      <div className="flex flex-1 flex-col p-2.5 bg-surface-container-high md:p-3">
-        {primaryCategory ? (
-          <span className="rounded-full bg-surface-container px-2 py-0.5 font-label-caps text-label-caps text-secondary tracking-widest truncate">
-            {categoryLabel(primaryCategory)}
-          </span>
-        ) : null}
-
-        <h3 className="mt-2 font-headline-md text-[15px] leading-snug text-on-surface line-clamp-2 md:text-headline-md md:leading-tight">
-          {product.title}
-        </h3>
-        {product.price != null ? (
-          <p className="mt-1 font-headline-md text-[15px] leading-snug text-primary md:text-headline-md">
-            {formatProductPrice(product.price)}
-          </p>
-        ) : null}
-        <p className="mt-1 hidden font-body-md text-body-md text-on-surface-variant line-clamp-2 sm:block">
-          {product.shortDescription}
-        </p>
-
-        <div className="mt-auto pt-3 flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={() => setShowDetail(true)}
-            className="touch-target inline-flex w-full items-center justify-center gap-1 rounded border border-primary px-2 text-center text-primary font-label-caps text-label-caps tracking-widest hover:bg-primary/10 transition-colors"
-          >
-            <span aria-hidden="true">
-              <MaterialIcon name="visibility" className="shrink-0 text-sm" />
+    <article
+      className="flex h-full flex-col overflow-hidden rounded-xl border border-white/5 bg-neutral-900 shadow-md shadow-black/40"
+      style={{ width: "100%" }}
+    >
+      <button
+        type="button"
+        onClick={() => setShowDetail(true)}
+        aria-label={`Ver ${product.title}`}
+        className="flex flex-1 flex-col text-left"
+        style={{
+          width: "100%",
+          cursor: "pointer",
+          background: "transparent",
+          border: 0,
+          padding: 0,
+        }}
+      >
+        <div
+          className="relative shrink-0"
+          style={{ width: "100%", aspectRatio: "4 / 3" }}
+        >
+          <Image
+            alt={product.title}
+            src={product.featuredImage}
+            fill
+            loading="lazy"
+            className="object-cover"
+            sizes="(min-width: 1280px) 20vw, (min-width: 768px) 33vw, 50vw"
+            unoptimized
+          />
+          {product.specifications.customizable ? (
+            <span
+              className="inline-flex items-center justify-center rounded-full bg-black/70 text-white"
+              style={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                width: 28,
+                height: 28,
+              }}
+              title="Personalizable"
+            >
+              <MaterialIcon name="draw" className="text-sm" />
             </span>
-            Ver
-          </button>
-
-          <ProductWhatsAppCTA product={product} />
+          ) : null}
+          <span
+            className="inline-flex items-center justify-center rounded-full bg-black/70 text-white"
+            style={{
+              position: "absolute",
+              bottom: 8,
+              right: 8,
+              width: 28,
+              height: 28,
+            }}
+            aria-hidden="true"
+          >
+            <MaterialIcon name="visibility" className="text-sm" />
+          </span>
         </div>
+
+        <div
+          className="flex flex-1 flex-col p-3"
+          style={{ width: "100%", padding: 12 }}
+        >
+          {primaryCategory ? (
+            <span className="block truncate text-[10px] leading-tight text-neutral-400">
+              {categoryLabel(primaryCategory)}
+            </span>
+          ) : null}
+          <h3 className="mt-1 line-clamp-2 text-xs font-semibold leading-snug text-white sm:text-sm">
+            {product.title}
+          </h3>
+          {product.price != null ? (
+            <p className="mt-1 text-xs font-semibold text-primary sm:text-sm">
+              {formatProductPrice(product.price)}
+            </p>
+          ) : null}
+        </div>
+      </button>
+
+      <div style={{ width: "100%", padding: "0 12px 12px" }}>
+        <ProductWhatsAppCTA product={product} compact />
       </div>
 
       {showDetail ? (

@@ -122,7 +122,7 @@ export function GalleryContent({ products }: GalleryContentProps) {
 
       <section className="px-container-margin pb-xl">
         {visibleProducts.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-md xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
             {visibleProducts.map((product) => (
               <ProductCard
                 key={product.id ?? product.slug}
