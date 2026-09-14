@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getCatalogProducts } from "@/features/products/services/get-catalog-products";
 import { GalleryContent } from "@/features/products/components/gallery-content";
 import { JsonLd, getGalleryJsonLd } from "@/lib/seo/json-ld";
@@ -26,7 +27,17 @@ export default async function GaleriaPage() {
           })),
         )}
       />
-      <GalleryContent products={products} />
+      <Suspense
+        fallback={
+          <div className="px-container-margin py-xl">
+            <p className="font-body-lg text-body-lg text-on-surface-variant">
+              Cargando galería...
+            </p>
+          </div>
+        }
+      >
+        <GalleryContent products={products} />
+      </Suspense>
     </main>
   );
 }

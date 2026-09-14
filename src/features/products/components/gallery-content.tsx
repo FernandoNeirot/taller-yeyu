@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { filterCatalogProducts } from "../lib/filter-catalog";
+import { galleryHref, parseGalleryCategory } from "../lib/gallery-url";
 import type { Product } from "@/types/product";
 import type { GalleryCategoryId } from "@/types/product";
 import { GalleryFilters } from "./gallery-filters";
@@ -14,10 +16,11 @@ type GalleryContentProps = {
 };
 
 export function GalleryContent({ products }: GalleryContentProps) {
-  const [selectedCategory, setSelectedCategory] =
-    useState<GalleryCategoryId>("todos");
-  const [selectedProduct, setSelectedProduct] = useState("");
-  const [selectedTopic, setSelectedTopic] = useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedCategory = parseGalleryCategory(searchParams.get("categoria"));
+  const selectedTopic = searchParams.get("topic") ?? "";
+  const selectedProduct = searchParams.get("producto") ?? "";
 
   const scopedProducts = useMemo(() => {
     return products.filter((product) => {
@@ -70,14 +73,25 @@ export function GalleryContent({ products }: GalleryContentProps) {
   );
 
   function handleCategoryChange(category: GalleryCategoryId) {
-    setSelectedCategory(category);
-    setSelectedTopic("");
-    setSelectedProduct("");
+    router.replace(galleryHref({ categoria: category }), { scroll: false });
   }
 
   function handleTopicChange(topic: string) {
-    setSelectedTopic(topic);
-    setSelectedProduct("");
+    router.replace(
+      galleryHref({ categoria: selectedCategory, topic }),
+      { scroll: false },
+    );
+  }
+
+  function handleProductChange(product: string) {
+    router.replace(
+      galleryHref({
+        categoria: selectedCategory,
+        topic: selectedTopic,
+        producto: product,
+      }),
+      { scroll: false },
+    );
   }
 
   return (
@@ -102,7 +116,7 @@ export function GalleryContent({ products }: GalleryContentProps) {
         topics={topics}
         visibleCount={visibleProducts.length}
         onCategoryChange={handleCategoryChange}
-        onProductChange={setSelectedProduct}
+        onProductChange={handleProductChange}
         onTopicChange={handleTopicChange}
       />
 
