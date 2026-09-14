@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { MaterialIcon } from "@/components/ui/material-icon";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { MoneyInput } from "@/components/ui/money-input";
 import { deleteProductAction } from "../actions/delete-product";
 import { saveProductAction } from "../actions/save-product";
@@ -254,26 +255,24 @@ export function ProductManager({
           </label>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
-            <label className="flex flex-col gap-xs">
+            <div className="flex flex-col gap-xs">
               <span className="text-sm text-on-surface-variant">Categoría</span>
-              <select
+              <SearchableSelect
                 name="category"
                 value={form.category}
-                onChange={(event) =>
+                onChange={(category) =>
                   setForm({
                     ...form,
-                    category: event.target.value as Product["category"],
+                    category: category as Product["category"],
                   })
                 }
-                className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
-              >
-                {productCategories.map((category) => (
-                  <option key={category} value={category}>
-                    {productCategoryLabels[category]}
-                  </option>
-                ))}
-              </select>
-            </label>
+                searchPlaceholder="Buscar categoría..."
+                options={productCategories.map((category) => ({
+                  value: category,
+                  label: productCategoryLabels[category],
+                }))}
+              />
+            </div>
             <label className="flex flex-col gap-xs">
               <span className="text-sm text-on-surface-variant">Etiqueta</span>
               <input

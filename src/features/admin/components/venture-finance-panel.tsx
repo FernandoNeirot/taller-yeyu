@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { MoneyInput, moneyToNumber } from "@/components/ui/money-input";
 import { CalculatorButton } from "@/components/ui/price-calculator";
 import { saveVentureEntryAction } from "@/features/finance/actions/save-venture-entry";
@@ -237,55 +238,48 @@ export function VentureFinancePanel({
             />
           </label>
 
-          <label className="flex flex-col gap-xs">
+          <div className="flex flex-col gap-xs">
             <span className="text-sm text-on-surface-variant">Categoría</span>
-            <select
+            <SearchableSelect
               name="category"
               required
               value={form.category}
-              onChange={(event) =>
+              onChange={(category) =>
                 setForm({
                   ...form,
-                  category: event.target.value,
-                  subcategory:
-                    event.target.value === "Materiales" ? form.subcategory : "",
+                  category,
+                  subcategory: category === "Materiales" ? form.subcategory : "",
                   movementType:
-                    event.target.value === "Ventas" ? "ingreso" : form.movementType,
+                    category === "Ventas" ? "ingreso" : form.movementType,
                 })
               }
-              className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
-            >
-              <option value="">Seleccioná una categoría</option>
-              {ventureCategories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </label>
+              placeholder="Seleccioná una categoría"
+              searchPlaceholder="Buscar categoría..."
+              options={ventureCategories.map((category) => ({
+                value: category,
+                label: category,
+              }))}
+            />
+          </div>
 
           {isMaterials ? (
-            <label className="flex flex-col gap-xs">
+            <div className="flex flex-col gap-xs">
               <span className="text-sm text-on-surface-variant">
                 Subcategoría de material
               </span>
-              <select
+              <SearchableSelect
                 name="subcategory"
                 required
                 value={form.subcategory}
-                onChange={(event) =>
-                  setForm({ ...form, subcategory: event.target.value })
-                }
-                className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
-              >
-                <option value="">Seleccioná</option>
-                {materialSubcategories.map((item) => (
-                  <option key={item} value={item}>
-                    {materialSubcategoryLabels[item]}
-                  </option>
-                ))}
-              </select>
-            </label>
+                onChange={(subcategory) => setForm({ ...form, subcategory })}
+                placeholder="Seleccioná"
+                searchPlaceholder="Buscar subcategoría..."
+                options={materialSubcategories.map((item) => ({
+                  value: item,
+                  label: materialSubcategoryLabels[item],
+                }))}
+              />
+            </div>
           ) : (
             <input type="hidden" name="subcategory" value="" />
           )}
@@ -658,29 +652,31 @@ export function VentureFinancePanel({
                       className="w-full rounded-lg border border-outline-variant/40 bg-surface-container px-3 py-2 text-on-surface"
                     />
                   </label>
-                  <label className="flex flex-col gap-xs">
+                  <div className="flex flex-col gap-xs">
                     <span className="text-xs text-on-surface-variant">Medida</span>
-                    <select
+                    <SearchableSelect
+                      size="sm"
                       value={row.measureType}
-                      onChange={(event) =>
+                      onChange={(measureType) =>
                         setAccessoryRows((prev) =>
                           prev.map((item) =>
                             item.id === row.id
                               ? {
                                   ...item,
-                                  measureType: event.target
-                                    .value as AccessoryMeasureType,
+                                  measureType:
+                                    measureType as AccessoryMeasureType,
                                 }
                               : item,
                           ),
                         )
                       }
-                      className="w-full rounded-lg border border-outline-variant/40 bg-surface-container px-3 py-2 text-on-surface"
-                    >
-                      <option value="unidad">Unidades</option>
-                      <option value="centimetro">Centímetros</option>
-                    </select>
-                  </label>
+                      searchPlaceholder="Buscar medida..."
+                      options={[
+                        { value: "unidad", label: "Unidades" },
+                        { value: "centimetro", label: "Centímetros" },
+                      ]}
+                    />
+                  </div>
                   <label className="flex flex-col gap-xs">
                     <span className="text-xs text-on-surface-variant">
                       Cantidad

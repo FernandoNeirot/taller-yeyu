@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { MoneyInput } from "@/components/ui/money-input";
 import { CalculatorButton } from "@/components/ui/price-calculator";
 import { saveFamilyEntryAction } from "@/features/finance/actions/create-family-entry";
@@ -251,32 +252,33 @@ export function FinancialControl({
                 />
               </label>
 
-              <label className="flex flex-col gap-xs">
+              <div className="flex flex-col gap-xs">
                 <span className="text-sm text-on-surface-variant">Categoría</span>
-                <select
+                <SearchableSelect
                   name="category"
-                  value={familyForm.category}
-                  onChange={(event) =>
-                    setCurrentForm({ category: event.target.value })
-                  }
                   required
-                  className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
-                >
-                  <option value="">Seleccioná una categoría</option>
-                  {(familyCategories as readonly string[]).includes(
-                    familyForm.category,
-                  ) || !familyForm.category ? null : (
-                    <option value={familyForm.category}>
-                      {familyForm.category}
-                    </option>
-                  )}
-                  {familyCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  value={familyForm.category}
+                  onChange={(category) => setCurrentForm({ category })}
+                  placeholder="Seleccioná una categoría"
+                  searchPlaceholder="Buscar categoría..."
+                  options={[
+                    ...((familyCategories as readonly string[]).includes(
+                      familyForm.category,
+                    ) || !familyForm.category
+                      ? []
+                      : [
+                          {
+                            value: familyForm.category,
+                            label: familyForm.category,
+                          },
+                        ]),
+                    ...familyCategories.map((category) => ({
+                      value: category,
+                      label: category,
+                    })),
+                  ]}
+                />
+              </div>
 
               <label className="flex flex-col gap-xs">
                 <span className="text-sm text-on-surface-variant">

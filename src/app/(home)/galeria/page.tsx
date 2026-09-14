@@ -1,8 +1,7 @@
-import { getProducts } from "@/features/products/services/get-products";
+import { getCatalogProducts } from "@/features/products/services/get-catalog-products";
+import { GalleryContent } from "@/features/products/components/gallery-content";
 import { JsonLd, getGalleryJsonLd } from "@/lib/seo/json-ld";
 import { sharePageMetadata } from "@/lib/seo/metadata";
-import { GalleryContent } from "@/features/products/components/gallery-content";
-import { ProductsHydration } from "@/features/products/components/products-hydration";
 
 const galleryDescription =
   "Inspiración y arte en cada pieza personalizada de Taller Yeyu.";
@@ -14,14 +13,20 @@ export const metadata = sharePageMetadata({
 });
 
 export default async function GaleriaPage() {
-  const products = await getProducts();
+  const products = await getCatalogProducts();
 
   return (
     <main className="w-full">
-      <JsonLd data={getGalleryJsonLd(products)} />
-      <ProductsHydration products={products}>
-        <GalleryContent />
-      </ProductsHydration>
+      <JsonLd
+        data={getGalleryJsonLd(
+          products.map((product) => ({
+            title: product.title,
+            description: product.shortDescription,
+            image: product.featuredImage,
+          })),
+        )}
+      />
+      <GalleryContent products={products} />
     </main>
   );
 }

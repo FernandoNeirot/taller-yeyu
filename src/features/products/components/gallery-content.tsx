@@ -1,54 +1,91 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
-import type { ProductCategory } from "../types";
-import { useProducts } from "../hooks/use-products";
+import { filterCatalogProducts } from "../lib/filter-catalog";
+import type { Product } from "@/types/product";
+import type { GalleryCategoryId } from "@/types/product";
+import { GalleryFilters } from "./gallery-filters";
+import { ProductCard } from "./product-card";
 
-const filters = [
-  { id: "todos", label: "Todos" },
-  { id: "veladores", label: "Veladores" },
-  { id: "kits", label: "Kits" },
-  { id: "souvenirs", label: "Souvenirs" },
-] as const;
+type GalleryContentProps = {
+  products: Product[];
+};
 
-type FilterId = (typeof filters)[number]["id"];
+export function GalleryContent({ products }: GalleryContentProps) {
+  const [selectedCategory, setSelectedCategory] =
+    useState<GalleryCategoryId>("todos");
+  const [selectedProduct, setSelectedProduct] = useState("");
+  const [selectedTopic, setSelectedTopic] = useState("");
 
-function normalize(value: string) {
-  return value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
-}
-
-export function GalleryContent() {
-  const { data: products = [] } = useProducts();
-  const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<FilterId>("todos");
-
-  const visibleProducts = useMemo(() => {
-    const term = normalize(query);
-
+  const scopedProducts = useMemo(() => {
     return products.filter((product) => {
-      const matchesFilter =
-        filter === "todos" || product.category === (filter as ProductCategory);
-      if (!matchesFilter) {
+      if (!product.isActive) return false;
+      if (
+        selectedCategory !== "todos" &&
+        !product.categories.includes(selectedCategory)
+      ) {
         return false;
       }
-
-      if (!term) {
-        return true;
+      if (selectedTopic && !product.topics.includes(selectedTopic)) {
+        return false;
       }
-
-      const haystack = normalize(
-        `${product.title} ${product.description} ${product.tag} ${product.material} ${product.finish} ${product.searchText}`,
-      );
-      return haystack.includes(term);
+      return true;
     });
-  }, [filter, products, query]);
+  }, [products, selectedCategory, selectedTopic]);
+
+  const topics = useMemo(() => {
+    const inCategory =
+      selectedCategory === "todos"
+        ? products
+        : products.filter((product) =>
+            product.categories.includes(selectedCategory),
+          );
+
+    return Array.from(
+      new Set(inCategory.flatMap((product) => product.topics)),
+    ).sort((a, b) => a.localeCompare(b, "es"));
+  }, [products, selectedCategory]);
+
+  const productOptions = useMemo(
+    () =>
+      [...scopedProducts]
+        .sort((a, b) => a.title.localeCompare(b.title, "es"))
+        .map((product) => ({
+          value: product.id ?? product.slug,
+          label: product.title,
+        })),
+    [scopedProducts],
+  );
+
+  const visibleProducts = useMemo(
+    () =>
+      filterCatalogProducts(products, {
+        selectedCategory,
+        selectedTopic,
+        selectedProduct,
+      }),
+    [products, selectedCategory, selectedProduct, selectedTopic],
+  );
+
+  function handleCategoryChange(category: GalleryCategoryId) {
+    setSelectedCategory(category);
+    setSelectedTopic("");
+    setSelectedProduct("");
+  }
+
+  function handleTopicChange(topic: string) {
+    setSelectedTopic(topic);
+    setSelectedProduct("");
+  }
 
   return (
     <div className="flex flex-col w-full max-w-7xl mx-auto">
-      <section className="px-container-margin py-lg flex flex-col gap-sm">
+      <section
+        className="px-container-margin py-lg flex flex-col gap-sm"
+        style={{ paddingTop: "7rem" }}
+      >
         <h1 className="font-headline-xl text-headline-xl text-primary">
           Galería de Creaciones
         </h1>
@@ -57,75 +94,27 @@ export function GalleryContent() {
         </p>
       </section>
 
-      <section className="px-container-margin pb-md flex flex-col gap-md">
-        <label className="relative block">
-          <span className="sr-only">Buscar productos</span>
-          <MaterialIcon
-            name="search"
-            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant"
-          />
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar por nombre, categoría o detalle..."
-            className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-low py-3 pl-12 pr-4 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/70 outline-none transition-colors focus:border-primary"
-          />
-        </label>
-
-        <div className="overflow-x-auto whitespace-nowrap hide-scrollbar flex items-center gap-sm">
-          {filters.map((item) => {
-            const active = item.id === filter;
-
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setFilter(item.id)}
-                className={
-                  active
-                    ? "px-4 py-2 rounded-full bg-primary-container text-on-primary-container font-label-caps text-label-caps transition-colors"
-                    : "px-4 py-2 rounded-full bg-surface-container border border-outline-variant text-on-surface-variant font-label-caps text-label-caps hover:bg-surface-container-high transition-colors"
-                }
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      <GalleryFilters
+        selectedCategory={selectedCategory}
+        selectedProduct={selectedProduct}
+        selectedTopic={selectedTopic}
+        products={productOptions}
+        topics={topics}
+        visibleCount={visibleProducts.length}
+        onCategoryChange={handleCategoryChange}
+        onProductChange={setSelectedProduct}
+        onTopicChange={handleTopicChange}
+      />
 
       <section className="px-container-margin pb-xl">
         {visibleProducts.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-md">
             {visibleProducts.map((product, index) => (
-              <article
-                key={product.id}
-                className="h-full flex flex-col overflow-hidden rounded-xl bg-surface-container border border-outline-variant/20"
-              >
-                <div className="relative aspect-square w-full shrink-0">
-                  <Image
-                    alt={product.alt}
-                    src={product.image}
-                    fill
-                    className="object-cover"
-                    sizes="(min-width: 1280px) 20vw, (min-width: 768px) 33vw, 50vw"
-                    unoptimized
-                    priority={index < 4}
-                  />
-                </div>
-                <div className="flex flex-1 flex-col p-3 bg-surface-container-high">
-                  <h4 className="font-label-caps text-label-caps text-secondary tracking-widest">
-                    {product.tag}
-                  </h4>
-                  <h3 className="font-headline-md text-headline-md text-on-surface mt-1 leading-tight line-clamp-2 min-h-16">
-                    {product.title}
-                  </h3>
-                  <p className="font-body-md text-body-md text-on-surface-variant mt-1 line-clamp-2">
-                    {product.description}
-                  </p>
-                </div>
-              </article>
+              <ProductCard
+                key={product.id ?? product.slug}
+                product={product}
+                priority={index < 4}
+              />
             ))}
           </div>
         ) : (
@@ -134,7 +123,7 @@ export function GalleryContent() {
               No encontramos piezas con esa búsqueda
             </p>
             <p className="font-body-md text-body-md text-on-surface-variant mt-sm">
-              Probá con otro nombre, como velador, kit o souvenir.
+              Probá con otra categoría, temática o producto.
             </p>
           </div>
         )}

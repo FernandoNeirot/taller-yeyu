@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { MaterialIcon } from "@/components/ui/material-icon";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   materialSubcategories,
   type MaterialRecord,
@@ -290,57 +291,54 @@ export function QuoteBuilder({
                     className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-sm flex flex-col gap-sm"
                   >
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
-                      <label className="flex flex-col gap-xs">
+                      <div className="flex flex-col gap-xs">
                         <span className="text-xs text-on-surface-variant">
                           Tipo
                         </span>
-                        <select
+                        <SearchableSelect
+                          size="sm"
                           value={row.type}
-                          onChange={(event) =>
-                            selectType(
-                              row.id,
-                              event.target.value as QuoteItemType | "",
-                            )
+                          onChange={(type) =>
+                            selectType(row.id, type as QuoteItemType | "")
                           }
-                          className="w-full rounded-lg border border-outline-variant/40 bg-surface-container px-3 py-2 text-on-surface"
-                        >
-                          <option value="">Seleccioná tipo</option>
-                          {materialSubcategories.map((type) => (
-                            <option
-                              key={type}
-                              value={type}
-                              disabled={catalogByType(catalog, type).length === 0}
-                            >
-                              {quoteTypeLabels[type]}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="flex flex-col gap-xs">
+                          placeholder="Seleccioná tipo"
+                          searchPlaceholder="Buscar tipo..."
+                          options={materialSubcategories.map((type) => ({
+                            value: type,
+                            label: quoteTypeLabels[type],
+                            disabled: catalogByType(catalog, type).length === 0,
+                          }))}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-xs">
                         <span className="text-xs text-on-surface-variant">
                           Material
                         </span>
-                        <select
+                        <SearchableSelect
+                          size="sm"
                           value={row.materialId}
-                          onChange={(event) =>
-                            selectMaterial(row.id, event.target.value)
+                          onChange={(materialId) =>
+                            selectMaterial(row.id, materialId)
                           }
                           disabled={!row.type}
-                          className="w-full rounded-lg border border-outline-variant/40 bg-surface-container px-3 py-2 text-on-surface disabled:opacity-50"
-                        >
-                          <option value="">Seleccioná material</option>
-                          {row.materialId && !catalogMaterial(row, catalog) ? (
-                            <option value={row.materialId}>
-                              {row.materialName || "Material anterior"}
-                            </option>
-                          ) : null}
-                          {options.map((material) => (
-                            <option key={material.id} value={material.id}>
-                              {material.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                          placeholder="Seleccioná material"
+                          searchPlaceholder="Buscar material..."
+                          options={[
+                            ...(row.materialId && !catalogMaterial(row, catalog)
+                              ? [
+                                  {
+                                    value: row.materialId,
+                                    label: row.materialName || "Material anterior",
+                                  },
+                                ]
+                              : []),
+                            ...options.map((material) => ({
+                              value: material.id,
+                              label: material.name,
+                            })),
+                          ]}
+                        />
+                      </div>
                     </div>
 
                     {totals.type === "maderas" ? (
