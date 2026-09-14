@@ -92,30 +92,49 @@ function mapSnapshotProducts(snapshot: QuerySnapshot): Product[] {
     .sort((a, b) => a.title.localeCompare(b.title, "es"));
 }
 
+function toSeedDoc(product: Product) {
+  return {
+    slug: product.slug,
+    title: product.title,
+    shortDescription: product.shortDescription,
+    fullDescription: product.fullDescription,
+    categories: product.categories,
+    topics: product.topics,
+    specifications: product.specifications,
+    featuredImage: product.featuredImage,
+    galleryImages: product.galleryImages,
+    price: product.price ?? null,
+    isActive: product.isActive,
+    available: product.isActive,
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+}
+
 async function seedCatalog(collection: CollectionReference) {
   const batch = getAdminFirestore().batch();
 
   for (const product of initialProducts) {
-    const ref = collection.doc(product.slug);
-    batch.set(ref, {
-      slug: product.slug,
-      title: product.title,
-      shortDescription: product.shortDescription,
-      fullDescription: product.fullDescription,
-      categories: product.categories,
-      topics: product.topics,
-      specifications: product.specifications,
-      featuredImage: product.featuredImage,
-      galleryImages: product.galleryImages,
-      price: product.price ?? null,
-      isActive: product.isActive,
-      available: product.isActive,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    batch.set(collection.doc(product.slug), toSeedDoc(product));
   }
 
   await batch.commit();
+}
+
+async function addMissingSeedProducts(
+  collection: CollectionReference,
+  snapshot: QuerySnapshot,
+) {
+  const existing = new Set(snapshot.docs.map((doc) => doc.id));
+  const missing = initialProducts.filter((product) => !existing.has(product.slug));
+  if (missing.length === 0) return false;
+
+  const batch = getAdminFirestore().batch();
+  for (const product of missing) {
+    batch.set(collection.doc(product.slug), toSeedDoc(product));
+  }
+  await batch.commit();
+  return true;
 }
 
 async function loadProductsFromFirebase(): Promise<Product[]> {
@@ -127,6 +146,8 @@ async function loadProductsFromFirebase(): Promise<Product[]> {
 
   if (!hasCatalog) {
     await seedCatalog(collection);
+    snapshot = await collection.get();
+  } else if (await addMissingSeedProducts(collection, snapshot)) {
     snapshot = await collection.get();
   }
 

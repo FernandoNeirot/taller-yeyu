@@ -467,4 +467,52 @@ export const initialProducts: Product[] = [
       customizable: true,
     },
   }),
+  createProduct({
+    title: "Calendario Perpetuo de Escritorio / Pared",
+    slug: "calendario-perpetuo-20x20",
+    shortDescription:
+      "Calendario interactivo perpetuo calado en MDF. Una pieza atemporal, ecológica y elegante para organizar tus días año tras año.",
+    fullDescription:
+      "Calendario perpetuo reutilizable de 20x20 cm fabricado con corte láser de alta precisión. Su diseño con aros, pestañas o piezas deslizables te permite ajustar el día, la fecha y el mes manualmente sin necesidad de reemplazarlo jamás. Ideal para decorar escritorios, oficinas, mostradores comerciales o como regalo institucional/empresarial.",
+    categories: [
+      "organizadores-utilitarios",
+      "decoracion-hogar",
+      "regalos-especiales",
+    ],
+    topics: [
+      "escritorio",
+      "oficina",
+      "hogar",
+      "utilitario",
+      "regalos-corporativos",
+    ],
+    specifications: {
+      material: "MDF 3mm / 6mm",
+      dimensions: "20 x 20 cm",
+      finish: "Encastre de precisión / Bisagra móvil suave",
+      customizable: true,
+    },
+  }),
+  createProduct({
+    title: "Cuadro / Cartel Deportivo Personalizado (Camiseta)",
+    slug: "cartel-deportivo-camiseta-28x28",
+    shortDescription:
+      "Cuadro calado en MDF con silueta de camiseta deportiva (fútbol, básquet, etc.), personalizado con nombre y número a elección.",
+    fullDescription:
+      "Cartel decorativo redondo de 28x28 cm calado en alta precisión con temática deportiva. Diseñado en capas superpuestas para generar un efecto 3D que resalta la camiseta de tu equipo o deporte preferido. Incluye la personalización con el nombre del agasajado y su número favorito. Perfecto para decorar dormitorios infantiles, espacios de juego o para regalar a fanáticos del deporte.",
+    categories: ["decoracion-hogar", "infantil-ninos", "regalos-especiales"],
+    topics: [
+      "deportes",
+      "futbol",
+      "cuadros",
+      "dormitorio-infantil",
+      "personalizado",
+    ],
+    specifications: {
+      material: "MDF 3mm (Bicapa 3D) / 6mm",
+      dimensions: "28 x 28 cm",
+      finish: "Superposición de capas caladas / Opción pintar",
+      customizable: true,
+    },
+  }),
 ];

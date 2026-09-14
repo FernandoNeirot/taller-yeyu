@@ -1,10 +1,12 @@
 import type { Product } from "@/types/product";
 
 export const PRODUCT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+export const PRODUCT_SEED_REVISION = 3;
 
 type ProductCache = {
   products: Product[];
   fetchedAt: number;
+  revision: number;
 };
 
 let cache: ProductCache | null = null;
@@ -32,7 +34,11 @@ function sortProducts(products: Product[]) {
 }
 
 export function isProductCacheFresh() {
-  return cache !== null && Date.now() - cache.fetchedAt < PRODUCT_CACHE_TTL_MS;
+  return (
+    cache !== null &&
+    cache.revision === PRODUCT_SEED_REVISION &&
+    Date.now() - cache.fetchedAt < PRODUCT_CACHE_TTL_MS
+  );
 }
 
 export function getCachedProducts(): Product[] | null {
@@ -49,6 +55,7 @@ export function replaceProductCache(products: Product[]) {
   cache = {
     products: sortProducts(cloneProducts(products)),
     fetchedAt: Date.now(),
+    revision: PRODUCT_SEED_REVISION,
   };
 }
 
@@ -71,6 +78,7 @@ export function upsertCachedProduct(product: Product) {
   cache = {
     products: sortProducts(next),
     fetchedAt: cache.fetchedAt,
+    revision: cache.revision,
   };
 }
 
@@ -82,5 +90,6 @@ export function removeCachedProduct(id: string) {
       (item) => productKey(item) !== id && item.slug !== id,
     ),
     fetchedAt: cache.fetchedAt,
+    revision: cache.revision,
   };
 }
