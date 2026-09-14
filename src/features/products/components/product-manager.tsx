@@ -1,24 +1,24 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { createPortal } from "react-dom";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { MoneyInput } from "@/components/ui/money-input";
 import {
   catalogCategories,
-  categoryLabel,
   topicLabel,
   type Product,
 } from "@/types/product";
 import { deleteProductAction } from "../actions/delete-product";
 import { saveProductAction } from "../actions/save-product";
 import { toggleProductVisibilityAction } from "../actions/toggle-product-visibility";
-import { formatProductPrice } from "../lib/format-price";
 import {
   MAX_PRODUCT_IMAGES,
   compressImageToWebp,
   fileToBase64,
 } from "../utils/compress-image";
+import { ProductDetailModal } from "./product-detail-modal";
 
 type FormState = {
   title: string;
@@ -53,6 +53,14 @@ function productId(product: Product) {
   return product.id ?? product.slug;
 }
 
+function normalizeSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .trim();
+}
+
 function productToForm(product: Product): FormState {
   return {
     title: product.title,
@@ -74,6 +82,9 @@ export function ProductManager({
   products: Product[];
 }) {
   const [products, setProducts] = useState(initialList);
+  const [query, setQuery] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -82,6 +93,7 @@ export function ProductManager({
   );
   const [imageError, setImageError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formTitleId = useId();
   const [state, action, pending] = useActionState(saveProductAction, null);
   const [deleteState, deleteAction, deletePending] = useActionState(
     deleteProductAction,
@@ -96,6 +108,14 @@ export function ProductManager({
   const [prevVisibilityState, setPrevVisibilityState] = useState(visibilityState);
 
   const remainingSlots = MAX_PRODUCT_IMAGES - existingImages.length - newFiles.length;
+
+  const filteredProducts = useMemo(() => {
+    const needle = normalizeSearch(query);
+    if (!needle) return products;
+    return products.filter((product) =>
+      normalizeSearch(product.title).includes(needle),
+    );
+  }, [products, query]);
 
   if (state !== prevState) {
     setPrevState(state);
@@ -117,6 +137,7 @@ export function ProductManager({
         return [];
       });
       setImageError("");
+      setFormOpen(false);
     }
   }
 
@@ -134,6 +155,10 @@ export function ProductManager({
           return [];
         });
         setImageError("");
+        setFormOpen(false);
+      }
+      if (previewProduct && productId(previewProduct) === deletedId) {
+        setPreviewProduct(null);
       }
     }
   }
@@ -150,16 +175,13 @@ export function ProductManager({
       if (editingId === productId(updated)) {
         setForm(productToForm(updated));
       }
+      if (previewProduct && productId(previewProduct) === productId(updated)) {
+        setPreviewProduct(updated);
+      }
     }
   }
 
-  useEffect(() => {
-    return () => {
-      newFiles.forEach((file) => URL.revokeObjectURL(file.preview));
-    };
-  }, [newFiles]);
-
-  function resetFormFields() {
+  const resetFormFields = useCallback(() => {
     setForm(emptyForm);
     setEditingId(null);
     setExistingImages([]);
@@ -169,10 +191,44 @@ export function ProductManager({
     });
     setImageError("");
     if (fileInputRef.current) fileInputRef.current.value = "";
-  }
+  }, []);
 
-  function resetForm() {
+  const resetForm = useCallback(() => {
     resetFormFields();
+    setFormOpen(false);
+  }, [resetFormFields]);
+
+  useEffect(() => {
+    return () => {
+      newFiles.forEach((file) => URL.revokeObjectURL(file.preview));
+    };
+  }, [newFiles]);
+
+  useEffect(() => {
+    if (!formOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [formOpen]);
+
+  useEffect(() => {
+    if (!formOpen) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      resetForm();
+    }
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [formOpen, resetForm]);
+
+  function startCreate() {
+    resetFormFields();
+    setPreviewProduct(null);
+    setFormOpen(true);
   }
 
   function startEdit(product: Product) {
@@ -184,6 +240,8 @@ export function ProductManager({
       return [];
     });
     setImageError("");
+    setPreviewProduct(null);
+    setFormOpen(true);
   }
 
   function toggleCategory(categoryId: string) {
@@ -231,273 +289,418 @@ export function ProductManager({
     });
   }
 
-  return (
-    <section className="grid grid-cols-1 lg:grid-cols-[1fr_1.15fr] gap-lg">
-      <article className="rounded-2xl border border-outline-variant/20 bg-surface-container p-lg">
-        <h2 className="font-headline-md text-headline-md text-on-surface mb-xs">
-          {editingId ? "Editar producto" : "Crear producto"}
-        </h2>
-
-        <form action={action} className="flex flex-col gap-sm">
-          {state?.error ? (
-            <div className="rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
-              {state.error}
-            </div>
-          ) : null}
-          {deleteState?.error ? (
-            <div className="rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
-              {deleteState.error}
-            </div>
-          ) : null}
-          {visibilityState?.error ? (
-            <div className="rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
-              {visibilityState.error}
-            </div>
-          ) : null}
-          {imageError ? (
-            <div className="rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
-              {imageError}
-            </div>
-          ) : null}
-
-          {editingId ? <input type="hidden" name="id" value={editingId} /> : null}
-          {existingImages.map((url) => (
-            <input key={url} type="hidden" name="existingImages" value={url} />
-          ))}
-          {form.categories.map((category) => (
-            <input key={category} type="hidden" name="categories" value={category} />
-          ))}
-
-          <label className="flex flex-col gap-xs">
-            <span className="text-sm text-on-surface-variant">Título</span>
-            <input
-              name="title"
-              required
-              value={form.title}
-              onChange={(event) => setForm({ ...form, title: event.target.value })}
-              className={fieldClassName}
-              style={{ width: "100%" }}
-            />
-          </label>
-
-          <label className="flex flex-col gap-xs">
-            <span className="text-sm text-on-surface-variant">
-              Descripción corta
-            </span>
-            <textarea
-              name="shortDescription"
-              rows={2}
-              value={form.shortDescription}
-              onChange={(event) =>
-                setForm({ ...form, shortDescription: event.target.value })
-              }
-              className={fieldClassName}
-              style={{ width: "100%" }}
-            />
-          </label>
-
-          <label className="flex flex-col gap-xs">
-            <span className="text-sm text-on-surface-variant">Descripción</span>
-            <textarea
-              name="fullDescription"
-              required
-              rows={4}
-              value={form.fullDescription}
-              onChange={(event) =>
-                setForm({ ...form, fullDescription: event.target.value })
-              }
-              className={fieldClassName}
-              style={{ width: "100%" }}
-            />
-          </label>
-
-          <fieldset className="flex flex-col gap-xs">
-            <legend className="text-sm text-on-surface-variant">Categorías</legend>
-            <div className="flex flex-col gap-xs">
-              {catalogCategories.map((category) => (
-                <label key={category.id} className="inline-flex items-center gap-xs">
-                  <input
-                    type="checkbox"
-                    checked={form.categories.includes(category.id)}
-                    onChange={() => toggleCategory(category.id)}
-                  />
-                  <span className="text-on-surface">{category.label}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          <label className="flex flex-col gap-xs">
-            <span className="text-sm text-on-surface-variant">
-              Temáticas (separadas por coma)
-            </span>
-            <input
-              name="topics"
-              value={form.topics}
-              placeholder="infantil, personajes, iluminacion"
-              onChange={(event) => setForm({ ...form, topics: event.target.value })}
-              className={fieldClassName}
-              style={{ width: "100%" }}
-            />
-          </label>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
-            <label className="flex flex-col gap-xs">
-              <span className="text-sm text-on-surface-variant">Medidas</span>
-              <input
-                name="dimensions"
-                value={form.dimensions}
-                onChange={(event) =>
-                  setForm({ ...form, dimensions: event.target.value })
-                }
-                className={fieldClassName}
-                style={{ width: "100%" }}
-              />
-            </label>
-            <label className="flex flex-col gap-xs">
-              <span className="text-sm text-on-surface-variant">Acabado</span>
-              <input
-                name="finish"
-                value={form.finish}
-                onChange={(event) => setForm({ ...form, finish: event.target.value })}
-                className={fieldClassName}
-                style={{ width: "100%" }}
-              />
-            </label>
-          </div>
-
-          <label className="flex flex-col gap-xs">
-            <span className="text-sm text-on-surface-variant">Precio</span>
-            <MoneyInput
-              name="price"
-              value={form.price}
-              onChange={(value) => setForm({ ...form, price: value })}
-            />
-          </label>
-
-          <div className="flex flex-wrap gap-md">
-            <label className="inline-flex items-center gap-xs">
-              <input
-                name="customizable"
-                type="checkbox"
-                checked={form.customizable}
-                onChange={(event) =>
-                  setForm({ ...form, customizable: event.target.checked })
-                }
-              />
-              <span className="text-on-surface">Personalizable</span>
-            </label>
-            <label className="inline-flex items-center gap-xs">
-              <input
-                name="hidden"
-                type="checkbox"
-                checked={form.hidden}
-                onChange={(event) =>
-                  setForm({ ...form, hidden: event.target.checked })
-                }
-              />
-              <span className="text-on-surface">Ocultar de la galería</span>
-            </label>
-          </div>
-
-          <div className="flex flex-col gap-xs">
-            <span className="text-sm text-on-surface-variant">
-              Fotos ({existingImages.length + newFiles.length}/{MAX_PRODUCT_IMAGES})
-            </span>
-            <div className="grid grid-cols-3 gap-sm">
-              {existingImages.map((url, index) => (
-                <div
-                  key={url}
-                  className="relative aspect-square overflow-hidden rounded-lg bg-surface-container-low"
-                >
-                  <Image src={url} alt="" fill className="object-cover" unoptimized />
-                  <button
-                    type="button"
-                    onClick={() => removeExisting(index)}
-                    className="absolute top-1 right-1 h-7 w-7 rounded-full bg-black/70 text-white"
-                    aria-label="Quitar imagen"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              {newFiles.map((file) => (
-                <div
-                  key={file.preview}
-                  className="relative aspect-square overflow-hidden rounded-lg bg-surface-container-low"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={file.preview} alt="" className="h-full w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      removeNew(newFiles.findIndex((item) => item.preview === file.preview))
-                    }
-                    className="absolute top-1 right-1 h-7 w-7 rounded-full bg-black/70 text-white"
-                    aria-label="Quitar imagen"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-            {remainingSlots > 0 ? (
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(event) => onSelectImages(event.target.files)}
-                className={fieldClassName}
-                style={{ width: "100%" }}
-              />
-            ) : null}
-            {newFiles.map((file) => (
-              <input
-                key={file.preview}
-                type="hidden"
-                name="imageBase64"
-                value={file.base64}
-              />
-            ))}
-          </div>
-
-          <div className="flex gap-sm mt-sm">
-            <button
-              type="submit"
-              disabled={pending}
-              className="flex-1 rounded-lg bg-primary-container px-6 py-3 text-white font-label-caps text-label-caps tracking-widest uppercase hover:bg-secondary-container transition-colors disabled:opacity-50"
+  const formModal =
+    formOpen && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: "100vw",
+              height: "100dvh",
+              zIndex: 2147483646,
+              background: "rgba(0, 0, 0, 0.8)",
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "center",
+              padding: "24px 16px",
+              overflowY: "auto",
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={formTitleId}
+              className="rounded-2xl border border-outline-variant/30 bg-surface-container"
+              style={{
+                width: "100%",
+                maxWidth: "40rem",
+                marginTop: "auto",
+                marginBottom: "auto",
+                boxSizing: "border-box",
+                padding: 24,
+              }}
             >
-              {pending
-                ? "Guardando..."
-                : editingId
-                  ? "Guardar cambios"
-                  : "Crear producto"}
-            </button>
-            {editingId ? (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="rounded-lg border border-outline-variant/40 px-4 py-3 text-on-surface-variant font-label-caps text-label-caps tracking-widest uppercase"
-              >
-                Cancelar
-              </button>
-            ) : null}
-          </div>
-        </form>
-      </article>
+              <div className="mb-md flex items-start justify-between gap-sm">
+                <h2
+                  id={formTitleId}
+                  className="font-headline-md text-headline-md text-on-surface"
+                >
+                  {editingId ? "Editar producto" : "Crear producto"}
+                </h2>
+                <button
+                  type="button"
+                  aria-label="Cerrar"
+                  onClick={resetForm}
+                  className="touch-target inline-flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface"
+                  style={{ minHeight: 44, minWidth: 44, flexShrink: 0 }}
+                >
+                  <MaterialIcon name="close" />
+                </button>
+              </div>
 
+              <form action={action} className="flex flex-col gap-sm">
+                {state?.error ? (
+                  <div className="rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
+                    {state.error}
+                  </div>
+                ) : null}
+                {imageError ? (
+                  <div className="rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
+                    {imageError}
+                  </div>
+                ) : null}
+
+                {editingId ? (
+                  <input type="hidden" name="id" value={editingId} />
+                ) : null}
+                {existingImages.map((url) => (
+                  <input
+                    key={url}
+                    type="hidden"
+                    name="existingImages"
+                    value={url}
+                  />
+                ))}
+                {form.categories.map((category) => (
+                  <input
+                    key={category}
+                    type="hidden"
+                    name="categories"
+                    value={category}
+                  />
+                ))}
+
+                <label className="flex flex-col gap-xs">
+                  <span className="text-sm text-on-surface-variant">Título</span>
+                  <input
+                    name="title"
+                    required
+                    value={form.title}
+                    onChange={(event) =>
+                      setForm({ ...form, title: event.target.value })
+                    }
+                    className={fieldClassName}
+                    style={{ width: "100%" }}
+                  />
+                </label>
+
+                <label className="flex flex-col gap-xs">
+                  <span className="text-sm text-on-surface-variant">
+                    Descripción corta
+                  </span>
+                  <textarea
+                    name="shortDescription"
+                    rows={2}
+                    value={form.shortDescription}
+                    onChange={(event) =>
+                      setForm({ ...form, shortDescription: event.target.value })
+                    }
+                    className={fieldClassName}
+                    style={{ width: "100%" }}
+                  />
+                </label>
+
+                <label className="flex flex-col gap-xs">
+                  <span className="text-sm text-on-surface-variant">
+                    Descripción
+                  </span>
+                  <textarea
+                    name="fullDescription"
+                    required
+                    rows={4}
+                    value={form.fullDescription}
+                    onChange={(event) =>
+                      setForm({ ...form, fullDescription: event.target.value })
+                    }
+                    className={fieldClassName}
+                    style={{ width: "100%" }}
+                  />
+                </label>
+
+                <fieldset className="flex flex-col gap-xs">
+                  <legend className="text-sm text-on-surface-variant">
+                    Categorías
+                  </legend>
+                  <div className="flex flex-col gap-xs">
+                    {catalogCategories.map((category) => (
+                      <label
+                        key={category.id}
+                        className="inline-flex items-center gap-xs"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={form.categories.includes(category.id)}
+                          onChange={() => toggleCategory(category.id)}
+                        />
+                        <span className="text-on-surface">{category.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <label className="flex flex-col gap-xs">
+                  <span className="text-sm text-on-surface-variant">
+                    Temáticas (separadas por coma)
+                  </span>
+                  <input
+                    name="topics"
+                    value={form.topics}
+                    placeholder="infantil, personajes, iluminacion"
+                    onChange={(event) =>
+                      setForm({ ...form, topics: event.target.value })
+                    }
+                    className={fieldClassName}
+                    style={{ width: "100%" }}
+                  />
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
+                  <label className="flex flex-col gap-xs">
+                    <span className="text-sm text-on-surface-variant">
+                      Medidas
+                    </span>
+                    <input
+                      name="dimensions"
+                      value={form.dimensions}
+                      onChange={(event) =>
+                        setForm({ ...form, dimensions: event.target.value })
+                      }
+                      className={fieldClassName}
+                      style={{ width: "100%" }}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-xs">
+                    <span className="text-sm text-on-surface-variant">
+                      Acabado
+                    </span>
+                    <input
+                      name="finish"
+                      value={form.finish}
+                      onChange={(event) =>
+                        setForm({ ...form, finish: event.target.value })
+                      }
+                      className={fieldClassName}
+                      style={{ width: "100%" }}
+                    />
+                  </label>
+                </div>
+
+                <label className="flex flex-col gap-xs">
+                  <span className="text-sm text-on-surface-variant">Precio</span>
+                  <MoneyInput
+                    name="price"
+                    value={form.price}
+                    onChange={(value) => setForm({ ...form, price: value })}
+                  />
+                </label>
+
+                <div className="flex flex-wrap gap-md">
+                  <label className="inline-flex items-center gap-xs">
+                    <input
+                      name="customizable"
+                      type="checkbox"
+                      checked={form.customizable}
+                      onChange={(event) =>
+                        setForm({ ...form, customizable: event.target.checked })
+                      }
+                    />
+                    <span className="text-on-surface">Personalizable</span>
+                  </label>
+                  <label className="inline-flex items-center gap-xs">
+                    <input
+                      name="hidden"
+                      type="checkbox"
+                      checked={form.hidden}
+                      onChange={(event) =>
+                        setForm({ ...form, hidden: event.target.checked })
+                      }
+                    />
+                    <span className="text-on-surface">Ocultar de la galería</span>
+                  </label>
+                </div>
+
+                <div className="flex flex-col gap-xs">
+                  <span className="text-sm text-on-surface-variant">
+                    Fotos (
+                    {existingImages.length + newFiles.length}/{MAX_PRODUCT_IMAGES})
+                  </span>
+                  <div className="grid grid-cols-3 gap-sm">
+                    {existingImages.map((url, index) => (
+                      <div
+                        key={url}
+                        className="relative aspect-square overflow-hidden rounded-lg bg-surface-container-low"
+                      >
+                        <Image
+                          src={url}
+                          alt=""
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeExisting(index)}
+                          className="absolute top-1 right-1 h-7 w-7 rounded-full bg-black/70 text-white"
+                          aria-label="Quitar imagen"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {newFiles.map((file) => (
+                      <div
+                        key={file.preview}
+                        className="relative aspect-square overflow-hidden rounded-lg bg-surface-container-low"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={file.preview}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeNew(
+                              newFiles.findIndex(
+                                (item) => item.preview === file.preview,
+                              ),
+                            )
+                          }
+                          className="absolute top-1 right-1 h-7 w-7 rounded-full bg-black/70 text-white"
+                          aria-label="Quitar imagen"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {remainingSlots > 0 ? (
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(event) => onSelectImages(event.target.files)}
+                      className={fieldClassName}
+                      style={{ width: "100%" }}
+                    />
+                  ) : null}
+                  {newFiles.map((file) => (
+                    <input
+                      key={file.preview}
+                      type="hidden"
+                      name="imageBase64"
+                      value={file.base64}
+                    />
+                  ))}
+                </div>
+
+                <div className="flex gap-sm mt-sm">
+                  <button
+                    type="submit"
+                    disabled={pending}
+                    className="flex-1 rounded-lg bg-primary-container px-6 py-3 text-white font-label-caps text-label-caps tracking-widest uppercase hover:bg-secondary-container transition-colors disabled:opacity-50"
+                  >
+                    {pending
+                      ? "Guardando..."
+                      : editingId
+                        ? "Guardar cambios"
+                        : "Crear producto"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="rounded-lg border border-outline-variant/40 px-4 py-3 text-on-surface-variant font-label-caps text-label-caps tracking-widest uppercase"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <section>
       <article className="rounded-2xl border border-outline-variant/20 bg-surface-container p-lg">
-        <h3 className="font-headline-md text-headline-md text-on-surface mb-sm">
-          Productos ({products.length})
-        </h3>
+        <div className="mb-sm flex flex-wrap items-center justify-between gap-sm">
+          <h3 className="font-headline-md text-headline-md text-on-surface">
+            Productos ({products.length})
+          </h3>
+          <button
+            type="button"
+            onClick={startCreate}
+            className="inline-flex items-center justify-center gap-1 rounded-lg bg-primary-container px-4 py-3 text-white font-label-caps text-label-caps tracking-widest uppercase hover:bg-secondary-container transition-colors"
+          >
+            <MaterialIcon name="add" className="text-base" />
+            Nuevo producto
+          </button>
+        </div>
+
+        {deleteState?.error ? (
+          <div className="mb-sm rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
+            {deleteState.error}
+          </div>
+        ) : null}
+        {visibilityState?.error ? (
+          <div className="mb-sm rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
+            {visibilityState.error}
+          </div>
+        ) : null}
+
+        {products.length > 0 ? (
+          <label className="mb-sm flex flex-col gap-xs" style={{ width: "100%" }}>
+            <span className="sr-only">Buscar producto</span>
+            <div className="relative" style={{ position: "relative", width: "100%" }}>
+              <span
+                className="pointer-events-none text-on-surface-variant"
+                style={{
+                  position: "absolute",
+                  left: 12,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                }}
+              >
+                <MaterialIcon name="search" className="text-base" />
+              </span>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Buscar por título..."
+                autoComplete="off"
+                className={fieldClassName}
+                style={{ width: "100%", paddingLeft: 40 }}
+              />
+            </div>
+          </label>
+        ) : null}
+
         {products.length === 0 ? (
           <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-lg text-center text-on-surface-variant">
             Todavía no hay productos cargados.
           </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-lg text-center text-on-surface-variant">
+            No hay productos que coincidan con “{query.trim()}”.
+          </div>
         ) : (
           <div className="flex flex-col gap-sm">
-            {products.map((product) => {
+            {query.trim() ? (
+              <p className="font-label-caps text-label-caps text-on-surface-variant tracking-widest">
+                {filteredProducts.length === 1
+                  ? "1 coincidencia"
+                  : `${filteredProducts.length} coincidencias`}
+              </p>
+            ) : null}
+            {filteredProducts.map((product) => {
               const id = productId(product);
               const hidden = !product.isActive;
 
@@ -505,42 +708,46 @@ export function ProductManager({
                 <div
                   key={id}
                   className={
-                    id === editingId
-                      ? "flex gap-sm rounded-xl border border-primary/40 bg-primary/10 p-sm"
-                      : "flex gap-sm rounded-xl border border-outline-variant/20 bg-surface-container-low p-sm"
+                    id === editingId && formOpen
+                      ? "rounded-xl border border-primary/40 bg-primary/10 p-sm"
+                      : "rounded-xl border border-outline-variant/20 bg-surface-container-low p-sm"
                   }
-                  style={{ opacity: hidden ? 0.65 : 1 }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    width: "100%",
+                  }}
                 >
-                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-surface-container">
-                    {product.featuredImage ? (
-                      <Image
-                        src={product.featuredImage}
-                        alt={product.title}
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-on-surface-variant">
-                        <MaterialIcon name="image" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-headline-md text-on-surface truncate">
+                  <div style={{ width: "100%" }}>
+                    <p
+                      className="font-headline-md text-on-surface"
+                      style={{ overflowWrap: "anywhere" }}
+                    >
                       {product.title}
                     </p>
-                    <p className="text-sm text-on-surface-variant">
-                      {product.categories.map(categoryLabel).join(" · ")}
-                      {product.price != null
-                        ? ` · ${formatProductPrice(product.price)}`
-                        : ""}
-                    </p>
                     {hidden ? (
-                      <p className="mt-1 text-sm text-secondary">Oculto</p>
+                      <p className="mt-1 text-sm text-secondary">
+                        Oculto en galería
+                      </p>
                     ) : null}
                   </div>
-                  <div className="flex shrink-0 items-start gap-xs">
+                  <div
+                    className="flex flex-wrap items-center gap-xs"
+                    style={{ width: "100%" }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setPreviewProduct(product)}
+                      className="inline-flex h-8 items-center gap-1 rounded-full px-2 text-primary hover:bg-primary/10"
+                      aria-label={`Ver ${product.title}`}
+                      title="Ver datos"
+                    >
+                      <MaterialIcon name="visibility" className="text-base" />
+                      <span className="font-label-caps text-label-caps tracking-widest">
+                        Ver
+                      </span>
+                    </button>
                     <form action={visibilityAction}>
                       <input type="hidden" name="id" value={id} />
                       <input
@@ -551,18 +758,25 @@ export function ProductManager({
                       <button
                         type="submit"
                         disabled={visibilityPending}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10 disabled:opacity-50"
+                        className="inline-flex h-8 items-center gap-1 rounded-full px-2 text-primary hover:bg-primary/10 disabled:opacity-50"
                         aria-label={
                           hidden
-                            ? `Mostrar ${product.title}`
-                            : `Ocultar ${product.title}`
+                            ? `Publicar ${product.title} en la galería`
+                            : `Ocultar ${product.title} de la galería`
                         }
-                        title={hidden ? "Mostrar en galería" : "Ocultar de la galería"}
+                        title={
+                          hidden
+                            ? "Publicar en galería"
+                            : "Ocultar de la galería"
+                        }
                       >
                         <MaterialIcon
-                          name={hidden ? "visibility" : "visibility_off"}
+                          name={hidden ? "publish" : "unpublished"}
                           className="text-base"
                         />
+                        <span className="font-label-caps text-label-caps tracking-widest">
+                          {hidden ? "Publicar" : "Ocultar"}
+                        </span>
                       </button>
                     </form>
                     <button
@@ -604,6 +818,16 @@ export function ProductManager({
           </div>
         )}
       </article>
+
+      {formModal}
+
+      {previewProduct ? (
+        <ProductDetailModal
+          product={previewProduct}
+          showInquiry={false}
+          onClose={() => setPreviewProduct(null)}
+        />
+      ) : null}
     </section>
   );
 }

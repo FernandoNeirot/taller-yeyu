@@ -13,11 +13,13 @@ import { ProductWhatsAppCTA } from "./product-whatsapp-cta";
 type ProductDetailModalProps = {
   product: Product;
   onClose: () => void;
+  showInquiry?: boolean;
 };
 
 export function ProductDetailModal({
   product,
   onClose,
+  showInquiry = true,
 }: ProductDetailModalProps) {
   const titleId = useId();
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -316,9 +318,11 @@ export function ProductDetailModal({
           ) : null}
         </dl>
 
-        <div className="mt-4" style={{ paddingBottom: 8 }}>
-          <ProductWhatsAppCTA product={product} />
-        </div>
+        {showInquiry ? (
+          <div className="mt-4" style={{ paddingBottom: 8 }}>
+            <ProductWhatsAppCTA product={product} />
+          </div>
+        ) : null}
       </div>
       </div>
     </div>,
