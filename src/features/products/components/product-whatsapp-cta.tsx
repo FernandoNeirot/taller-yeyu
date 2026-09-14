@@ -1,15 +1,28 @@
+"use client";
+
+import { useState } from "react";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
-import { productWhatsAppMessage } from "@/lib/whatsapp";
 import type { Product } from "@/types/product";
+import { ProductInquiryModal } from "./product-inquiry-modal";
 
 export function ProductWhatsAppCTA({ product }: { product: Product }) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <WhatsAppButton
-      message={productWhatsAppMessage(product)}
-      variant="secondary"
-      fullWidth
-    >
-      Consultar por este Producto
-    </WhatsAppButton>
+    <>
+      <WhatsAppButton
+        variant="secondary"
+        fullWidth
+        onClick={() => setOpen(true)}
+      >
+        Consultar por este Producto
+      </WhatsAppButton>
+      {open ? (
+        <ProductInquiryModal
+          product={product}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
+    </>
   );
 }

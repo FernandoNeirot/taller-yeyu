@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { buildWhatsAppLink, DEFAULT_WHATSAPP_PHONE } from "@/lib/whatsapp";
 
 type WhatsAppButtonProps = {
@@ -10,6 +10,8 @@ type WhatsAppButtonProps = {
   className?: string;
   variant?: "primary" | "secondary" | "outline";
   fullWidth?: boolean;
+  type?: ButtonHTMLAttributes<HTMLButtonElement>["type"];
+  onClick?: () => void;
 };
 
 const variantClassName = {
@@ -40,7 +42,24 @@ export function WhatsAppButton({
   className = "",
   variant = "primary",
   fullWidth = false,
+  type = "button",
+  onClick,
 }: WhatsAppButtonProps) {
+  const classNames = `touch-target inline-flex items-center justify-center gap-2 rounded-xl px-5 font-label-caps text-label-caps tracking-widest uppercase transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background ${variantClassName[variant]} ${className}`;
+  const style = {
+    minHeight: 44,
+    width: fullWidth ? "100%" : undefined,
+  };
+
+  if (onClick || type === "submit") {
+    return (
+      <button type={type} onClick={onClick} className={classNames} style={style}>
+        <WhatsAppIcon />
+        <span>{children}</span>
+      </button>
+    );
+  }
+
   const url = buildWhatsAppLink({ phoneNumber, message });
   const isExternal = url.startsWith("http");
 
@@ -49,11 +68,8 @@ export function WhatsAppButton({
       href={url}
       target={isExternal ? "_blank" : undefined}
       rel={isExternal ? "noopener noreferrer" : undefined}
-      className={`touch-target inline-flex items-center justify-center gap-2 rounded-xl px-5 font-label-caps text-label-caps tracking-widest uppercase transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background ${variantClassName[variant]} ${className}`}
-      style={{
-        minHeight: 44,
-        width: fullWidth ? "100%" : undefined,
-      }}
+      className={classNames}
+      style={style}
     >
       <WhatsAppIcon />
       <span>{children}</span>
