@@ -1,3 +1,5 @@
+import { getWhatsAppPhoneNumber } from "@/lib/whatsapp";
+
 export const PRODUCTION_SITE_URL = "https://talleryeyu.com";
 
 export const siteConfig = {
@@ -59,7 +61,7 @@ export function absoluteUrl(path = "/") {
 }
 
 export function getTelephone() {
-  const raw = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, "");
+  const raw = getWhatsAppPhoneNumber();
   return raw ? `+${raw}` : undefined;
 }
 

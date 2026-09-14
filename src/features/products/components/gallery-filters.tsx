@@ -42,7 +42,7 @@ export function GalleryFilters({
 
   return (
     <section className="px-container-margin pb-md flex flex-col gap-md">
-      <div className="overflow-x-auto whitespace-nowrap hide-scrollbar flex items-center gap-sm">
+      <div className="hide-scrollbar flex snap-x snap-mandatory items-center gap-2 overflow-x-auto">
         {galleryCategories.map((item) => {
           const active = item.id === selectedCategory;
 
@@ -53,31 +53,14 @@ export function GalleryFilters({
               onClick={() => onCategoryChange(item.id)}
               className={
                 active
-                  ? "px-4 py-2 rounded-full bg-primary-container text-on-primary-container font-label-caps text-label-caps transition-colors"
-                  : "px-4 py-2 rounded-full bg-surface-container border border-outline-variant text-on-surface-variant font-label-caps text-label-caps hover:bg-surface-container-high transition-colors"
+                  ? "touch-target snap-start shrink-0 whitespace-nowrap rounded-full bg-primary-container px-4 font-label-caps text-label-caps text-on-primary-container transition-colors"
+                  : "touch-target snap-start shrink-0 whitespace-nowrap rounded-full border border-outline-variant bg-surface-container px-4 font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high transition-colors"
               }
             >
               {item.label}
             </button>
           );
         })}
-      </div>
-
-      <div className="flex flex-col gap-1" style={{ width: "100%" }}>
-        <span className="font-label-caps text-label-caps text-on-surface-variant tracking-widest">
-          Producto
-        </span>
-        <SearchableSelect
-          value={selectedProduct}
-          onChange={onProductChange}
-          placeholder="Todos los productos"
-          searchPlaceholder="Buscar producto..."
-          emptyMessage="No hay productos con esa búsqueda"
-          options={[
-            { value: "", label: "Todos los productos" },
-            ...products,
-          ]}
-        />
       </div>
 
       {topics.length > 0 ? (

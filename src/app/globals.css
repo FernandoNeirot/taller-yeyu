@@ -149,3 +149,38 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+.touch-target {
+  min-height: 44px;
+}
+
+.product-carousel {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.product-carousel-item,
+.product-carousel-item-compact {
+  flex: 0 0 85%;
+  width: 85%;
+  max-width: 85%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+@media (min-width: 768px) {
+  .product-carousel-item {
+    flex-basis: 220px;
+    width: 220px;
+    max-width: 220px;
+  }
+
+  .product-carousel-item-compact {
+    flex-basis: 168px;
+    width: 168px;
+    max-width: 168px;
+  }
+}

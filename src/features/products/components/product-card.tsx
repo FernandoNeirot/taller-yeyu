@@ -1,33 +1,19 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { categoryLabel } from "@/types/product";
 import type { Product } from "@/types/product";
+import { ProductWhatsAppCTA } from "./product-whatsapp-cta";
 
 type ProductCardProps = {
   product: Product;
-  priority?: boolean;
 };
 
-function getWhatsAppUrl(title: string) {
-  const number = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/\D/g, "");
-  const message = `Hola Taller Yeyu, quiero cotizar: ${title}`;
-
-  if (!number) {
-    return "/#contacto";
-  }
-
-  return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
-}
-
-export function ProductCard({ product, priority = false }: ProductCardProps) {
+export function ProductCard({ product }: ProductCardProps) {
   const [showSpecs, setShowSpecs] = useState(false);
-  const quoteUrl = useMemo(
-    () => getWhatsAppUrl(product.title),
-    [product.title],
-  );
+  const primaryCategory = product.categories[0];
 
   return (
     <article className="h-full flex flex-col overflow-hidden rounded-xl bg-surface-container border border-outline-variant/20">
@@ -36,35 +22,30 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           alt={product.title}
           src={product.featuredImage}
           fill
+          loading="lazy"
           className="object-cover"
           sizes="(min-width: 1280px) 20vw, (min-width: 768px) 33vw, 50vw"
           unoptimized
-          priority={priority}
         />
         {product.specifications.customizable ? (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary-container px-2 py-1 font-label-caps text-label-caps text-on-primary-container">
-            <MaterialIcon name="draw" className="text-sm" />
-            Personalizable
+          <span className="absolute left-2 top-2 inline-flex max-w-[calc(100%-1rem)] items-center gap-1 truncate rounded-full bg-primary-container px-2 py-1 font-label-caps text-label-caps text-on-primary-container">
+            <MaterialIcon name="draw" className="shrink-0 text-sm" />
+            <span className="truncate">Personalizable</span>
           </span>
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col p-3 bg-surface-container-high">
-        <div className="flex flex-wrap gap-1">
-          {product.categories.map((category) => (
-            <span
-              key={category}
-              className="rounded-full bg-surface-container px-2 py-0.5 font-label-caps text-label-caps text-secondary tracking-widest"
-            >
-              {categoryLabel(category)}
-            </span>
-          ))}
-        </div>
+      <div className="flex flex-1 flex-col p-2.5 bg-surface-container-high md:p-3">
+        {primaryCategory ? (
+          <span className="rounded-full bg-surface-container px-2 py-0.5 font-label-caps text-label-caps text-secondary tracking-widest truncate">
+            {categoryLabel(primaryCategory)}
+          </span>
+        ) : null}
 
-        <h3 className="font-headline-md text-headline-md text-on-surface mt-2 leading-tight line-clamp-2 min-h-16">
+        <h3 className="mt-2 font-headline-md text-[15px] leading-snug text-on-surface line-clamp-2 md:text-headline-md md:leading-tight">
           {product.title}
         </h3>
-        <p className="font-body-md text-body-md text-on-surface-variant mt-1 line-clamp-2">
+        <p className="mt-1 hidden font-body-md text-body-md text-on-surface-variant line-clamp-2 sm:block">
           {product.shortDescription}
         </p>
 
@@ -95,22 +76,12 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           <button
             type="button"
             onClick={() => setShowSpecs((open) => !open)}
-            className="inline-flex w-full items-center justify-center gap-1 rounded py-2.5 border border-primary text-primary font-label-caps text-label-caps tracking-widest hover:bg-primary/10 transition-colors"
+            className="touch-target inline-flex w-full items-center justify-center gap-1 rounded border border-primary px-2 text-center text-primary font-label-caps text-label-caps tracking-widest hover:bg-primary/10 transition-colors"
           >
-            {showSpecs ? "Ocultar especificaciones" : "Ver especificaciones / Cotizar"}
+            {showSpecs ? "Ocultar especificaciones" : "Ver especificaciones"}
           </button>
 
-          {showSpecs ? (
-            <a
-              href={quoteUrl}
-              target={quoteUrl.startsWith("http") ? "_blank" : undefined}
-              rel={quoteUrl.startsWith("http") ? "noopener noreferrer" : undefined}
-              className="inline-flex w-full items-center justify-center gap-1 rounded py-2.5 bg-primary text-on-primary font-label-caps text-label-caps tracking-widest hover:bg-primary-fixed transition-colors"
-            >
-              Cotizar
-              <MaterialIcon name="arrow_forward" className="text-sm" />
-            </a>
-          ) : null}
+          <ProductWhatsAppCTA product={product} />
         </div>
       </div>
     </article>

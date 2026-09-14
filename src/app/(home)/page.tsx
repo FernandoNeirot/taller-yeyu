@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { CustomWorkSection } from "@/components/home/CustomWorkSection";
 import { FeaturedCategories } from "@/components/home/FeaturedCategories";
 import { Logo } from "@/components/layout/logo";
 import { MaterialIcon } from "@/components/ui/material-icon";
@@ -37,6 +38,7 @@ export default function Home() {
             src={HERO_IMAGE}
             fill
             priority
+            fetchPriority="high"
             sizes="100vw"
             unoptimized
           />
@@ -45,7 +47,6 @@ export default function Home() {
           <h1 className="flex flex-col items-center">
             <span className="sr-only">Taller Yeyu</span>
             <Logo
-              priority
               className="h-36 sm:h-44 md:h-52 w-auto object-contain drop-shadow-[0_16px_32px_rgba(0,0,0,0.55)]"
             />
           </h1>
@@ -59,7 +60,7 @@ export default function Home() {
             compartir en familia.
           </p>
           <Link
-            className="inline-flex items-center justify-center px-8 py-4 bg-primary-container text-white font-label-caps text-label-caps tracking-widest hover:bg-secondary-container transition-colors duration-300 active:scale-95 uppercase"
+            className="touch-target inline-flex items-center justify-center px-8 bg-primary-container text-white font-label-caps text-label-caps tracking-widest hover:bg-secondary-container transition-colors duration-300 active:scale-95 uppercase"
             href="/galeria"
           >
             Ver Catálogo
@@ -80,6 +81,7 @@ export default function Home() {
               className="object-cover"
               src={PROCESS_IMAGE}
               fill
+              loading="lazy"
               sizes="(min-width: 768px) 50vw, 100vw"
               unoptimized
             />
@@ -112,31 +114,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section
-        className="w-full px-container-margin py-xl mb-xl"
-        id="contacto"
-      >
-        <div className="max-w-4xl mx-auto bg-surface-container-high border border-outline-variant/30 p-lg md:p-xl flex flex-col items-center text-center space-y-md">
-          <MaterialIcon
-            name="architecture"
-            className="text-4xl text-primary mb-xs"
-          />
-          <h2 className="font-headline-md md:font-headline-lg text-headline-md md:text-headline-lg text-on-surface">
-            Contanos tu ocasión
-          </h2>
-          <p className="font-body-md text-body-md text-on-surface-variant w-full">
-            Baby shower, cumpleaños o un regalo especial: decinos la temática y
-            te armamos sugerencias a medida.
-          </p>
-          <a
-            className="mt-md inline-flex items-center gap-sm px-6 py-3 border border-primary text-primary font-label-caps text-label-caps tracking-widest hover:bg-primary/10 transition-colors duration-300 active:scale-95 uppercase"
-            href="#"
-          >
-            Consultar por Pedidos Personalizados
-            <MaterialIcon name="arrow_forward" className="text-sm" />
-          </a>
-        </div>
-      </section>
+      <CustomWorkSection />
     </main>
   );
 }

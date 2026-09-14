@@ -17,7 +17,7 @@ export function FeaturedCategoryGrid({
   const categoryHref = galleryHref({ categoria: "eventos-souvenirs" });
 
   return (
-    <section className="rounded-3xl border border-tertiary/30 bg-surface-container p-md md:p-lg">
+    <section className="rounded-3xl border border-tertiary/30 bg-surface-container p-3 md:p-lg">
       <div className="flex flex-col gap-sm text-center">
         <p className="font-label-caps text-label-caps tracking-widest uppercase text-tertiary">
           Eventos y celebraciones
@@ -31,7 +31,7 @@ export function FeaturedCategoryGrid({
         </p>
       </div>
 
-      <div className="mt-md flex flex-wrap justify-center gap-sm">
+      <div className="mt-md flex flex-wrap justify-center gap-2">
         {topics.map((topic) => (
           <Link
             key={topic.id}
@@ -39,14 +39,14 @@ export function FeaturedCategoryGrid({
               categoria: "eventos-souvenirs",
               topic: topic.id,
             })}
-            className="rounded-full border border-tertiary/50 px-4 py-2 font-label-caps text-label-caps tracking-widest text-tertiary hover:bg-tertiary/10"
+            className="touch-target inline-flex items-center justify-center rounded-full border border-tertiary/50 px-4 font-label-caps text-label-caps tracking-widest text-tertiary hover:bg-tertiary/10"
           >
             {topic.label ?? topicLabel(topic.id)}
           </Link>
         ))}
       </div>
 
-      <div className="mt-lg grid grid-cols-2 lg:grid-cols-4 gap-md">
+      <div className="mt-lg grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-md">
         {products.map((product) => (
           <FeaturedProductCard
             key={product.slug}
@@ -62,7 +62,7 @@ export function FeaturedCategoryGrid({
       <div className="mt-lg flex justify-center">
         <Link
           href={categoryHref}
-          className="inline-flex items-center gap-sm rounded-full bg-tertiary-container px-6 py-3 font-label-caps text-label-caps tracking-widest uppercase text-on-tertiary-container hover:opacity-90"
+          className="touch-target inline-flex w-full items-center justify-center gap-sm rounded-full bg-tertiary-container px-6 text-center font-label-caps text-label-caps tracking-widest uppercase text-on-tertiary-container hover:opacity-90 sm:w-auto"
         >
           Ver catálogo completo de Eventos
           <MaterialIcon name="arrow_forward" className="text-sm" />

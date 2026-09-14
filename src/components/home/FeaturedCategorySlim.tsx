@@ -14,7 +14,7 @@ export function FeaturedCategorySlim({ products }: FeaturedCategorySlimProps) {
   });
 
   return (
-    <section className="rounded-2xl border border-outline-variant/25 bg-surface-container-low p-md md:p-lg">
+    <section className="rounded-2xl border border-outline-variant/25 bg-surface-container-low p-3 md:p-lg">
       <div className="flex flex-col gap-sm md:flex-row md:items-end md:justify-between">
         <div>
           <p className="font-label-caps text-label-caps tracking-widest uppercase text-secondary">
@@ -26,23 +26,19 @@ export function FeaturedCategorySlim({ products }: FeaturedCategorySlimProps) {
         </div>
         <Link
           href={categoryHref}
-          className="inline-flex items-center gap-sm font-label-caps text-label-caps tracking-widest uppercase text-primary hover:text-secondary"
+          className="touch-target inline-flex items-center gap-sm font-label-caps text-label-caps tracking-widest uppercase text-primary hover:text-secondary"
         >
           Ver todos los Organizadores
           <MaterialIcon name="arrow_forward" className="text-sm" />
         </Link>
       </div>
 
-      <div
-        className="hide-scrollbar mt-md flex gap-sm"
-        style={{
-          overflowX: "auto",
-          scrollSnapType: "x mandatory",
-          WebkitOverflowScrolling: "touch",
-        }}
-      >
+      <div className="product-carousel hide-scrollbar mt-md snap-x snap-mandatory overflow-x-auto">
         {products.map((product) => (
-          <div key={product.slug} style={{ scrollSnapAlign: "start" }}>
+          <div
+            key={product.slug}
+            className="product-carousel-item-compact snap-start"
+          >
             <FeaturedProductCard
               compact
               product={product}

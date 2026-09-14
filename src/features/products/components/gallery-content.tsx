@@ -122,12 +122,11 @@ export function GalleryContent({ products }: GalleryContentProps) {
 
       <section className="px-container-margin pb-xl">
         {visibleProducts.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-md">
-            {visibleProducts.map((product, index) => (
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-md xl:grid-cols-4">
+            {visibleProducts.map((product) => (
               <ProductCard
                 key={product.id ?? product.slug}
                 product={product}
-                priority={index < 4}
               />
             ))}
           </div>
@@ -158,7 +157,7 @@ export function GalleryContent({ products }: GalleryContentProps) {
           </p>
           <Link
             href="/#contacto"
-            className="inline-flex w-full items-center justify-center py-4 rounded bg-primary text-on-primary font-label-caps text-label-caps uppercase tracking-widest hover:bg-primary-fixed transition-colors"
+            className="touch-target inline-flex w-full items-center justify-center rounded bg-primary px-4 text-on-primary font-label-caps text-label-caps uppercase tracking-widest hover:bg-primary-fixed transition-colors"
           >
             Hacer un Pedido Especial
           </Link>

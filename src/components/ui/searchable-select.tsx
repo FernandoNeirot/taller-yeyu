@@ -2,6 +2,7 @@
 
 import {
   type KeyboardEvent,
+  type MouseEvent,
   useEffect,
   useId,
   useMemo,
@@ -27,6 +28,7 @@ type SearchableSelectProps = {
   required?: boolean;
   disabled?: boolean;
   size?: "md" | "sm";
+  clearable?: boolean;
 };
 
 function normalize(value: string) {
@@ -44,16 +46,19 @@ export function SearchableSelect({
   required = false,
   disabled = false,
   size = "md",
+  clearable = true,
 }: SearchableSelectProps) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
 
   const selected = options.find((option) => option.value === value);
+  const hasValue = value !== "";
   const padding = size === "sm" ? "8px 12px" : "12px 16px";
+  const displayValue = open ? query : (selected?.label ?? "");
 
   const filtered = useMemo(() => {
     const term = normalize(query);
@@ -64,7 +69,7 @@ export function SearchableSelect({
   useEffect(() => {
     if (!open) return;
 
-    function handlePointerDown(event: MouseEvent) {
+    function handlePointerDown(event: Event) {
       if (!rootRef.current?.contains(event.target as Node)) {
         setOpen(false);
         setQuery("");
@@ -75,12 +80,10 @@ export function SearchableSelect({
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [open]);
 
-  useEffect(() => {
-    if (open) {
-      setActiveIndex(0);
-      searchRef.current?.focus();
-    }
-  }, [open]);
+  function openList() {
+    setOpen(true);
+    setActiveIndex(0);
+  }
 
   function selectOption(option: SearchableSelectOption) {
     if (option.disabled) return;
@@ -89,9 +92,23 @@ export function SearchableSelect({
     setQuery("");
   }
 
+  function clearSelection(event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (disabled) return;
+    onChange("");
+    setQuery("");
+    setOpen(false);
+    inputRef.current?.focus();
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "ArrowDown") {
       event.preventDefault();
+      if (!open) {
+        openList();
+        return;
+      }
       setActiveIndex((index) =>
         filtered.length === 0 ? 0 : Math.min(index + 1, filtered.length - 1),
       );
@@ -122,7 +139,7 @@ export function SearchableSelect({
     <div
       ref={rootRef}
       className="relative"
-      style={{ width: "100%", zIndex: open ? 80 : "auto" }}
+      style={{ width: "100%", zIndex: open ? 200 : "auto" }}
     >
       {name ? (
         <select
@@ -150,42 +167,88 @@ export function SearchableSelect({
         </select>
       ) : null}
 
-      <button
-        type="button"
-        disabled={disabled}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={listId}
-        onClick={() => {
-          if (disabled) return;
-          setOpen((current) => !current);
-          setQuery("");
-        }}
-        className="rounded-lg border border-outline-variant/40 bg-surface-container-low text-on-surface outline-none transition-colors focus:border-primary disabled:opacity-50"
+      <div
+        className="touch-target rounded-lg border border-outline-variant/40 bg-surface-container-low text-on-surface outline-none transition-colors focus-within:border-primary"
         style={{
           width: "100%",
+          minHeight: 44,
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
+          gap: 4,
           padding,
-          textAlign: "left",
         }}
       >
-        <span
+        <input
+          ref={inputRef}
+          type="text"
+          role="combobox"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          disabled={disabled}
+          value={displayValue}
+          placeholder={open ? searchPlaceholder : placeholder}
+          autoComplete="off"
+          onFocus={() => {
+            if (disabled) return;
+            setQuery("");
+            openList();
+          }}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            openList();
+          }}
+          onKeyDown={handleKeyDown}
           className={
-            selected
-              ? "font-body-md text-body-md text-on-surface"
-              : "font-body-md text-body-md text-on-surface-variant"
+            hasValue || open
+              ? "font-body-md text-body-md text-on-surface outline-none"
+              : "font-body-md text-body-md text-on-surface-variant outline-none"
           }
-        >
-          {selected?.label || placeholder}
-        </span>
-        <MaterialIcon
-          name={open ? "expand_less" : "expand_more"}
-          className="text-on-surface-variant"
+          style={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 44,
+            border: "none",
+            background: "transparent",
+            padding: 0,
+          }}
         />
-      </button>
+
+        {clearable && hasValue && !disabled ? (
+          <button
+            type="button"
+            aria-label="Borrar selección"
+            onClick={clearSelection}
+            className="touch-target inline-flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface"
+            style={{ minHeight: 44, minWidth: 44, flexShrink: 0 }}
+          >
+            <MaterialIcon name="close" />
+          </button>
+        ) : null}
+
+        <button
+          type="button"
+          tabIndex={-1}
+          disabled={disabled}
+          aria-label={open ? "Cerrar opciones" : "Abrir opciones"}
+          onClick={() => {
+            if (disabled) return;
+            if (open) {
+              setOpen(false);
+              setQuery("");
+              return;
+            }
+            setQuery("");
+            openList();
+            inputRef.current?.focus();
+          }}
+          className="inline-flex items-center justify-center text-on-surface-variant disabled:opacity-50"
+          style={{ minHeight: 32, minWidth: 32, flexShrink: 0 }}
+        >
+          <MaterialIcon name={open ? "expand_less" : "expand_more"} />
+        </button>
+      </div>
 
       {open ? (
         <div
@@ -194,36 +257,11 @@ export function SearchableSelect({
             position: "absolute",
             left: 0,
             top: "100%",
-            zIndex: 80,
+            zIndex: 200,
             width: "100%",
             marginTop: 4,
           }}
         >
-          <div className="relative border-b border-outline-variant/30">
-            <MaterialIcon
-              name="search"
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"
-            />
-            <input
-              ref={searchRef}
-              type="search"
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setActiveIndex(0);
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder={searchPlaceholder}
-              className="bg-surface-container-highest font-body-md text-body-md text-on-surface outline-none placeholder:text-on-surface-variant/70"
-              style={{
-                width: "100%",
-                display: "block",
-                padding: "10px 12px 10px 40px",
-                border: "none",
-              }}
-            />
-          </div>
-
           <ul
             id={listId}
             role="listbox"
@@ -247,13 +285,16 @@ export function SearchableSelect({
                       aria-selected={isSelected}
                       disabled={option.disabled}
                       onMouseEnter={() => setActiveIndex(index)}
-                      onClick={() => selectOption(option)}
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                        selectOption(option);
+                      }}
                       className={
                         active
-                          ? "w-full px-4 py-2 text-left font-body-md text-body-md bg-primary-container text-on-primary-container disabled:opacity-40"
-                          : "w-full px-4 py-2 text-left font-body-md text-body-md text-on-surface hover:bg-surface-container-highest disabled:opacity-40"
+                          ? "touch-target w-full px-4 text-left font-body-md text-body-md bg-primary-container text-on-primary-container disabled:opacity-40"
+                          : "touch-target w-full px-4 text-left font-body-md text-body-md text-on-surface hover:bg-surface-container-highest disabled:opacity-40"
                       }
-                      style={{ width: "100%" }}
+                      style={{ width: "100%", minHeight: 44 }}
                     >
                       {option.label}
                     </button>

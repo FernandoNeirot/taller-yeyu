@@ -21,12 +21,13 @@ export function FeaturedCategoryHero({ products }: FeaturedCategoryHeroProps) {
         width: "100%",
       }}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-md p-md md:p-lg">
-        <div className="relative min-h-72 overflow-hidden rounded-3xl">
+      <div className="grid grid-cols-1 gap-3 p-3 md:gap-md md:p-lg lg:grid-cols-2">
+        <div className="relative min-h-72 overflow-hidden rounded-3xl md:min-h-80">
           <Image
             alt="El cuarto de tu bebé"
             src="/principal.png"
             fill
+            loading="lazy"
             className="object-cover"
             sizes="(min-width: 1024px) 50vw, 100vw"
             unoptimized
@@ -38,7 +39,7 @@ export function FeaturedCategoryHero({ products }: FeaturedCategoryHeroProps) {
                 "linear-gradient(180deg, rgba(58,39,28,0.15) 0%, rgba(58,39,28,0.78) 100%)",
             }}
           />
-          <div className="relative z-10 flex h-full flex-col justify-end p-lg">
+          <div className="relative z-10 flex h-full flex-col justify-end p-4 md:p-lg">
             <p className="font-label-caps text-label-caps tracking-widest uppercase text-[#f3e6d8]">
               Maternidad y universo infantil
             </p>
@@ -51,7 +52,7 @@ export function FeaturedCategoryHero({ products }: FeaturedCategoryHeroProps) {
             </p>
             <Link
               href={categoryHref}
-              className="mt-md inline-flex w-fit items-center gap-sm rounded-full px-6 py-3 font-label-caps text-label-caps tracking-widest uppercase"
+              className="touch-target mt-md inline-flex w-full items-center justify-center gap-sm rounded-full px-6 font-label-caps text-label-caps tracking-widest uppercase sm:w-fit"
               style={{ background: "#a0522d", color: "#fff2ec" }}
             >
               Ver todo para Bebés
@@ -60,7 +61,7 @@ export function FeaturedCategoryHero({ products }: FeaturedCategoryHeroProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-sm md:gap-md">
+        <div className="grid grid-cols-2 gap-3 md:gap-md">
           {products.map((product) => (
             <FeaturedProductCard
               key={product.slug}
