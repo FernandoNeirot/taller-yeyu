@@ -6,6 +6,7 @@ import {
   topicLabel,
   type GalleryCategoryId,
 } from "@/types/product";
+import { ViewToggle, type GalleryViewMode } from "./view-toggle";
 
 type ProductOption = {
   value: string;
@@ -19,6 +20,8 @@ type GalleryFiltersProps = {
   products: ProductOption[];
   topics: string[];
   visibleCount: number;
+  viewMode: GalleryViewMode;
+  onViewModeChange: (mode: GalleryViewMode) => void;
   onCategoryChange: (category: GalleryCategoryId) => void;
   onProductChange: (product: string) => void;
   onTopicChange: (topic: string) => void;
@@ -31,6 +34,8 @@ export function GalleryFilters({
   products,
   topics,
   visibleCount,
+  viewMode,
+  onViewModeChange,
   onCategoryChange,
   onProductChange,
   onTopicChange,
@@ -85,9 +90,15 @@ export function GalleryFilters({
         </div>
       ) : null}
 
-      <p className="font-label-caps text-label-caps text-on-surface-variant tracking-widest">
-        {countLabel}
-      </p>
+      <div
+        className="flex items-center justify-between gap-sm"
+        style={{ width: "100%" }}
+      >
+        <p className="font-label-caps text-label-caps text-on-surface-variant tracking-widest">
+          {countLabel}
+        </p>
+        <ViewToggle viewMode={viewMode} setViewMode={onViewModeChange} />
+      </div>
     </section>
   );
 }

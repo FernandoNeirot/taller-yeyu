@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { filterCatalogProducts } from "../lib/filter-catalog";
 import { galleryHref, parseGalleryCategory } from "../lib/gallery-url";
@@ -10,6 +10,7 @@ import type { Product } from "@/types/product";
 import type { GalleryCategoryId } from "@/types/product";
 import { GalleryFilters } from "./gallery-filters";
 import { ProductCard } from "./product-card";
+import type { GalleryViewMode } from "./view-toggle";
 
 type GalleryContentProps = {
   products: Product[];
@@ -21,6 +22,7 @@ export function GalleryContent({ products }: GalleryContentProps) {
   const selectedCategory = parseGalleryCategory(searchParams.get("categoria"));
   const selectedTopic = searchParams.get("topic") ?? "";
   const selectedProduct = searchParams.get("producto") ?? "";
+  const [viewMode, setViewMode] = useState<GalleryViewMode>("grid");
 
   const scopedProducts = useMemo(() => {
     return products.filter((product) => {
@@ -115,6 +117,8 @@ export function GalleryContent({ products }: GalleryContentProps) {
         products={productOptions}
         topics={topics}
         visibleCount={visibleProducts.length}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
         onCategoryChange={handleCategoryChange}
         onProductChange={handleProductChange}
         onTopicChange={handleTopicChange}
@@ -122,11 +126,28 @@ export function GalleryContent({ products }: GalleryContentProps) {
 
       <section className="px-container-margin pb-xl">
         {visibleProducts.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4"
+                : "flex flex-col gap-3"
+            }
+            style={
+              viewMode === "list"
+                ? {
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                    width: "100%",
+                  }
+                : { width: "100%" }
+            }
+          >
             {visibleProducts.map((product) => (
               <ProductCard
                 key={product.id ?? product.slug}
                 product={product}
+                viewMode={viewMode}
               />
             ))}
           </div>
