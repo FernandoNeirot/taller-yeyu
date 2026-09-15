@@ -106,6 +106,8 @@ function toSeedDoc(product: Product) {
     price: product.price ?? null,
     isActive: product.isActive,
     available: product.isActive,
+    weightGrams: product.weightGrams ?? null,
+    dimensions: product.dimensions ?? null,
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   };

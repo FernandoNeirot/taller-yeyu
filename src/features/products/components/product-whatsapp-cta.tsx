@@ -37,7 +37,7 @@ export function ProductWhatsAppCTA({
             setOpen(true);
           }}
           className="inline-flex items-center justify-center gap-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500"
-          style={{ width: "100%", minHeight: 32, padding: "0 8px" }}
+          style={{ width: "100%", minHeight: 32, padding: "0 8px", flex: 1 }}
         >
           <CompactWhatsAppIcon />
           <span className="text-[11px] font-semibold tracking-wide">

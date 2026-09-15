@@ -17,6 +17,12 @@ export interface Product {
   price?: number;
   isActive: boolean;
   createdAt: Date | string;
+  weightGrams?: number;
+  dimensions?: {
+    heightCm: number;
+    widthCm: number;
+    lengthCm: number;
+  };
 }
 
 export const galleryCategories = [

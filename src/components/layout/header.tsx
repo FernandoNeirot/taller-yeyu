@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { Logo } from "./logo";
 import { isNavActive, navItems } from "./nav";
+import { CartButton } from "@/components/cart/cart-button";
 
 export function Header() {
   const pathname = usePathname();
@@ -32,10 +33,11 @@ export function Header() {
   return (
     <header
       ref={headerRef}
-      className="fixed top-0 w-full z-50 bg-background/80 dark:bg-background/80 backdrop-blur-md border-b border-outline-variant/30 transition-all duration-300"
+      className="fixed top-0 w-full bg-background/80 dark:bg-background/80 backdrop-blur-md border-b border-outline-variant/30 transition-all duration-300"
+      style={{ zIndex: 60 }}
       id="top-app-bar"
     >
-      <div className="flex justify-center md:justify-between items-center px-container-margin py-md w-full max-w-7xl mx-auto">
+      <div className="relative flex justify-center md:justify-between items-center px-container-margin py-md w-full max-w-7xl mx-auto">
         <Link className="flex items-center h-14" href="/">
           <Logo className="h-full w-auto object-contain" priority />
         </Link>
@@ -57,7 +59,11 @@ export function Header() {
               </Link>
             );
           })}
+          <CartButton />
         </nav>
+        <div className="absolute right-4 md:hidden">
+          <CartButton />
+        </div>
       </div>
     </header>
   );

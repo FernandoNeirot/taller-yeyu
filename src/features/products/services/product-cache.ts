@@ -18,6 +18,7 @@ function cloneProduct(product: Product): Product {
     topics: [...product.topics],
     galleryImages: [...product.galleryImages],
     specifications: { ...product.specifications },
+    dimensions: product.dimensions ? { ...product.dimensions } : undefined,
   };
 }
 

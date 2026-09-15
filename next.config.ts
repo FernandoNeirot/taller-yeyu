@@ -5,7 +5,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
-  serverExternalPackages: ["firebase-admin", "@google-cloud/firestore", "sharp"],
+  serverExternalPackages: [
+    "firebase-admin",
+    "@google-cloud/firestore",
+    "sharp",
+    "mercadopago",
+  ],
   images: {
     remotePatterns: [
       {

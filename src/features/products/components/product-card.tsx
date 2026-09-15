@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { categoryLabel } from "@/types/product";
 import type { Product } from "@/types/product";
@@ -103,7 +104,8 @@ export function ProductCard({
                 </p>
               ) : null}
             </button>
-            <div className="mt-auto" style={{ paddingTop: 8 }}>
+            <div className="mt-auto" style={{ paddingTop: 8, display: "flex", gap: 8 }}>
+              <AddToCartButton product={product} compact />
               <ProductWhatsAppCTA product={product} compact />
             </div>
           </div>
@@ -187,7 +189,8 @@ export function ProductCard({
       )}
 
       {isList ? null : (
-        <div style={{ width: "100%", padding: "0 12px 12px" }}>
+        <div style={{ width: "100%", padding: "0 12px 12px", display: "flex", gap: 8 }}>
+          <AddToCartButton product={product} compact />
           <ProductWhatsAppCTA product={product} compact />
         </div>
       )}

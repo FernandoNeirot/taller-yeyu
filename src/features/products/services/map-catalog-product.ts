@@ -31,6 +31,14 @@ export function mapCatalogDoc(
   );
   const galleryImages = toStringArray(data.galleryImages ?? data.images);
   const createdAt = data.createdAt?.toDate?.() ?? data.createdAt ?? "";
+  const weightGrams = toPrice(data.weightGrams);
+  const packageSize =
+    data.dimensions && typeof data.dimensions === "object"
+      ? (data.dimensions as Record<string, unknown>)
+      : null;
+  const heightCm = toPrice(packageSize?.heightCm);
+  const widthCm = toPrice(packageSize?.widthCm);
+  const lengthCm = toPrice(packageSize?.lengthCm);
 
   return {
     id,
@@ -51,5 +59,10 @@ export function mapCatalogDoc(
     price: toPrice(data.price),
     isActive: data.isActive !== false && data.available !== false,
     createdAt,
+    weightGrams,
+    dimensions:
+      heightCm && widthCm && lengthCm
+        ? { heightCm, widthCm, lengthCm }
+        : undefined,
   };
 }
