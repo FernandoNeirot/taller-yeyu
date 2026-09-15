@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -19,9 +20,16 @@ const STORAGE_KEY = "talleryeyu-cart-v1";
 type CartContextValue = {
   items: CartItem[];
   isOpen: boolean;
+  toast: string;
   openCart: () => void;
   closeCart: () => void;
-  addToCart: (product: Product, quantity?: number, customNotes?: string) => void;
+  showToast: (message: string) => void;
+  addToCart: (
+    product: Product,
+    quantity?: number,
+    customNotes?: string,
+    options?: { openCart?: boolean },
+  ) => void;
   removeFromCart: (id: string, customNotes?: string) => void;
   updateQuantity: (id: string, qty: number, customNotes?: string) => void;
   clearCart: () => void;
@@ -42,6 +50,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [toast, setToast] = useState("");
+  const toastTimer = useRef<number>(0);
 
   useEffect(() => {
     try {
@@ -62,7 +72,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [hydrated, items]);
 
   const addToCart = useCallback(
-    (product: Product, quantity = 1, customNotes = "") => {
+    (
+      product: Product,
+      quantity = 1,
+      customNotes = "",
+      options?: { openCart?: boolean },
+    ) => {
       const id = productId(product);
       const notes = customNotes.trim();
       const key = cartItemKey(id, notes);
@@ -99,7 +114,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           },
         ];
       });
-      setIsOpen(true);
+
+      if (options?.openCart) setIsOpen(true);
     },
     [],
   );
@@ -133,14 +149,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = useCallback(() => setItems([]), []);
 
+  const showToast = useCallback((message: string) => {
+    window.clearTimeout(toastTimer.current);
+    setToast(message);
+    toastTimer.current = window.setTimeout(() => setToast(""), 2200);
+  }, []);
+
   const totals = useMemo(() => computeCartTotals(items), [items]);
 
   const value = useMemo(
     () => ({
       items,
       isOpen,
+      toast,
       openCart: () => setIsOpen(true),
       closeCart: () => setIsOpen(false),
+      showToast,
       addToCart,
       removeFromCart,
       updateQuantity,
@@ -153,6 +177,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       isOpen,
       items,
       removeFromCart,
+      showToast,
+      toast,
       totals,
       updateQuantity,
     ],

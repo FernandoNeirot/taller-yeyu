@@ -21,25 +21,30 @@ function envValue(...keys: string[]) {
 }
 
 function andreaniBaseUrl() {
-  return envValue("ANDREANI_ENV") === "production"
-    ? PRODUCTION_URL
-    : SANDBOX_URL;
+  return (
+    envValue("ANDREANI_API_URL") ||
+    (envValue("ANDREANI_ENV") === "production" ? PRODUCTION_URL : SANDBOX_URL)
+  ).replace(/\/$/, "");
 }
 
 function andreaniUser() {
-  return envValue("ANDREANI_USER");
+  return envValue("ANDREANI_USUARIO", "ANDREANI_USER");
 }
 
 function andreaniPassword() {
-  return envValue("ANDREANI_PASS", "ANDREANI_PASSWORD");
+  return envValue("ANDREANI_CLAVE", "ANDREANI_PASS", "ANDREANI_PASSWORD");
 }
 
 function andreaniClient() {
-  return envValue("ANDREANI_CODIGO_CLIENTE", "ANDREANI_CLIENT");
+  return envValue("ANDREANI_CLIENTE", "ANDREANI_CODIGO_CLIENTE", "ANDREANI_CLIENT");
 }
 
 function andreaniHomeContract() {
-  return envValue("ANDREANI_CONTRATO_DOMICILIO", "ANDREANI_CONTRACT_HOME");
+  return envValue(
+    "ANDREANI_CONTRATO_DOMICILIO",
+    "ANDREANI_CONTRACT_HOME",
+    "ANDREANI_CONTRATO",
+  );
 }
 
 function andreaniBranchContract() {
@@ -50,13 +55,16 @@ function andreaniOriginBranch() {
   return envValue("ANDREANI_SUCURSAL_ORIGEN", "ANDREANI_ORIGIN_BRANCH");
 }
 
+function andreaniOriginPostalCode() {
+  return envValue("ANDREANI_POSTAL_CODE_ORIGIN", "ANDREANI_CP_ORIGEN");
+}
+
 export function hasAndreaniCredentials() {
   return Boolean(
     andreaniUser() &&
       andreaniPassword() &&
       andreaniClient() &&
-      andreaniHomeContract() &&
-      andreaniBranchContract(),
+      andreaniHomeContract(),
   );
 }
 
@@ -78,12 +86,16 @@ async function loginAndreani() {
     throw new Error("No se pudo autenticar con Andreani.");
   }
 
-  const token = response.headers.get("x-authorization-token");
-  if (!token) {
-    throw new Error("Andreani no devolvió el token de autorización.");
-  }
+  const headerToken = response.headers.get("x-authorization-token");
+  if (headerToken) return headerToken;
 
-  return token;
+  const body = (await response.json().catch(() => null)) as
+    | { token?: string; access_token?: string }
+    | null;
+  const bodyToken = body?.token ?? body?.access_token;
+  if (bodyToken) return bodyToken;
+
+  throw new Error("Andreani no devolvió el token de autorización.");
 }
 
 async function quoteContract(params: {
@@ -95,7 +107,8 @@ async function quoteContract(params: {
   declaredValue: number;
   envelope: PackageSize;
 }) {
-  const origin = andreaniOriginBranch();
+  const originBranch = andreaniOriginBranch();
+  const originPostalCode = andreaniOriginPostalCode();
   const query = new URLSearchParams({
     cpDestino: params.postalCode,
     cliente: andreaniClient(),
@@ -109,12 +122,16 @@ async function quoteContract(params: {
     "bultos[0][anchoCm]": String(Math.max(Math.round(params.envelope.widthCm), 1)),
     "bultos[0][largoCm]": String(Math.max(Math.round(params.envelope.lengthCm), 1)),
   });
-  if (origin) query.set("sucursalOrigen", origin);
+  if (originBranch) query.set("sucursalOrigen", originBranch);
+  if (originPostalCode) query.set("cpOrigen", originPostalCode);
 
   const response = await fetch(
     `${andreaniBaseUrl()}/v1/tarifas?${query.toString()}`,
     {
-      headers: { "x-authorization-token": params.token },
+      headers: {
+        "x-authorization-token": params.token,
+        Authorization: `Bearer ${params.token}`,
+      },
       cache: "no-store",
     },
   );
@@ -151,7 +168,7 @@ export async function quoteAndreaniShipping(input: {
 }): Promise<ShippingOption[]> {
   if (!hasAndreaniCredentials()) {
     throw new Error(
-      "Falta configurar Andreani (ANDREANI_USER, ANDREANI_PASS, ANDREANI_CODIGO_CLIENTE y contratos).",
+      "Falta configurar Andreani (ANDREANI_USUARIO, ANDREANI_CLAVE, ANDREANI_CLIENTE y ANDREANI_CONTRATO).",
     );
   }
 
@@ -162,49 +179,50 @@ export async function quoteAndreaniShipping(input: {
     input.envelope.heightCm * input.envelope.widthCm * input.envelope.lengthCm,
   );
 
+  const homeContract = andreaniHomeContract();
+  const branchContract = andreaniBranchContract();
+  const quoteInput = {
+    token,
+    postalCode: input.postalCode,
+    kilos,
+    volumeCm3,
+    declaredValue: input.declaredValue,
+    envelope: input.envelope,
+  };
+
   const [home, branch] = await Promise.all([
-    quoteContract({
-      token,
-      postalCode: input.postalCode,
-      contract: andreaniHomeContract(),
-      kilos,
-      volumeCm3,
-      declaredValue: input.declaredValue,
-      envelope: input.envelope,
-    }),
-    quoteContract({
-      token,
-      postalCode: input.postalCode,
-      contract: andreaniBranchContract(),
-      kilos,
-      volumeCm3,
-      declaredValue: input.declaredValue,
-      envelope: input.envelope,
-    }),
+    quoteContract({ ...quoteInput, contract: homeContract }),
+    branchContract && branchContract !== homeContract
+      ? quoteContract({ ...quoteInput, contract: branchContract })
+      : Promise.resolve(null),
   ]);
 
   const options: ShippingOption[] = [];
   const homePrice = toPrice(home);
-  const branchPrice = toPrice(branch);
 
   if (homePrice != null) {
     options.push({
       id: "domicilio",
-      label: "Andreani a domicilio",
+      label: branch ? "Andreani a domicilio" : "Envío Andreani",
       price: homePrice,
       estimatedDays: toEta(home),
-      description: "Entrega en la dirección del destinatario.",
+      description: branch
+        ? "Entrega en la dirección del destinatario."
+        : "Cotización Andreani según el contrato configurado.",
     });
   }
 
-  if (branchPrice != null) {
-    options.push({
-      id: "sucursal",
-      label: "Andreani sucursal",
-      price: branchPrice,
-      estimatedDays: toEta(branch),
-      description: "Retiro en sucursal Andreani.",
-    });
+  if (branch) {
+    const branchPrice = toPrice(branch);
+    if (branchPrice != null) {
+      options.push({
+        id: "sucursal",
+        label: "Andreani sucursal",
+        price: branchPrice,
+        estimatedDays: toEta(branch),
+        description: "Retiro en sucursal Andreani.",
+      });
+    }
   }
 
   if (options.length === 0) {

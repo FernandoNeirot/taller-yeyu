@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { CartDrawer } from "@/components/cart/CartDrawer";
+import { CartToast } from "@/components/cart/add-to-cart-button";
 import { CartProvider } from "@/context/CartContext";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -23,6 +24,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <CartProvider>
         {children}
         <CartDrawer />
+        <CartToast />
       </CartProvider>
     </QueryClientProvider>
   );

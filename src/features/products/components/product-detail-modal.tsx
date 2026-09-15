@@ -25,8 +25,6 @@ export function ProductDetailModal({
   const titleId = useId();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [customNotes, setCustomNotes] = useState("");
   const images = productGalleryImages(product);
   const hasMany = images.length > 1;
   const primaryCategory = product.categories[0];
@@ -321,48 +319,8 @@ export function ProductDetailModal({
           ) : null}
         </dl>
 
-        <div className="mt-4 flex items-center" style={{ gap: 8 }}>
-          <span className="font-label-caps text-label-caps tracking-widest text-secondary">
-            Cantidad
-          </span>
-          <div className="inline-flex items-center rounded-lg bg-surface-container">
-            <button
-              type="button"
-              aria-label="Quitar una unidad"
-              onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-              style={{ minWidth: 40, minHeight: 40 }}
-            >
-              <MaterialIcon name="remove" />
-            </button>
-            <span className="min-w-8 text-center">{quantity}</span>
-            <button
-              type="button"
-              aria-label="Agregar una unidad"
-              onClick={() => setQuantity((value) => value + 1)}
-              style={{ minWidth: 40, minHeight: 40 }}
-            >
-              <MaterialIcon name="add" />
-            </button>
-          </div>
-        </div>
-
-        {product.specifications.customizable ? (
-          <textarea
-            value={customNotes}
-            onChange={(event) => setCustomNotes(event.target.value)}
-            placeholder="Notas de personalización (nombre, fecha, temática)"
-            className="mt-3 rounded-lg border border-outline-variant/40 bg-surface-container-low px-3 py-2 font-body-md text-sm text-on-surface outline-none focus:border-primary"
-            style={{ width: "100%", minHeight: 72 }}
-          />
-        ) : null}
-
         <div className="mt-4" style={{ paddingBottom: 8 }}>
-          <AddToCartButton
-            product={product}
-            quantity={quantity}
-            customNotes={customNotes}
-            onAdded={onClose}
-          />
+          <AddToCartButton product={product} />
         </div>
 
         {showInquiry ? (

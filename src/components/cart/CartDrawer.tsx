@@ -365,6 +365,10 @@ export function CartDrawer() {
               <h3 className="font-label-caps text-label-caps tracking-widest text-secondary">
                 Envío Andreani
               </h3>
+              <p className="mt-1 text-xs text-on-surface-variant">
+                El peso y el volumen se calculan con todos los productos del
+                carrito. Cotizá acá antes de pagar o consultar por WhatsApp.
+              </p>
               <div className="mt-2 flex" style={{ gap: 8 }}>
                 <input
                   value={postalCode}

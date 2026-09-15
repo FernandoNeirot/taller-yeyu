@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { updateOrder } from "@/features/checkout/orders";
-import { getMercadoPagoPayment } from "@/lib/mercadopago";
+import {
+  getMercadoPagoPayment,
+  verifyMercadoPagoWebhook,
+} from "@/lib/mercadopago";
 
 function paymentStatus(status: string | undefined) {
   if (status === "approved") return "paid" as const;
@@ -31,6 +34,9 @@ export async function GET(request: Request) {
   const topic = url.searchParams.get("type") ?? url.searchParams.get("topic");
 
   if (paymentId && (topic === "payment" || !topic)) {
+    if (!verifyMercadoPagoWebhook(request, paymentId)) {
+      return NextResponse.json({ error: "Firma inválida." }, { status: 401 });
+    }
     try {
       await processPayment(paymentId);
     } catch (error) {
@@ -55,6 +61,9 @@ export async function POST(request: Request) {
     const topic = body.type ?? url.searchParams.get("type") ?? url.searchParams.get("topic");
 
     if (paymentId && (topic === "payment" || body.action?.startsWith("payment"))) {
+      if (!verifyMercadoPagoWebhook(request, paymentId)) {
+        return NextResponse.json({ error: "Firma inválida." }, { status: 401 });
+      }
       await processPayment(paymentId);
     }
   } catch (error) {

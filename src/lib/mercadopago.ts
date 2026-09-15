@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 
 function getAccessToken() {
@@ -8,8 +9,25 @@ function getAccessToken() {
   return token;
 }
 
+export function getMercadoPagoPublicKey() {
+  return process.env.NEXT_PUBLIC_MP_PUBLIC_KEY?.trim() ?? "";
+}
+
+function isPlaceholderSecret(value: string) {
+  return (
+    !value ||
+    value.startsWith("tu_") ||
+    value.includes("000000") ||
+    value === "xxx"
+  );
+}
+
 export function checkoutBaseUrl() {
-  const fromEnv = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
+  const fromEnv = (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    ""
+  ).replace(/\/$/, "");
   if (fromEnv) return fromEnv;
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return "http://localhost:3000";
@@ -17,6 +35,37 @@ export function checkoutBaseUrl() {
 
 function isLocalCheckout(base: string) {
   return base.includes("localhost") || base.includes("127.0.0.1");
+}
+
+export function verifyMercadoPagoWebhook(request: Request, dataId: string) {
+  const secret = process.env.MP_WEBHOOK_SECRET?.trim() ?? "";
+  if (isPlaceholderSecret(secret)) return true;
+
+  const xSignature = request.headers.get("x-signature") ?? "";
+  const xRequestId = request.headers.get("x-request-id") ?? "";
+  const parts = Object.fromEntries(
+    xSignature.split(",").map((part) => {
+      const [key, ...rest] = part.split("=");
+      return [key.trim(), rest.join("=").trim()];
+    }),
+  );
+  const ts = parts.ts;
+  const v1 = parts.v1;
+  if (!ts || !v1 || !dataId) return false;
+
+  const manifest = `id:${dataId.toLowerCase()};request-id:${xRequestId};ts:${ts};`;
+  const hash = createHmac("sha256", secret).update(manifest).digest("hex");
+
+  try {
+    const expected = Buffer.from(hash);
+    const received = Buffer.from(v1);
+    return (
+      expected.length === received.length &&
+      timingSafeEqual(expected, received)
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function getMercadoPagoClient() {
