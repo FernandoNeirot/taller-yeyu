@@ -41,6 +41,7 @@ export function CartDrawer() {
   const [selectedShippingId, setSelectedShippingId] = useState<
     ShippingOption["id"] | ""
   >("");
+  const [mounted, setMounted] = useState(false);
   const [quoting, setQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState("");
   const [checkoutError, setCheckoutError] = useState("");
@@ -54,6 +55,10 @@ export function CartDrawer() {
   const oversized = items.some((item) =>
     exceedsStandardMail(item.dimensions, item.weightGrams * item.quantity),
   );
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -184,7 +189,7 @@ export function CartDrawer() {
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
-  if (typeof document === "undefined") return null;
+  if (!mounted) return null;
 
   return createPortal(
     <>

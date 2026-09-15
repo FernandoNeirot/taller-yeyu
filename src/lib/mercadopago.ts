@@ -40,7 +40,8 @@ export async function createCheckoutPreference(input: {
   const preference = new Preference(client);
   const base = checkoutBaseUrl();
 
-  const items = input.items.map((item) => ({
+  const items = input.items.map((item, index) => ({
+    id: `item-${index + 1}`,
     title: item.title.slice(0, 120),
     quantity: item.quantity,
     unit_price: item.unitPrice,
@@ -49,6 +50,7 @@ export async function createCheckoutPreference(input: {
 
   if (input.shippingPrice > 0) {
     items.push({
+      id: "shipping-andreani",
       title: input.shippingLabel ?? "Envío Andreani",
       quantity: 1,
       unit_price: input.shippingPrice,
