@@ -15,12 +15,14 @@ type ProductDetailModalProps = {
   product: Product;
   onClose: () => void;
   showInquiry?: boolean;
+  showAddToCart?: boolean;
 };
 
 export function ProductDetailModal({
   product,
   onClose,
   showInquiry = true,
+  showAddToCart = true,
 }: ProductDetailModalProps) {
   const titleId = useId();
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -393,9 +395,11 @@ export function ProductDetailModal({
               ) : null}
             </dl>
 
-            <div className="mt-4" style={{ paddingBottom: 8 }}>
-              <AddToCartButton product={product} />
-            </div>
+            {showAddToCart ? (
+              <div className="mt-4" style={{ paddingBottom: 8 }}>
+                <AddToCartButton product={product} />
+              </div>
+            ) : null}
 
             {showInquiry ? (
               <div className="mt-2" style={{ paddingBottom: 8 }}>

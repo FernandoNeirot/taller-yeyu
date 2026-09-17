@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { AddToCartModal } from "@/components/cart/AddToCartModal";
 import { MaterialIcon } from "@/components/ui/material-icon";
@@ -15,6 +15,79 @@ export function AddToCartButton({
   compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const { items, addToCart, updateQuantity } = useCart();
+  const productId = product.id ?? product.slug;
+  const lines = items.filter((item) => item.id === productId);
+  const quantity = lines.reduce((sum, item) => sum + item.quantity, 0);
+
+  function addOne(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    const preferred = lines.find((item) => !item.customNotes) ?? lines[0];
+    if (!preferred) {
+      addToCart(product, 1);
+      return;
+    }
+    updateQuantity(preferred.id, preferred.quantity + 1, preferred.customNotes);
+  }
+
+  function removeOne(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    const last = lines[lines.length - 1];
+    if (!last) return;
+    updateQuantity(last.id, last.quantity - 1, last.customNotes);
+  }
+
+  if (quantity > 0) {
+    return (
+      <div
+        className={
+          compact
+            ? "inline-flex min-w-0 flex-1 items-center justify-between rounded-lg bg-orange-200 text-orange-950"
+            : "inline-flex items-center justify-between rounded-lg bg-primary text-on-primary"
+        }
+        style={{
+          flex: compact ? 1 : undefined,
+          minWidth: 0,
+          width: compact ? "auto" : "100%",
+          minHeight: compact ? 36 : 44,
+          height: compact ? 36 : 44,
+        }}
+      >
+        <button
+          type="button"
+          aria-label={
+            quantity === 1 ? "Quitar del carrito" : "Quitar una unidad"
+          }
+          onClick={removeOne}
+          className="inline-flex items-center justify-center"
+          style={{ minWidth: compact ? 32 : 44, minHeight: compact ? 36 : 44 }}
+        >
+          <MaterialIcon
+            name={quantity === 1 ? "delete" : "remove"}
+            className={compact ? "text-sm" : ""}
+          />
+        </button>
+        <span
+          className={
+            compact
+              ? "min-w-5 text-center text-xs font-semibold"
+              : "min-w-8 text-center font-label-caps text-label-caps tracking-widest"
+          }
+        >
+          {quantity}
+        </span>
+        <button
+          type="button"
+          aria-label="Agregar una unidad"
+          onClick={addOne}
+          className="inline-flex items-center justify-center"
+          style={{ minWidth: compact ? 32 : 44, minHeight: compact ? 36 : 44 }}
+        >
+          <MaterialIcon name="add" className={compact ? "text-sm" : ""} />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>

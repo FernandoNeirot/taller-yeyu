@@ -825,6 +825,7 @@ export function ProductManager({
         <ProductDetailModal
           product={previewProduct}
           showInquiry={false}
+          showAddToCart={false}
           onClose={() => setPreviewProduct(null)}
         />
       ) : null}
