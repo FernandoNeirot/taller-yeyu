@@ -4,6 +4,8 @@ import { requireAdmin } from "@/features/admin/services/auth";
 import { logoutAction } from "@/features/admin/actions/logout-action";
 import { MaterialIcon } from "@/components/ui/material-icon";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Admin",
   robots: { index: false, follow: false },

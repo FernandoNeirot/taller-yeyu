@@ -5,6 +5,8 @@ import { FinancialControl } from "@/features/admin/components/financial-control"
 import { getFamilyFinanceEntries } from "@/features/finance/services/family-finance";
 import { getVentureFinanceEntries } from "@/features/finance/services/venture-finance";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Control Financiero",
   robots: { index: false, follow: false },

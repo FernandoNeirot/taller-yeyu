@@ -5,6 +5,8 @@ import { getMaterials } from "@/features/finance/services/venture-finance";
 import { QuoteBuilder } from "@/features/quotes/components/quote-builder";
 import { getQuotes } from "@/features/quotes/services/quotes";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Cotizador",
   robots: { index: false, follow: false },

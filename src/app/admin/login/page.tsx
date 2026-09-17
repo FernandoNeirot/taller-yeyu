@@ -4,6 +4,8 @@ import { getSession } from "@/features/admin/services/auth";
 import { LoginForm } from "@/features/admin/components/login-form";
 import { Logo } from "@/components/layout/logo";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Admin Login",
   robots: { index: false, follow: false },

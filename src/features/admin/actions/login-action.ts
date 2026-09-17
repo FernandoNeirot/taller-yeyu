@@ -11,10 +11,15 @@ export async function loginAction(_prev: unknown, formData: FormData) {
     return { error: "Completá usuario y contraseña" };
   }
 
-  const result = await login(username, password);
+  try {
+    const result = await login(username, password);
 
-  if (!result.ok) {
-    return { error: result.error };
+    if (!result.ok) {
+      return { error: result.error };
+    }
+  } catch (error) {
+    console.error("Admin login action failed:", error);
+    return { error: "No se pudo iniciar sesión. Probá de nuevo en un momento." };
   }
 
   redirect("/admin");

@@ -13,10 +13,11 @@ const AUTH_ERROR = "Usuario o contraseña incorrectos";
 
 function getSecret() {
   const secret = process.env.ADMIN_SESSION_SECRET;
-  if (!secret) {
-    throw new Error("Falta ADMIN_SESSION_SECRET en el entorno.");
+  if (secret) return secret;
+  if (process.env.NODE_ENV !== "production") {
+    return "dev-admin-session-secret";
   }
-  return secret;
+  throw new Error("Falta ADMIN_SESSION_SECRET en el entorno.");
 }
 
 function encodeToken(username: string): string {
@@ -62,37 +63,45 @@ export async function login(
     return { ok: false, error: AUTH_ERROR };
   }
 
-  const snapshot = await getAdminFirestore()
-    .collection(ADMIN_USERS_COLLECTION)
-    .doc(normalizedUser)
-    .get();
+  try {
+    const snapshot = await getAdminFirestore()
+      .collection(ADMIN_USERS_COLLECTION)
+      .doc(normalizedUser)
+      .get();
 
-  const data = snapshot.data();
-  if (!snapshot.exists || !data || data.active === false) {
-    return { ok: false, error: AUTH_ERROR };
+    const data = snapshot.data();
+    if (!snapshot.exists || !data || data.active === false) {
+      return { ok: false, error: AUTH_ERROR };
+    }
+
+    const valid = await verifyPassword(
+      password,
+      String(data.salt ?? ""),
+      String(data.passwordHash ?? ""),
+    );
+
+    if (!valid) {
+      return { ok: false, error: AUTH_ERROR };
+    }
+
+    const token = encodeToken(normalizedUser);
+    const cookieStore = await cookies();
+    cookieStore.set(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: SESSION_MAX_AGE,
+      path: "/",
+    });
+
+    return { ok: true };
+  } catch (error) {
+    console.error("Admin login failed:", error);
+    return {
+      ok: false,
+      error: "No se pudo iniciar sesión. Probá de nuevo en un momento.",
+    };
   }
-
-  const valid = await verifyPassword(
-    password,
-    String(data.salt ?? ""),
-    String(data.passwordHash ?? ""),
-  );
-
-  if (!valid) {
-    return { ok: false, error: AUTH_ERROR };
-  }
-
-  const token = encodeToken(normalizedUser);
-  const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: SESSION_MAX_AGE,
-    path: "/",
-  });
-
-  return { ok: true };
 }
 
 export async function logout() {

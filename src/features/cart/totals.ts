@@ -11,19 +11,24 @@ export function computeCartTotals(items: CartItem[]) {
     0,
   );
   const totalWeightGrams = items.reduce(
-    (sum, item) => sum + item.weightGrams * item.quantity,
+    (sum, item) => sum + (item.weightGrams ?? 0) * item.quantity,
     0,
   );
   const totalVolumeCm3 = items.reduce(
-    (sum, item) => sum + packageVolumeCm3(item.dimensions) * item.quantity,
+    (sum, item) =>
+      sum +
+      packageVolumeCm3(
+        item.dimensions ?? { lengthCm: 0, widthCm: 0, heightCm: 0 },
+      ) *
+        item.quantity,
     0,
   );
 
   const envelope: PackageSize = items.reduce(
     (acc, item) => ({
-      lengthCm: Math.max(acc.lengthCm, item.dimensions.lengthCm),
-      widthCm: Math.max(acc.widthCm, item.dimensions.widthCm),
-      heightCm: acc.heightCm + item.dimensions.heightCm * item.quantity,
+      lengthCm: Math.max(acc.lengthCm, item.dimensions?.lengthCm ?? 0),
+      widthCm: Math.max(acc.widthCm, item.dimensions?.widthCm ?? 0),
+      heightCm: acc.heightCm + (item.dimensions?.heightCm ?? 0) * item.quantity,
     }),
     { lengthCm: 0, widthCm: 0, heightCm: 0 },
   );
