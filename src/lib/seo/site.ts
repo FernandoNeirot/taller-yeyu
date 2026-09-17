@@ -34,7 +34,11 @@ export function getSiteUrl() {
     !fromEnv.includes("127.0.0.1") &&
     !fromEnv.includes("vercel.app")
   ) {
-    return fromEnv;
+    try {
+      return new URL(fromEnv).origin;
+    } catch {
+      return PRODUCTION_SITE_URL;
+    }
   }
 
   return PRODUCTION_SITE_URL;

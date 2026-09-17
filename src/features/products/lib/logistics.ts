@@ -71,8 +71,15 @@ export function packageVolumeCm3(size: PackageSize) {
   return size.heightCm * size.widthCm * size.lengthCm;
 }
 
-export function exceedsStandardMail(size: PackageSize, weightGrams: number) {
-  const sides = [size.heightCm, size.widthCm, size.lengthCm];
+export function exceedsStandardMail(
+  size: PackageSize | null | undefined,
+  weightGrams: number,
+) {
+  const sides = [
+    size?.heightCm ?? 0,
+    size?.widthCm ?? 0,
+    size?.lengthCm ?? 0,
+  ];
   return (
     sides.some((side) => side > STANDARD_MAX_SIDE_CM) ||
     weightGrams > STANDARD_MAX_WEIGHT_GRAMS

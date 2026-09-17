@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { useCart } from "@/context/CartContext";
@@ -41,7 +41,11 @@ export function CartDrawer() {
   const [selectedShippingId, setSelectedShippingId] = useState<
     ShippingOption["id"] | ""
   >("");
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [quoting, setQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState("");
   const [checkoutError, setCheckoutError] = useState("");
@@ -53,12 +57,11 @@ export function CartDrawer() {
   const hasUnpricedItems = items.some((item) => item.price == null);
   const hasCustomizable = items.some((item) => item.customizable);
   const oversized = items.some((item) =>
-    exceedsStandardMail(item.dimensions, item.weightGrams * item.quantity),
+    exceedsStandardMail(
+      item.dimensions,
+      (item.weightGrams ?? 0) * item.quantity,
+    ),
   );
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!isOpen) return;

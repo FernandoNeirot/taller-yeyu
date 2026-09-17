@@ -8,8 +8,6 @@ import { CartToast } from "@/components/cart/add-to-cart-button";
 import { CartProvider } from "@/context/CartContext";
 
 export function Providers({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  const isAdmin = pathname.startsWith("/admin");
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -26,9 +24,20 @@ export function Providers({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <CartProvider>
         {children}
-        {!isAdmin && <CartDrawer />}
-        {!isAdmin && <CartToast />}
+        <CartHost />
       </CartProvider>
     </QueryClientProvider>
+  );
+}
+
+function CartHost() {
+  const pathname = usePathname();
+  if (pathname.startsWith("/admin")) return null;
+
+  return (
+    <>
+      <CartDrawer />
+      <CartToast />
+    </>
   );
 }

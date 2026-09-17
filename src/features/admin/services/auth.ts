@@ -12,7 +12,7 @@ const SESSION_MAX_AGE = 60 * 60 * 24;
 const AUTH_ERROR = "Usuario o contraseña incorrectos";
 
 function getSecret() {
-  const secret = process.env.ADMIN_SESSION_SECRET;
+  const secret = process.env.ADMIN_SESSION_SECRET?.trim();
   if (secret) return secret;
   if (process.env.NODE_ENV !== "production") {
     return "dev-admin-session-secret";
@@ -48,10 +48,15 @@ function decodeToken(token: string): string | null {
 }
 
 export async function getSession(): Promise<string | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
-  if (!token) return null;
-  return decodeToken(token);
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(COOKIE_NAME)?.value;
+    if (!token) return null;
+    return decodeToken(token);
+  } catch (error) {
+    console.error("Admin session decode failed:", error);
+    return null;
+  }
 }
 
 export async function login(

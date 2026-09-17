@@ -46,6 +46,14 @@ const emptyForm: FormState = {
   price: "",
 };
 
+type VisibilityFilter = "all" | "visible" | "hidden";
+
+const visibilityFilters: { id: VisibilityFilter; label: string }[] = [
+  { id: "all", label: "Mostrar todo" },
+  { id: "visible", label: "Visibles" },
+  { id: "hidden", label: "Ocultos" },
+];
+
 const fieldClassName =
   "w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary";
 
@@ -83,6 +91,8 @@ export function ProductManager({
 }) {
   const [products, setProducts] = useState(initialList);
   const [query, setQuery] = useState("");
+  const [visibilityFilter, setVisibilityFilter] =
+    useState<VisibilityFilter>("all");
   const [formOpen, setFormOpen] = useState(false);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -109,13 +119,27 @@ export function ProductManager({
 
   const remainingSlots = MAX_PRODUCT_IMAGES - existingImages.length - newFiles.length;
 
+  const visibilityCounts = useMemo(() => {
+    const hidden = products.filter((product) => !product.isActive).length;
+    return {
+      all: products.length,
+      visible: products.length - hidden,
+      hidden,
+    };
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
+    const byVisibility = products.filter((product) => {
+      if (visibilityFilter === "visible") return product.isActive;
+      if (visibilityFilter === "hidden") return !product.isActive;
+      return true;
+    });
     const needle = normalizeSearch(query);
-    if (!needle) return products;
-    return products.filter((product) =>
+    if (!needle) return byVisibility;
+    return byVisibility.filter((product) =>
       normalizeSearch(product.title).includes(needle),
     );
-  }, [products, query]);
+  }, [products, query, visibilityFilter]);
 
   if (state !== prevState) {
     setPrevState(state);
@@ -656,31 +680,59 @@ export function ProductManager({
         ) : null}
 
         {products.length > 0 ? (
-          <label className="mb-sm flex flex-col gap-xs" style={{ width: "100%" }}>
-            <span className="sr-only">Buscar producto</span>
-            <div className="relative" style={{ position: "relative", width: "100%" }}>
-              <span
-                className="pointer-events-none text-on-surface-variant"
-                style={{
-                  position: "absolute",
-                  left: 12,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                }}
-              >
-                <MaterialIcon name="search" className="text-base" />
-              </span>
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar por título..."
-                autoComplete="off"
-                className={fieldClassName}
-                style={{ width: "100%", paddingLeft: 40 }}
-              />
+          <div className="mb-sm flex flex-col gap-sm" style={{ width: "100%" }}>
+            <label className="flex flex-col gap-xs" style={{ width: "100%" }}>
+              <span className="sr-only">Buscar producto</span>
+              <div className="relative" style={{ position: "relative", width: "100%" }}>
+                <span
+                  className="pointer-events-none text-on-surface-variant"
+                  style={{
+                    position: "absolute",
+                    left: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                  }}
+                >
+                  <MaterialIcon name="search" className="text-base" />
+                </span>
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Buscar por título..."
+                  autoComplete="off"
+                  className={fieldClassName}
+                  style={{ width: "100%", paddingLeft: 40 }}
+                />
+              </div>
+            </label>
+            <div
+              className="hide-scrollbar flex snap-x snap-mandatory items-center gap-2 overflow-x-auto"
+              role="group"
+              aria-label="Filtrar por visibilidad"
+            >
+              {visibilityFilters.map((item) => {
+                const active = item.id === visibilityFilter;
+                const count = visibilityCounts[item.id];
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setVisibilityFilter(item.id)}
+                    aria-pressed={active}
+                    className={
+                      active
+                        ? "touch-target snap-start shrink-0 whitespace-nowrap rounded-full bg-primary-container px-4 font-label-caps text-label-caps text-on-primary-container transition-colors"
+                        : "touch-target snap-start shrink-0 whitespace-nowrap rounded-full border border-outline-variant bg-surface-container px-4 font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-high transition-colors"
+                    }
+                  >
+                    {item.label} ({count})
+                  </button>
+                );
+              })}
             </div>
-          </label>
+          </div>
         ) : null}
 
         {products.length === 0 ? (
@@ -689,11 +741,21 @@ export function ProductManager({
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-lg text-center text-on-surface-variant">
-            No hay productos que coincidan con “{query.trim()}”.
+            {query.trim()
+              ? visibilityFilter === "hidden"
+                ? `No hay productos ocultos que coincidan con “${query.trim()}”.`
+                : visibilityFilter === "visible"
+                  ? `No hay productos visibles que coincidan con “${query.trim()}”.`
+                  : `No hay productos que coincidan con “${query.trim()}”.`
+              : visibilityFilter === "hidden"
+                ? "No hay productos ocultos."
+                : visibilityFilter === "visible"
+                  ? "No hay productos visibles."
+                  : "No hay productos para mostrar."}
           </div>
         ) : (
           <div className="flex flex-col gap-sm">
-            {query.trim() ? (
+            {query.trim() || visibilityFilter !== "all" ? (
               <p className="font-label-caps text-label-caps text-on-surface-variant tracking-widest">
                 {filteredProducts.length === 1
                   ? "1 coincidencia"
