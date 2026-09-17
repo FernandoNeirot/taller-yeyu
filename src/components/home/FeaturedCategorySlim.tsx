@@ -14,7 +14,7 @@ export function FeaturedCategorySlim({ products }: FeaturedCategorySlimProps) {
   });
 
   return (
-    <section className="rounded-2xl border border-outline-variant/25 bg-surface-container-low p-3 md:p-lg">
+    <section className="rounded-2xl border border-outline-variant/25 bg-surface-container-low p-3 md:rounded-3xl md:p-lg">
       <div className="flex flex-col gap-sm md:flex-row md:items-end md:justify-between">
         <div>
           <p className="font-label-caps text-label-caps tracking-widest uppercase text-secondary">
@@ -33,7 +33,7 @@ export function FeaturedCategorySlim({ products }: FeaturedCategorySlimProps) {
         </Link>
       </div>
 
-      <div className="product-carousel hide-scrollbar mt-md snap-x snap-mandatory overflow-x-auto">
+      <div className="product-carousel hide-scrollbar mt-md snap-x snap-mandatory overflow-x-auto md:hidden">
         {products.map((product) => (
           <div
             key={product.slug}
@@ -48,6 +48,19 @@ export function FeaturedCategorySlim({ products }: FeaturedCategorySlimProps) {
               })}
             />
           </div>
+        ))}
+      </div>
+
+      <div className="mt-lg hidden md:grid md:grid-cols-3 md:gap-md lg:grid-cols-5">
+        {products.map((product) => (
+          <FeaturedProductCard
+            key={product.slug}
+            product={product}
+            href={galleryHref({
+              categoria: "organizadores-utilitarios",
+              producto: product.slug,
+            })}
+          />
         ))}
       </div>
     </section>
