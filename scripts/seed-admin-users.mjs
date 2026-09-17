@@ -44,15 +44,17 @@ async function main() {
 
   for (const username of USERS) {
     const { salt, passwordHash } = await hashPassword(password);
-    await db.collection(COLLECTION).doc(username).set({
-      username,
-      salt,
-      passwordHash,
-      active: true,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-    console.log(`Usuario creado: ${username}`);
+    await db.collection(COLLECTION).doc(username).set(
+      {
+        username,
+        salt,
+        passwordHash,
+        active: true,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    console.log(`Usuario actualizado: ${username}`);
   }
 }
 

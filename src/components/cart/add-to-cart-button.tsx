@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type MouseEvent } from "react";
+import { useState, useSyncExternalStore, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { AddToCartModal } from "@/components/cart/AddToCartModal";
 import { MaterialIcon } from "@/components/ui/material-icon";
@@ -42,8 +42,8 @@ export function AddToCartButton({
       <div
         className={
           compact
-            ? "inline-flex min-w-0 flex-1 items-center justify-between rounded-lg bg-orange-200 text-orange-950"
-            : "inline-flex items-center justify-between rounded-lg bg-primary text-on-primary"
+            ? "inline-flex min-w-0 flex-1 items-center justify-between rounded-lg bg-primary-container text-on-primary-container"
+            : "inline-flex items-center justify-between rounded-lg bg-primary-container text-on-primary-container"
         }
         style={{
           flex: compact ? 1 : undefined,
@@ -133,15 +133,17 @@ export function AddToCartButton({
   );
 }
 
+const subscribeToNothing = () => () => {};
+
 export function CartToast() {
   const { toast } = useCart();
-  const [mounted, setMounted] = useState(false);
+  const isClient = useSyncExternalStore(
+    subscribeToNothing,
+    () => true,
+    () => false,
+  );
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted || !toast) return null;
+  if (!isClient || !toast) return null;
 
   return createPortal(
     <div
