@@ -67,13 +67,12 @@ export function ProductGallery({ product }: { product: Product }) {
               }}
             >
               <Image
-                alt={`${product.title} — foto ${imageIndex + 1}`}
+                alt={imageIndex === 0 ? "" : `${product.title} — foto ${imageIndex + 1}`}
                 src={src}
                 fill
                 priority={imageIndex === 0}
                 className="object-contain"
                 sizes="(min-width: 1024px) 50vw, 100vw"
-                unoptimized
               />
             </div>
           ))}
@@ -157,7 +156,6 @@ export function ProductGallery({ product }: { product: Product }) {
                   fill
                   className="object-cover"
                   sizes="64px"
-                  unoptimized
                 />
               </button>
             );

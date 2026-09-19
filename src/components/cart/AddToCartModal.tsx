@@ -83,7 +83,6 @@ export function AddToCartModal({ product, onClose }: AddToCartModalProps) {
 
   return createPortal(
     <div
-      role="presentation"
       style={{
         position: "fixed",
         inset: 0,
@@ -143,12 +142,11 @@ export function AddToCartModal({ product, onClose }: AddToCartModalProps) {
             style={{ width: 88, height: 88, flexShrink: 0 }}
           >
             <Image
-              alt={product.title}
+              alt=""
               src={product.featuredImage}
               fill
               className="object-cover"
               sizes="88px"
-              unoptimized
             />
           </div>
           <div style={{ minWidth: 0 }}>

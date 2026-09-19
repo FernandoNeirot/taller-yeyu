@@ -107,7 +107,6 @@ export function ProductDetailModal({
 
   return createPortal(
     <div
-      role="presentation"
       style={{
         position: "fixed",
         inset: 0,
@@ -249,7 +248,7 @@ export function ProductDetailModal({
                   }}
                 >
                   <Image
-                    alt={`${product.title} — foto ${imageIndex + 1}`}
+                    alt={imageIndex === 0 ? "" : `${product.title} — foto ${imageIndex + 1}`}
                     src={src}
                     fill
                     priority={imageIndex === 0}

@@ -11,6 +11,7 @@ export function BottomNav() {
 
   return (
     <nav
+      aria-label="Navegación móvil"
       className="fixed bottom-0 left-0 flex items-center justify-around rounded-t-xl border-t border-outline-variant/20 bg-surface-container-lowest/90 px-2 pb-4 pt-2 backdrop-blur-lg md:hidden"
       id="bottom-nav"
       style={{ width: "100%", zIndex: 50 }}

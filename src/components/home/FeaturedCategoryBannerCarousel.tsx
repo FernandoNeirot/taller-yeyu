@@ -19,15 +19,15 @@ export function FeaturedCategoryBannerCarousel({
     <section className="overflow-hidden rounded-3xl border border-outline-variant/30 bg-surface-container-lowest">
       <div className="relative min-h-64 overflow-hidden">
         <Image
-          alt="Living con piezas de decoración en madera"
-          src="/principal.png"
+          alt=""
+          src="/principal.webp"
           fill
           loading="lazy"
-          className="object-cover opacity-50"
+          className="object-cover opacity-40"
           sizes="100vw"
-          unoptimized
+          quality={70}
         />
-        <div className="absolute inset-0 bg-linear-to-r from-background via-background/80 to-transparent" />
+        <div className="absolute inset-0 bg-background/75" />
         <div
           className="relative z-10 flex h-full min-h-64 flex-col justify-center px-4 py-8 md:px-lg md:py-xl"
           style={{ width: "100%" }}

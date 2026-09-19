@@ -147,7 +147,7 @@ export function SearchableSelect({
           value={value}
           required={required}
           tabIndex={-1}
-          aria-hidden
+          aria-hidden="true"
           onChange={(event) => onChange(event.target.value)}
           style={{
             position: "absolute",

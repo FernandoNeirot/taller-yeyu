@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { CustomWorkSection } from "@/components/home/CustomWorkSection";
 import { FeaturedCategories } from "@/components/home/FeaturedCategories";
 import { Logo } from "@/components/layout/logo";
 import { MaterialIcon } from "@/components/ui/material-icon";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   alternates: {
@@ -14,10 +15,8 @@ export const metadata: Metadata = {
   },
 };
 
-const HERO_IMAGE = "/principal.png";
-
-const PROCESS_IMAGE =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuDXdThLsiPpi2lVmLN1j8tOrCnXRL_ZFl28S7bR094mQyg7AyJc8yc6KCZeKruPW-hCclEJDfgHa4XRUfvMxQiZF0AUlJDx-zEqvsTc0TQpxHB3ZLE9gCTd2AO_Udisj6vHKN6kaspdWYp8ikTdIBf4_DSY1EUHqiq5geu2py4RWsa11AiilZ9lSMnKP8LobiWi90MQuJTwGsGqJjQ9xFFtJkQMp1-dtmVwXuSkUuG0Wf05Zy4TmC__PQbOd3h2VjGnaA";
+const HERO_IMAGE = "/principal.webp";
+const PROCESS_IMAGE = "/proceso.webp";
 
 const processHighlights = [
   "Diseños 100% personalizados a tu gusto",
@@ -25,31 +24,44 @@ const processHighlights = [
   "Detalles únicos y cálidos para tus eventos",
 ];
 
+function FeaturedCategoriesFallback() {
+  return (
+    <section className="w-full px-container-margin py-xl" aria-hidden="true">
+      <div className="mx-auto max-w-7xl">
+        <div className="mx-auto h-8 w-64 rounded bg-surface-container" />
+        <div className="mt-lg min-h-72 rounded-3xl bg-surface-container" />
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   return (
-    <main className="w-full">
+    <main id="contenido" className="w-full">
       <section
         id="inicio"
         className="relative w-full min-h-[85vh] flex items-center justify-center px-container-margin py-xl overflow-hidden"
       >
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-linear-to-b from-background/70 via-background/50 to-background z-10" />
+          <div className="absolute inset-0 bg-linear-to-b from-background/85 via-background/75 to-background z-10" />
           <Image
-            alt="Primer plano de manos artesanas ensamblando una caja de madera con juntas de precisión en un taller cálido."
-            className="object-cover opacity-80"
+            alt=""
+            className="object-cover opacity-70"
             src={HERO_IMAGE}
             fill
             priority
             fetchPriority="high"
             sizes="100vw"
-            unoptimized
+            quality={70}
           />
         </div>
-        <div className="relative z-20 flex flex-col items-center text-center max-w-3xl mx-auto space-y-md">
+        <div className="relative z-20 flex flex-col items-center text-center max-w-3xl mx-auto space-y-md rounded-3xl bg-background/90 px-6 py-8 sm:px-10">
           <h1 className="flex flex-col items-center">
             <span className="sr-only">Taller Yeyu</span>
             <Logo
+              alt=""
               className="h-36 sm:h-44 md:h-52 w-auto object-contain drop-shadow-[0_16px_32px_rgba(0,0,0,0.55)]"
+              priority
             />
           </h1>
           <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">
@@ -70,7 +82,9 @@ export default function Home() {
         </div>
       </section>
 
-      <FeaturedCategories />
+      <Suspense fallback={<FeaturedCategoriesFallback />}>
+        <FeaturedCategories />
+      </Suspense>
 
       <section
         className="w-full px-container-margin py-xl bg-surface-container-lowest border-y border-outline-variant/20"
@@ -79,13 +93,13 @@ export default function Home() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-xl">
           <div className="w-full md:w-1/2 relative aspect-square md:aspect-auto md:min-h-125">
             <Image
-              alt="Personalización y Arte"
+              alt=""
               className="object-cover"
               src={PROCESS_IMAGE}
               fill
               loading="lazy"
               sizes="(min-width: 768px) 50vw, 100vw"
-              unoptimized
+              quality={70}
             />
             <div className="absolute bottom-0 left-0 bg-background/90 backdrop-blur-md p-md border-t border-r border-outline-variant/30">
               <span className="font-label-caps text-label-caps text-primary tracking-widest uppercase">

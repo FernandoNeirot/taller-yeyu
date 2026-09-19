@@ -14,11 +14,13 @@ import type { GalleryViewMode } from "./view-toggle";
 type ProductCardProps = {
   product: Product;
   viewMode?: GalleryViewMode;
+  priority?: boolean;
 };
 
 export function ProductCard({
   product,
   viewMode = "grid",
+  priority = false,
 }: ProductCardProps) {
   const href = productHref(product.slug);
   const primaryCategory = product.categories[0];
@@ -67,13 +69,13 @@ export function ProductCard({
             }}
           >
             <Image
-              alt={product.title}
+              alt=""
               src={product.featuredImage}
               fill
-              loading="lazy"
+              priority={priority}
+              loading={priority ? undefined : "lazy"}
               className="object-cover"
               sizes="112px"
-              unoptimized
             />
           </Link>
 
@@ -123,13 +125,13 @@ export function ProductCard({
               style={{ width: "100%", aspectRatio: "4 / 3" }}
             >
               <Image
-                alt={product.title}
+                alt=""
                 src={product.featuredImage}
                 fill
-                loading="lazy"
+                priority={priority}
+                loading={priority ? undefined : "lazy"}
                 className="object-cover"
                 sizes="(min-width: 1280px) 20vw, (min-width: 768px) 33vw, 50vw"
-                unoptimized
               />
               {product.specifications.customizable ? (
                 <span

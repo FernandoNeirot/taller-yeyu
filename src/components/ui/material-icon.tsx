@@ -11,6 +11,7 @@ export function MaterialIcon({
 }: MaterialIconProps) {
   return (
     <span
+      aria-hidden="true"
       className={
         className
           ? `material-symbols-outlined ${className}`

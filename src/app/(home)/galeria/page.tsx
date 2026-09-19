@@ -7,7 +7,7 @@ import { sharePageMetadata } from "@/lib/seo/metadata";
 const galleryDescription =
   "Inspiración y arte en cada pieza personalizada de Taller Yeyu.";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata = sharePageMetadata({
   title: "Galería",
@@ -19,7 +19,7 @@ export default async function GaleriaPage() {
   const products = await getCatalogProducts();
 
   return (
-    <main className="w-full">
+    <main id="contenido" className="w-full">
       <JsonLd
         data={getGalleryJsonLd(
           products.map((product) => ({

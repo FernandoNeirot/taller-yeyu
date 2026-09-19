@@ -60,7 +60,7 @@ export function FeaturedCategoryGrid({
       <div className="mt-lg flex justify-center">
         <Link
           href={categoryHref}
-          className="touch-target inline-flex w-full items-center justify-center gap-sm rounded-full bg-tertiary-container px-6 text-center font-label-caps text-label-caps tracking-widest uppercase text-on-tertiary-container hover:opacity-90 sm:w-auto"
+          className="touch-target inline-flex w-full items-center justify-center gap-sm rounded-full bg-[#6b4e00] px-6 text-center font-label-caps text-label-caps tracking-widest uppercase text-[#fff8e1] hover:opacity-90 sm:w-auto"
         >
           Ver catálogo completo de Eventos
           <MaterialIcon name="arrow_forward" className="text-sm" />

@@ -131,6 +131,7 @@ function SettlementStatusIcon({
 
   return (
     <span
+      role="img"
       className={paid ? "text-green-500" : "text-orange-500"}
       title={label}
       aria-label={label}

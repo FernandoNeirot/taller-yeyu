@@ -25,19 +25,19 @@ export function FeaturedCategoryHero({ products }: FeaturedCategoryHeroProps) {
       <div className="grid grid-cols-1 gap-3 p-3 md:gap-md md:p-lg lg:grid-cols-2">
         <div className="relative min-h-72 overflow-hidden rounded-3xl md:min-h-80">
           <Image
-            alt="El cuarto de tu bebé"
-            src="/principal.png"
+            alt=""
+            src="/principal.webp"
             fill
             loading="lazy"
             className="object-cover"
             sizes="(min-width: 1024px) 50vw, 100vw"
-            unoptimized
+            quality={70}
           />
           <div
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(180deg, rgba(58,39,28,0.15) 0%, rgba(58,39,28,0.78) 100%)",
+                "linear-gradient(180deg, rgba(19,19,19,0.45) 0%, rgba(19,19,19,0.88) 100%)",
             }}
           />
           <div className="relative z-10 flex h-full flex-col justify-end p-4 md:p-lg">
@@ -54,7 +54,7 @@ export function FeaturedCategoryHero({ products }: FeaturedCategoryHeroProps) {
             <Link
               href={categoryHref}
               className="touch-target mt-md inline-flex w-full items-center justify-center gap-sm rounded-full px-6 font-label-caps text-label-caps tracking-widest uppercase sm:w-fit"
-              style={{ background: "#a0522d", color: "#fff2ec" }}
+              style={{ background: "#a0522d", color: "#ffffff" }}
             >
               Ver todo para Bebés
               <MaterialIcon name="arrow_forward" className="text-sm" />

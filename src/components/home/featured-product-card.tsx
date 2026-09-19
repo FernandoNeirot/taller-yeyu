@@ -21,13 +21,12 @@ export function FeaturedProductCard({
     >
       <div className="relative aspect-square w-full overflow-hidden">
         <Image
-          alt={product.title}
+          alt=""
           src={product.featuredImage}
           fill
           loading="lazy"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
           sizes="(max-width: 767px) 85vw, (min-width: 1024px) 25vw, 50vw"
-          unoptimized
         />
       </div>
       <div className={compact ? "flex flex-1 flex-col p-2 md:p-3" : "flex flex-1 flex-col p-2.5 md:p-3"}>

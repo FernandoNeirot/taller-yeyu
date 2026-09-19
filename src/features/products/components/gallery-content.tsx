@@ -143,11 +143,12 @@ export function GalleryContent({ products }: GalleryContentProps) {
                 : { width: "100%" }
             }
           >
-            {visibleProducts.map((product) => (
+            {visibleProducts.map((product, index) => (
               <ProductCard
                 key={product.id ?? product.slug}
                 product={product}
                 viewMode={viewMode}
+                priority={index < 2}
               />
             ))}
           </div>

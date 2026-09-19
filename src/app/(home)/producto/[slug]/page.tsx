@@ -10,7 +10,7 @@ import { JsonLd, getProductJsonLd } from "@/lib/seo/json-ld";
 import { sharePageMetadata } from "@/lib/seo/metadata";
 import { categoryLabel } from "@/types/product";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
@@ -51,7 +51,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   }
 
   return (
-    <main className="w-full">
+    <main id="contenido" className="w-full">
       <JsonLd data={getProductJsonLd(product)} />
       <ProductDetail product={product} />
     </main>

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
+import { MATERIAL_SYMBOLS_HREF } from "@/components/ui/material-symbols";
 import { JsonLd, getSiteJsonLd } from "@/lib/seo/json-ld";
 import { shareImages } from "@/lib/seo/metadata";
 import {
@@ -11,13 +12,13 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 const manrope = Manrope({
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
   variable: "--font-manrope",
   display: "swap",
 });
 
 const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
   variable: "--font-plus-jakarta-sans",
   display: "swap",
 });
@@ -95,15 +96,19 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="es"
+      lang="es-AR"
       className={`dark ${manrope.variable} ${plusJakartaSans.variable} h-full`}
     >
       <head>
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,100..700,0..1,0&display=swap"
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
         />
+        <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link rel="stylesheet" href={MATERIAL_SYMBOLS_HREF} />
       </head>
       <body className="min-h-full antialiased bg-background text-on-background">
         <JsonLd data={getSiteJsonLd()} />

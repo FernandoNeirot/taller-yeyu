@@ -38,10 +38,14 @@ export function Header() {
       id="top-app-bar"
     >
       <div className="relative flex justify-center md:justify-between items-center px-container-margin py-md w-full max-w-7xl mx-auto">
-        <Link className="flex items-center h-14" href="/">
-          <Logo className="h-full w-auto object-contain" priority />
+        <Link
+          className="flex items-center h-14"
+          href="/"
+          aria-label="Taller Yeyu, ir al inicio"
+        >
+          <Logo alt="" className="h-full w-auto object-contain" />
         </Link>
-        <nav className="hidden md:flex gap-lg items-center">
+        <nav aria-label="Principal" className="hidden md:flex gap-lg items-center">
           {navItems.map((link) => {
             const active = isNavActive(link.href, pathname);
 

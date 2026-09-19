@@ -215,10 +215,12 @@ export function CartDrawer() {
           zIndex: 2147483646,
         }}
       />
-      <aside
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
+      <div
+        role={isOpen ? "dialog" : undefined}
+        aria-modal={isOpen ? true : undefined}
+        aria-labelledby={isOpen ? titleId : undefined}
+        aria-hidden={!isOpen}
+        inert={!isOpen}
         className="bg-surface-container-lowest"
         style={{
           position: "fixed",
@@ -287,12 +289,11 @@ export function CartDrawer() {
                       style={{ width: 72, height: 72, flexShrink: 0 }}
                     >
                       <Image
-                        alt={item.title}
+                        alt=""
                         src={item.featuredImage}
                         fill
                         className="object-cover"
                         sizes="72px"
-                        unoptimized
                       />
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
@@ -557,7 +558,7 @@ export function CartDrawer() {
             </button>
           </footer>
         ) : null}
-      </aside>
+      </div>
     </>,
     document.body,
   );

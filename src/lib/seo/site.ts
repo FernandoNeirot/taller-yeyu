@@ -8,7 +8,7 @@ export const siteConfig = {
   tagline: "Carpintería Familiar, Alma Artesana",
   title: "Taller Yeyu - Carpintería Familiar, Alma Artesana",
   description:
-    "Somos un emprendimiento familiar dedicado a crear piezas únicas, kits para pintar y souvenirs personalizados que invitan a crear y compartir en familia.",
+    "Corte láser y carpintería artesanal en Argentina. Souvenirs personalizados, veladores, organizadores y kits para pintar de Taller Yeyu.",
   locale: "es_AR",
   language: "es-AR",
   keywords: [
@@ -20,10 +20,13 @@ export const siteConfig = {
     "veladores de madera",
     "regalos personalizados",
     "madera",
+    "Argentina",
   ],
   logoPath: "/brand/logo-dark.png",
   ogImagePath: "/og.png",
   category: "shopping",
+  instagramUrl: "https://www.instagram.com/taller.yeyu/",
+  areaServed: "Argentina",
 } as const;
 
 export function getSiteUrl() {
