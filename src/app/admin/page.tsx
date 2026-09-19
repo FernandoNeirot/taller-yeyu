@@ -49,15 +49,24 @@ export default async function AdminDashboard() {
             Hola, <span className="capitalize text-primary">{user}</span>
           </p>
         </div>
-        <form action={logoutAction}>
-          <button
-            type="submit"
+        <div className="flex flex-wrap items-center justify-end gap-sm">
+          <Link
+            href="/"
             className="inline-flex items-center gap-sm px-4 py-2 border border-outline-variant/40 text-on-surface-variant font-label-caps text-label-caps tracking-widest rounded-lg hover:bg-surface-container-high transition-colors"
           >
-            <MaterialIcon name="logout" className="text-base" />
-            Salir
-          </button>
-        </form>
+            <MaterialIcon name="home" className="text-base" />
+            Ver sitio
+          </Link>
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-sm px-4 py-2 border border-outline-variant/40 text-on-surface-variant font-label-caps text-label-caps tracking-widest rounded-lg hover:bg-surface-container-high transition-colors"
+            >
+              <MaterialIcon name="logout" className="text-base" />
+              Salir
+            </button>
+          </form>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
