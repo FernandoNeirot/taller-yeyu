@@ -1,13 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import Link from "next/link";
 import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { categoryLabel } from "@/types/product";
 import type { Product } from "@/types/product";
 import { formatProductPrice } from "../lib/format-price";
-import { ProductDetailModal } from "./product-detail-modal";
+import { productHref } from "../lib/product-url";
 import { ProductWhatsAppCTA } from "./product-whatsapp-cta";
 import type { GalleryViewMode } from "./view-toggle";
 
@@ -20,7 +20,7 @@ export function ProductCard({
   product,
   viewMode = "grid",
 }: ProductCardProps) {
-  const [showDetail, setShowDetail] = useState(false);
+  const href = productHref(product.slug);
   const primaryCategory = product.categories[0];
   const isList = viewMode === "list";
 
@@ -56,19 +56,14 @@ export function ProductCard({
           className="flex flex-row items-stretch overflow-hidden p-2.5"
           style={{ width: "100%", gap: 12, overflow: "hidden", padding: 10 }}
         >
-          <button
-            type="button"
-            onClick={() => setShowDetail(true)}
+          <Link
+            href={href}
             aria-label={`Ver ${product.title}`}
             className="relative shrink-0 overflow-hidden rounded-lg"
             style={{
               width: 112,
               height: 112,
               flexShrink: 0,
-              cursor: "pointer",
-              background: "transparent",
-              border: 0,
-              padding: 0,
             }}
           >
             <Image
@@ -80,23 +75,13 @@ export function ProductCard({
               sizes="112px"
               unoptimized
             />
-          </button>
+          </Link>
 
           <div
             className="flex min-w-0 flex-1 flex-col overflow-hidden"
             style={{ minWidth: 0, overflow: "hidden" }}
           >
-            <button
-              type="button"
-              onClick={() => setShowDetail(true)}
-              className="min-w-0 text-left"
-              style={{
-                cursor: "pointer",
-                background: "transparent",
-                border: 0,
-                padding: 0,
-              }}
-            >
+            <Link href={href} className="min-w-0 text-left">
               {primaryCategory ? (
                 <span className="block truncate text-[10px] leading-tight text-neutral-400">
                   {categoryLabel(primaryCategory)}
@@ -121,24 +106,17 @@ export function ProductCard({
                   {formatProductPrice(product.price)}
                 </p>
               ) : null}
-            </button>
+            </Link>
             {actions}
           </div>
         </div>
       ) : (
         <>
-          <button
-            type="button"
-            onClick={() => setShowDetail(true)}
+          <Link
+            href={href}
             aria-label={`Ver ${product.title}`}
             className="flex flex-1 flex-col text-left"
-            style={{
-              width: "100%",
-              cursor: "pointer",
-              background: "transparent",
-              border: 0,
-              padding: 0,
-            }}
+            style={{ width: "100%" }}
           >
             <div
               className="relative shrink-0 overflow-hidden"
@@ -168,19 +146,6 @@ export function ProductCard({
                   <MaterialIcon name="draw" className="text-sm" />
                 </span>
               ) : null}
-              <span
-                className="inline-flex items-center justify-center rounded-full bg-black/70 text-white"
-                style={{
-                  position: "absolute",
-                  bottom: 8,
-                  right: 8,
-                  width: 28,
-                  height: 28,
-                }}
-                aria-hidden="true"
-              >
-                <MaterialIcon name="visibility" className="text-sm" />
-              </span>
             </div>
 
             <div
@@ -201,19 +166,12 @@ export function ProductCard({
                 </p>
               ) : null}
             </div>
-          </button>
+          </Link>
           <div style={{ width: "100%", padding: "0 10px 10px", minWidth: 0 }}>
             {actions}
           </div>
         </>
       )}
-
-      {showDetail ? (
-        <ProductDetailModal
-          product={product}
-          onClose={() => setShowDetail(false)}
-        />
-      ) : null}
     </article>
   );
 }

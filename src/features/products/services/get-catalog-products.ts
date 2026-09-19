@@ -16,3 +16,8 @@ export async function getCatalogProducts(): Promise<Product[]> {
 
   return initialProducts.filter((product) => product.isActive);
 }
+
+export async function getCatalogProduct(slug: string): Promise<Product | null> {
+  const products = await getCatalogProducts();
+  return products.find((product) => product.slug === slug) ?? null;
+}

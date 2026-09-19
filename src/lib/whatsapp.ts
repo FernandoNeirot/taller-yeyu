@@ -62,13 +62,17 @@ export function productWhatsAppMessage(
   product: { title: string; slug: string },
   inquiry?: ProductInquiry,
 ) {
+  const productLink = `https://talleryeyu.com/producto/${product.slug}`;
+
   if (!inquiry) {
     return `Hola! Me interesa consultar por el producto "${product.title}" (Ref: ${product.slug}).
+${productLink}
 
 ¿Tienen disponibilidad y tiempo estimado de entrega?`;
   }
 
   return `Hola! Me interesa consultar por el producto "${product.title}" (Ref: ${product.slug}).
+${productLink}
 
 📅 Fecha en que lo necesita: ${formatInquiryDate(inquiry.neededBy)}
 🔢 Cantidad: ${inquiry.quantity}

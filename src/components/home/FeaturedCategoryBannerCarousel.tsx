@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FeaturedProductCard } from "@/components/home/featured-product-card";
 import { galleryHref } from "@/features/products/lib/gallery-url";
+import { productHref } from "@/features/products/lib/product-url";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import type { Product } from "@/types/product";
 
@@ -59,10 +60,7 @@ export function FeaturedCategoryBannerCarousel({
           <div key={product.slug} className="product-carousel-item snap-start">
             <FeaturedProductCard
               product={product}
-              href={galleryHref({
-                categoria: "decoracion-hogar",
-                producto: product.slug,
-              })}
+              href={productHref(product.slug)}
             />
           </div>
         ))}

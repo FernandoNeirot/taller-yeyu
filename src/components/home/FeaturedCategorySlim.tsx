@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FeaturedProductCard } from "@/components/home/featured-product-card";
 import { galleryHref } from "@/features/products/lib/gallery-url";
+import { productHref } from "@/features/products/lib/product-url";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import type { Product } from "@/types/product";
 
@@ -42,10 +43,7 @@ export function FeaturedCategorySlim({ products }: FeaturedCategorySlimProps) {
             <FeaturedProductCard
               compact
               product={product}
-              href={galleryHref({
-                categoria: "organizadores-utilitarios",
-                producto: product.slug,
-              })}
+              href={productHref(product.slug)}
             />
           </div>
         ))}
@@ -56,10 +54,7 @@ export function FeaturedCategorySlim({ products }: FeaturedCategorySlimProps) {
           <FeaturedProductCard
             key={product.slug}
             product={product}
-            href={galleryHref({
-              categoria: "organizadores-utilitarios",
-              producto: product.slug,
-            })}
+            href={productHref(product.slug)}
           />
         ))}
       </div>

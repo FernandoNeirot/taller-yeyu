@@ -26,6 +26,7 @@ export default async function GaleriaPage() {
             title: product.title,
             description: product.shortDescription,
             image: product.featuredImage,
+            slug: product.slug,
           })),
         )}
       />

@@ -6,6 +6,7 @@ type SharePageOptions = {
   description: string;
   path: string;
   images?: ReturnType<typeof getShareImage>[];
+  keywords?: string[];
 };
 
 export function shareImages(images?: ReturnType<typeof getShareImage>[]) {
@@ -17,6 +18,7 @@ export function sharePageMetadata({
   description,
   path,
   images,
+  keywords,
 }: SharePageOptions): Metadata {
   const socialImages = shareImages(images);
   const socialTitle = title.includes(siteConfig.name)
@@ -26,6 +28,7 @@ export function sharePageMetadata({
   return {
     title,
     description,
+    ...(keywords?.length ? { keywords } : {}),
     alternates: {
       canonical: path,
     },

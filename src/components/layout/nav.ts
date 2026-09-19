@@ -7,7 +7,7 @@ export const navItems = [
 
 export function isNavActive(href: string, pathname: string) {
   if (href === "/galeria") {
-    return pathname === "/galeria";
+    return pathname === "/galeria" || pathname.startsWith("/producto/");
   }
 
   return href === "/" && pathname === "/";

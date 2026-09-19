@@ -54,6 +54,7 @@ export function isCatalogCategory(value: unknown): value is string {
 function revalidateCatalog() {
   revalidatePath("/", "layout");
   revalidatePath("/galeria");
+  revalidatePath("/producto", "layout");
   revalidatePath("/admin/productos");
 }
 
