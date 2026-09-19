@@ -44,7 +44,16 @@ export function getSiteUrl() {
   return PRODUCTION_SITE_URL;
 }
 
-export function getShareImage() {
+export type ShareImage = {
+  url: string;
+  secureUrl: string;
+  width: number;
+  height: number;
+  type: string;
+  alt: string;
+};
+
+export function getShareImage(): ShareImage {
   return {
     url: absoluteUrl(siteConfig.ogImagePath),
     secureUrl: absoluteUrl(siteConfig.ogImagePath),

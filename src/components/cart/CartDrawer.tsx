@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useId, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { useCart } from "@/context/CartContext";
@@ -23,6 +23,12 @@ function checkoutItems(items: ReturnType<typeof useCart>["items"]) {
   }));
 }
 
+function cartSignature(items: ReturnType<typeof useCart>["items"]) {
+  return items
+    .map((item) => `${item.id}:${item.quantity}:${item.customNotes}`)
+    .join("|");
+}
+
 export function CartDrawer() {
   const {
     items,
@@ -38,6 +44,8 @@ export function CartDrawer() {
   const [postalCode, setPostalCode] = useState("");
   const [locality, setLocality] = useState("");
   const [address, setAddress] = useState("");
+  const itemsKey = cartSignature(items);
+  const [quoteKey, setQuoteKey] = useState(itemsKey);
   const [options, setOptions] = useState<ShippingOption[]>([]);
   const [selectedShippingId, setSelectedShippingId] = useState<
     ShippingOption["id"] | ""
@@ -52,7 +60,12 @@ export function CartDrawer() {
   const [checkoutError, setCheckoutError] = useState("");
   const [paying, setPaying] = useState(false);
 
-  const shipping = options.find((option) => option.id === selectedShippingId) ?? null;
+  const quoteMatchesCart = quoteKey === itemsKey;
+  const shippingOptions = quoteMatchesCart ? options : [];
+  const activeShippingId = quoteMatchesCart ? selectedShippingId : "";
+  const activeQuoteError = quoteMatchesCart ? quoteError : "";
+  const shipping =
+    shippingOptions.find((option) => option.id === activeShippingId) ?? null;
   const shippingPrice = shipping?.price ?? 0;
   const total = subtotalPrice + shippingPrice;
   const hasUnpricedItems = items.some((item) => item.price == null);
@@ -81,24 +94,6 @@ export function CartDrawer() {
     return () => window.removeEventListener("keydown", onKey);
   }, [closeCart, isOpen]);
 
-  useEffect(() => {
-    setOptions([]);
-    setSelectedShippingId("");
-    setQuoteError("");
-  }, [items]);
-
-  const summary = useMemo(
-    () => ({
-      items,
-      subtotalPrice,
-      shipping,
-      postalCode,
-      locality,
-      address,
-    }),
-    [address, items, locality, postalCode, shipping, subtotalPrice],
-  );
-
   async function quoteShipping() {
     setQuoting(true);
     setQuoteError("");
@@ -120,6 +115,7 @@ export function CartDrawer() {
         throw new Error(payload.error || "No se pudo cotizar el envío.");
       }
       const next = payload.options ?? [];
+      setQuoteKey(cartSignature(items));
       setOptions(next);
       setSelectedShippingId(next[0]?.id ?? "");
     } catch (error) {
@@ -144,7 +140,7 @@ export function CartDrawer() {
           method: "mercadopago",
           items: checkoutItems(items),
           postalCode,
-          shippingOptionId: selectedShippingId || undefined,
+          shippingOptionId: activeShippingId || undefined,
           locality,
           address,
         }),
@@ -178,7 +174,7 @@ export function CartDrawer() {
           items: checkoutItems(items),
           postalCode: CHECKOUT_PAYMENTS_ENABLED ? postalCode : undefined,
           shippingOptionId: CHECKOUT_PAYMENTS_ENABLED
-            ? selectedShippingId || undefined
+            ? activeShippingId || undefined
             : undefined,
           locality: CHECKOUT_PAYMENTS_ENABLED ? locality : undefined,
           address: CHECKOUT_PAYMENTS_ENABLED ? address : undefined,
@@ -190,7 +186,14 @@ export function CartDrawer() {
 
     const url = buildWhatsAppLink({
       phoneNumber: getWhatsAppPhoneNumber(),
-      message: buildCartWhatsAppMessage(summary),
+      message: buildCartWhatsAppMessage({
+        items,
+        subtotalPrice,
+        shipping: CHECKOUT_PAYMENTS_ENABLED ? shipping : null,
+        postalCode: CHECKOUT_PAYMENTS_ENABLED ? postalCode : undefined,
+        locality: CHECKOUT_PAYMENTS_ENABLED ? locality : undefined,
+        address: CHECKOUT_PAYMENTS_ENABLED ? address : undefined,
+      }),
     });
     window.open(url, "_blank", "noopener,noreferrer");
   }
@@ -426,14 +429,14 @@ export function CartDrawer() {
                 </div>
               ) : null}
 
-              {quoteError ? (
-                <p className="mt-3 text-xs text-error">{quoteError}</p>
+              {activeQuoteError ? (
+                <p className="mt-3 text-xs text-error">{activeQuoteError}</p>
               ) : null}
 
-              {options.length > 0 ? (
+              {shippingOptions.length > 0 ? (
                 <div className="mt-3 space-y-2">
-                  {options.map((option) => {
-                    const selected = option.id === selectedShippingId;
+                  {shippingOptions.map((option) => {
+                    const selected = option.id === activeShippingId;
                     return (
                       <label
                         key={option.id}

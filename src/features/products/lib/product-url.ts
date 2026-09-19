@@ -1,4 +1,4 @@
-import { absoluteUrl } from "@/lib/seo/site";
+import { absoluteUrl, type ShareImage } from "@/lib/seo/site";
 import type { Product } from "@/types/product";
 
 export function productHref(slug: string) {
@@ -17,7 +17,7 @@ export function productImageUrl(src: string) {
   return absoluteUrl(src);
 }
 
-export function productShareImage(product: Product) {
+export function productShareImage(product: Product): ShareImage {
   const url = productImageUrl(product.featuredImage);
 
   return {

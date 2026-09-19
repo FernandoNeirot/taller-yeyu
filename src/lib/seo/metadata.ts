@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { getShareImage, siteConfig } from "./site";
+import { getShareImage, siteConfig, type ShareImage } from "./site";
 
 type SharePageOptions = {
   title: string;
   description: string;
   path: string;
-  images?: ReturnType<typeof getShareImage>[];
+  images?: ShareImage[];
   keywords?: string[];
 };
 
-export function shareImages(images?: ReturnType<typeof getShareImage>[]) {
+export function shareImages(images?: ShareImage[]) {
   return images?.length ? images : [getShareImage()];
 }
 
