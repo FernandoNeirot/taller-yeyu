@@ -7,6 +7,7 @@ import { MaterialIcon } from "@/components/ui/material-icon";
 import { useCart } from "@/context/CartContext";
 import { buildCartWhatsAppMessage } from "@/features/cart/whatsapp-message";
 import type { ShippingOption } from "@/features/cart/types";
+import { CHECKOUT_PAYMENTS_ENABLED } from "@/features/checkout/flags";
 import { exceedsStandardMail } from "@/features/products/lib/logistics";
 import { formatProductPrice } from "@/features/products/lib/format-price";
 import {
@@ -175,10 +176,12 @@ export function CartDrawer() {
         body: JSON.stringify({
           method: "whatsapp",
           items: checkoutItems(items),
-          postalCode,
-          shippingOptionId: selectedShippingId || undefined,
-          locality,
-          address,
+          postalCode: CHECKOUT_PAYMENTS_ENABLED ? postalCode : undefined,
+          shippingOptionId: CHECKOUT_PAYMENTS_ENABLED
+            ? selectedShippingId || undefined
+            : undefined,
+          locality: CHECKOUT_PAYMENTS_ENABLED ? locality : undefined,
+          address: CHECKOUT_PAYMENTS_ENABLED ? address : undefined,
         }),
       });
     } catch {
@@ -363,7 +366,14 @@ export function CartDrawer() {
             </ul>
           )}
 
-          {items.length > 0 ? (
+          {items.length > 0 && !CHECKOUT_PAYMENTS_ENABLED && hasCustomizable ? (
+            <p className="mt-4 text-xs text-secondary">
+              Hay piezas personalizables: el diseño puede requerir una
+              cotización especial.
+            </p>
+          ) : null}
+
+          {CHECKOUT_PAYMENTS_ENABLED && items.length > 0 ? (
             <section className="mt-6">
               <h3 className="font-label-caps text-label-caps tracking-widest text-secondary">
                 Envío Andreani
@@ -489,20 +499,26 @@ export function CartDrawer() {
                   : formatProductPrice(subtotalPrice)}
               </span>
             </div>
-            <div className="mt-1 flex justify-between text-sm text-on-surface-variant">
-              <span>Envío Andreani</span>
-              <span>
-                {shipping
-                  ? formatProductPrice(shippingPrice)
-                  : postalCode
-                    ? "Pendiente"
-                    : "Sin cotizar"}
-              </span>
-            </div>
+            {CHECKOUT_PAYMENTS_ENABLED ? (
+              <div className="mt-1 flex justify-between text-sm text-on-surface-variant">
+                <span>Envío Andreani</span>
+                <span>
+                  {shipping
+                    ? formatProductPrice(shippingPrice)
+                    : postalCode
+                      ? "Pendiente"
+                      : "Sin cotizar"}
+                </span>
+              </div>
+            ) : null}
             <div className="mt-2 flex justify-between font-semibold text-on-surface">
-              <span>Total a pagar</span>
+              <span>{CHECKOUT_PAYMENTS_ENABLED ? "Total a pagar" : "Total"}</span>
               <span>
-                {hasUnpricedItems ? "A cotizar" : formatProductPrice(total)}
+                {hasUnpricedItems
+                  ? "A cotizar"
+                  : formatProductPrice(
+                      CHECKOUT_PAYMENTS_ENABLED ? total : subtotalPrice,
+                    )}
               </span>
             </div>
 
@@ -510,22 +526,24 @@ export function CartDrawer() {
               <p className="mt-2 text-xs text-error">{checkoutError}</p>
             ) : null}
 
-            <button
-              type="button"
-              onClick={payWithMercadoPago}
-              disabled={paying || hasUnpricedItems || items.length === 0}
-              className="mt-4 inline-flex items-center justify-center rounded-xl bg-[#009EE3] text-white hover:bg-[#0088c6] disabled:opacity-50"
-              style={{ width: "100%", minHeight: 48 }}
-            >
-              {paying ? "Redirigiendo…" : "Pagar con Mercado Pago"}
-            </button>
+            {CHECKOUT_PAYMENTS_ENABLED ? (
+              <button
+                type="button"
+                onClick={payWithMercadoPago}
+                disabled={paying || hasUnpricedItems || items.length === 0}
+                className="mt-4 inline-flex items-center justify-center rounded-xl bg-[#009EE3] text-white hover:bg-[#0088c6] disabled:opacity-50"
+                style={{ width: "100%", minHeight: 48 }}
+              >
+                {paying ? "Redirigiendo…" : "Pagar con Mercado Pago"}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={consultWhatsApp}
-              className="mt-2 inline-flex items-center justify-center rounded-xl border border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10"
-              style={{ width: "100%", minHeight: 44 }}
+              className="mt-4 inline-flex items-center justify-center rounded-xl bg-[#25D366] text-white hover:bg-[#1ebe5d]"
+              style={{ width: "100%", minHeight: 48 }}
             >
-              Consultar pedido por WhatsApp
+              Enviar pedido por WhatsApp
             </button>
             <button
               type="button"

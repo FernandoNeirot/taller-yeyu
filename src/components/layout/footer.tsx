@@ -1,6 +1,19 @@
+import {
+  buildWhatsAppLink,
+  getWhatsAppPhoneNumber,
+} from "@/lib/whatsapp";
 import { Logo } from "./logo";
 
-const socialLinks = ["Instagram", "Facebook", "WhatsApp"];
+const socialLinks = [
+  {
+    label: "Instagram",
+    href: "https://www.instagram.com/taller.yeyu/",
+  },
+  {
+    label: "WhatsApp",
+    href: buildWhatsAppLink({ phoneNumber: getWhatsAppPhoneNumber() }),
+  },
+];
 
 export function Footer() {
   return (
@@ -10,18 +23,20 @@ export function Footer() {
           <Logo className="h-full w-auto object-contain" />
         </div>
         <div className="flex gap-lg">
-          {socialLinks.map((label) => (
+          {socialLinks.map((link) => (
             <a
-              key={label}
+              key={link.label}
               className="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors hover:opacity-80"
-              href="#"
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              {label}
+              {link.label}
             </a>
           ))}
         </div>
         <div className="font-body-md text-body-md text-on-surface-variant text-sm text-center md:text-right">
-          © 2024 Taller Yeyu. Carpintería de Corazón.
+          © 2026 Taller Yeyu. Carpintería de Corazón.
         </div>
       </div>
     </footer>

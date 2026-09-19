@@ -27,22 +27,26 @@ export function buildCartWhatsAppMessage(input: {
         input.shipping.estimatedDays ? ` (${input.shipping.estimatedDays})` : ""
       }`
     : input.postalCode
-      ? `Código postal ${input.postalCode}: falta confirmar tarifa Andreani`
-      : "Envío: requiere cotización (no se ingresó código postal)";
+      ? `Código postal ${input.postalCode}: falta confirmar tarifa de envío`
+      : "";
 
   const destination = [input.locality, input.address].filter(Boolean).join(" — ");
   const total = input.subtotalPrice + (input.shipping?.price ?? 0);
   const unpriced = input.items.some((item) => item.price == null);
+  const extras = [
+    shippingLine ? `🚚 ${shippingLine}` : "",
+    destination ? `📍 Destino: ${destination}` : "",
+    unpriced ? "⚠️ Hay piezas personalizadas o sin precio publicado." : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-  return `Hola! Quiero encargar / consultar este pedido desde la web de Taller Yeyu.
+  return `Hola! Quiero encargar este pedido desde la web de Taller Yeyu.
 
 📦 Productos:
 ${lines.join("\n")}
 
-💰 Subtotal: ${unpriced ? "a cotizar" : formatProductPrice(input.subtotalPrice)}
-🚚 ${shippingLine}${destination ? `\n📍 Destino: ${destination}` : ""}
-${unpriced ? "⚠️ Hay piezas personalizadas o sin precio publicado.\n" : ""}
-💵 Total estimado: ${unpriced ? "a cotizar" : formatProductPrice(total)}
+💰 ${unpriced ? "Total: a cotizar" : `Total: ${formatProductPrice(total)}`}${extras ? `\n${extras}` : ""}
 
-¿Me confirman disponibilidad, tiempo de producción y el total?`;
+¿Me confirman disponibilidad, tiempo de producción y cómo coordinamos el envío?`;
 }
