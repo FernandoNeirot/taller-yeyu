@@ -27,6 +27,10 @@ type FormState = {
   categories: string[];
   topics: string;
   dimensions: string;
+  heightCm: string;
+  widthCm: string;
+  depthCm: string;
+  diameterCm: string;
   finish: string;
   customizable: boolean;
   hidden: boolean;
@@ -40,6 +44,10 @@ const emptyForm: FormState = {
   categories: [],
   topics: "",
   dimensions: "",
+  heightCm: "",
+  widthCm: "",
+  depthCm: "",
+  diameterCm: "",
   finish: "",
   customizable: true,
   hidden: false,
@@ -77,6 +85,22 @@ function productToForm(product: Product): FormState {
     categories: product.categories,
     topics: product.topics.map(topicLabel).join(", "),
     dimensions: product.specifications.dimensions,
+    heightCm:
+      product.specifications.heightCm != null
+        ? String(product.specifications.heightCm)
+        : "",
+    widthCm:
+      product.specifications.widthCm != null
+        ? String(product.specifications.widthCm)
+        : "",
+    depthCm:
+      product.specifications.depthCm != null
+        ? String(product.specifications.depthCm)
+        : "",
+    diameterCm:
+      product.specifications.diameterCm != null
+        ? String(product.specifications.diameterCm)
+        : "",
     finish: product.specifications.finish,
     customizable: product.specifications.customizable,
     hidden: !product.isActive,
@@ -482,36 +506,90 @@ export function ProductManager({
                   />
                 </label>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
-                  <label className="flex flex-col gap-xs">
-                    <span className="text-sm text-on-surface-variant">
-                      Medidas
-                    </span>
-                    <input
-                      name="dimensions"
-                      value={form.dimensions}
-                      onChange={(event) =>
-                        setForm({ ...form, dimensions: event.target.value })
-                      }
-                      className={fieldClassName}
-                      style={{ width: "100%" }}
-                    />
-                  </label>
-                  <label className="flex flex-col gap-xs">
-                    <span className="text-sm text-on-surface-variant">
-                      Acabado
-                    </span>
-                    <input
-                      name="finish"
-                      value={form.finish}
-                      onChange={(event) =>
-                        setForm({ ...form, finish: event.target.value })
-                      }
-                      className={fieldClassName}
-                      style={{ width: "100%" }}
-                    />
-                  </label>
-                </div>
+                <input type="hidden" name="dimensions" value={form.dimensions} />
+                <fieldset className="flex flex-col gap-xs">
+                  <legend className="text-sm text-on-surface-variant">
+                    Medidas (cm)
+                  </legend>
+                  <div className="grid grid-cols-2 gap-sm">
+                    <label className="flex flex-col gap-xs">
+                      <span className="text-sm text-on-surface-variant">Alto</span>
+                      <input
+                        name="heightCm"
+                        inputMode="decimal"
+                        value={form.heightCm}
+                        placeholder="Opcional"
+                        onChange={(event) =>
+                          setForm({ ...form, heightCm: event.target.value })
+                        }
+                        className={fieldClassName}
+                        style={{ width: "100%" }}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-xs">
+                      <span className="text-sm text-on-surface-variant">
+                        Ancho
+                      </span>
+                      <input
+                        name="widthCm"
+                        inputMode="decimal"
+                        value={form.widthCm}
+                        placeholder="Opcional"
+                        onChange={(event) =>
+                          setForm({ ...form, widthCm: event.target.value })
+                        }
+                        className={fieldClassName}
+                        style={{ width: "100%" }}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-xs">
+                      <span className="text-sm text-on-surface-variant">
+                        Profundo
+                      </span>
+                      <input
+                        name="depthCm"
+                        inputMode="decimal"
+                        value={form.depthCm}
+                        placeholder="Opcional"
+                        onChange={(event) =>
+                          setForm({ ...form, depthCm: event.target.value })
+                        }
+                        className={fieldClassName}
+                        style={{ width: "100%" }}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-xs">
+                      <span className="text-sm text-on-surface-variant">
+                        Diámetro
+                      </span>
+                      <input
+                        name="diameterCm"
+                        inputMode="decimal"
+                        value={form.diameterCm}
+                        placeholder="Opcional"
+                        onChange={(event) =>
+                          setForm({ ...form, diameterCm: event.target.value })
+                        }
+                        className={fieldClassName}
+                        style={{ width: "100%" }}
+                      />
+                    </label>
+                  </div>
+                </fieldset>
+                <label className="flex flex-col gap-xs">
+                  <span className="text-sm text-on-surface-variant">
+                    Acabado
+                  </span>
+                  <input
+                    name="finish"
+                    value={form.finish}
+                    onChange={(event) =>
+                      setForm({ ...form, finish: event.target.value })
+                    }
+                    className={fieldClassName}
+                    style={{ width: "100%" }}
+                  />
+                </label>
 
                 <label className="flex flex-col gap-xs">
                   <span className="text-sm text-on-surface-variant">Precio</span>

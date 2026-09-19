@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { useCart } from "@/context/CartContext";
 import { formatProductPrice } from "@/features/products/lib/format-price";
+import { formatProductDimensions } from "@/features/products/lib/measures";
 import type { Product } from "@/types/product";
 
 type AddToCartModalProps = {
@@ -13,27 +14,34 @@ type AddToCartModalProps = {
   onClose: () => void;
 };
 
+function subscribeToNothing() {
+  return () => {};
+}
+
+function subscribeDesktop(onStoreChange: () => void) {
+  const media = window.matchMedia("(min-width: 768px)");
+  media.addEventListener("change", onStoreChange);
+  return () => media.removeEventListener("change", onStoreChange);
+}
+
 export function AddToCartModal({ product, onClose }: AddToCartModalProps) {
   const titleId = useId();
   const { addToCart, openCart, showToast } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [customNotes, setCustomNotes] = useState("");
-  const [mounted, setMounted] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [formSlug, setFormSlug] = useState(product?.slug ?? "");
+  const mounted = useSyncExternalStore(subscribeToNothing, () => true, () => false);
+  const isDesktop = useSyncExternalStore(
+    subscribeDesktop,
+    () => window.matchMedia("(min-width: 768px)").matches,
+    () => false,
+  );
 
-  useEffect(() => {
-    setMounted(true);
-    const media = window.matchMedia("(min-width: 768px)");
-    const sync = () => setIsDesktop(media.matches);
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
-
-  useEffect(() => {
+  if (product && formSlug !== product.slug) {
+    setFormSlug(product.slug);
     setQuantity(1);
     setCustomNotes("");
-  }, [product?.slug]);
+  }
 
   useEffect(() => {
     if (!product) return;
@@ -145,9 +153,9 @@ export function AddToCartModal({ product, onClose }: AddToCartModalProps) {
           </div>
           <div style={{ minWidth: 0 }}>
             <p className="line-clamp-2 text-sm font-semibold">{product.title}</p>
-            {product.specifications.dimensions ? (
+            {formatProductDimensions(product) ? (
               <p className="mt-1 text-xs text-neutral-400">
-                {product.specifications.dimensions}
+                {formatProductDimensions(product)}
               </p>
             ) : null}
             {product.price != null ? (

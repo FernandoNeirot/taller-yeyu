@@ -9,6 +9,7 @@ import {
   slugify,
   updateProduct,
 } from "../services/get-products";
+import { formatMeasuresSummary } from "../lib/measures";
 import { uploadProductImageBuffers } from "../services/upload-product-images";
 import type { Product } from "../types";
 import { MAX_PRODUCT_IMAGES } from "../utils/compress-image";
@@ -74,13 +75,29 @@ export async function saveProductAction(
       0,
       MAX_PRODUCT_IMAGES,
     );
+    const heightCm = optionalNumber(formData.get("heightCm"));
+    const widthCm = optionalNumber(formData.get("widthCm"));
+    const depthCm = optionalNumber(formData.get("depthCm"));
+    const diameterCm = optionalNumber(formData.get("diameterCm"));
     const input = {
       title,
       shortDescription,
       fullDescription,
       categories,
       topics: parseTopicList(String(formData.get("topics") ?? "")),
-      dimensions: String(formData.get("dimensions") ?? ""),
+      heightCm,
+      widthCm,
+      depthCm,
+      diameterCm,
+      dimensions: formatMeasuresSummary(
+        {
+          heightCm: heightCm ?? undefined,
+          widthCm: widthCm ?? undefined,
+          depthCm: depthCm ?? undefined,
+          diameterCm: diameterCm ?? undefined,
+        },
+        String(formData.get("dimensions") ?? ""),
+      ),
       finish: String(formData.get("finish") ?? ""),
       customizable: formData.get("customizable") === "on",
       price: optionalNumber(formData.get("price")),

@@ -7,6 +7,10 @@ export type ProductInput = {
   categories: string[];
   topics: string[];
   dimensions: string;
+  heightCm: number | null;
+  widthCm: number | null;
+  depthCm: number | null;
+  diameterCm: number | null;
   finish: string;
   customizable: boolean;
   price: number | null;

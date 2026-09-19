@@ -51,6 +51,10 @@ export function mapCatalogDoc(
     specifications: {
       material: String(specs.material ?? data.material ?? ""),
       dimensions: String(specs.dimensions ?? ""),
+      heightCm: toPrice(specs.heightCm),
+      widthCm: toPrice(specs.widthCm),
+      depthCm: toPrice(specs.depthCm),
+      diameterCm: toPrice(specs.diameterCm),
       finish: String(specs.finish ?? data.finish ?? ""),
       customizable: Boolean(specs.customizable ?? data.customizable),
     },

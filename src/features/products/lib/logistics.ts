@@ -1,4 +1,5 @@
 import type { Product } from "@/types/product";
+import { getProductMeasures } from "./measures";
 
 export type PackageSize = {
   heightCm: number;
@@ -45,8 +46,28 @@ export function getProductLogistics(product: Product): {
   weightGrams: number;
   dimensions: PackageSize;
 } {
+  const measures = getProductMeasures(product);
+  const fromMeasures = (() => {
+    const heightCm = measures.heightCm;
+    const widthCm = measures.widthCm ?? measures.diameterCm;
+    const lengthCm =
+      measures.depthCm ?? measures.diameterCm ?? measures.widthCm;
+    if (heightCm && widthCm && lengthCm) {
+      return { heightCm, widthCm, lengthCm };
+    }
+    if (measures.diameterCm) {
+      return {
+        heightCm: heightCm ?? measures.diameterCm,
+        widthCm: measures.diameterCm,
+        lengthCm: measures.diameterCm,
+      };
+    }
+    return null;
+  })();
+
   const fromProduct =
-    product.dimensions &&
+    fromMeasures ??
+    (product.dimensions &&
     toNumber(product.dimensions.heightCm) &&
     toNumber(product.dimensions.widthCm) &&
     toNumber(product.dimensions.lengthCm)
@@ -55,7 +76,7 @@ export function getProductLogistics(product: Product): {
           widthCm: product.dimensions.widthCm,
           lengthCm: product.dimensions.lengthCm,
         }
-      : parseDimensionString(product.specifications.dimensions);
+      : parseDimensionString(product.specifications.dimensions));
 
   return {
     weightGrams: toNumber(product.weightGrams) ?? DEFAULT_WEIGHT_GRAMS,

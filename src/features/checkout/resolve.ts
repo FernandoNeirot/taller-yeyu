@@ -5,6 +5,7 @@ import {
   exceedsStandardMail,
   getProductLogistics,
 } from "@/features/products/lib/logistics";
+import { formatProductDimensions } from "@/features/products/lib/measures";
 import { getProducts } from "@/features/products/services/get-products";
 import type {
   CheckoutItemInput,
@@ -63,7 +64,7 @@ export async function resolveCheckoutItems(
       customizable: product.specifications.customizable,
       weightGrams: logistics.weightGrams,
       dimensions: logistics.dimensions,
-      specificationsDimensions: product.specifications.dimensions,
+      specificationsDimensions: formatProductDimensions(product),
     });
   }
 

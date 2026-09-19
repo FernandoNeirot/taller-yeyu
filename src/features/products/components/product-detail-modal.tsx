@@ -9,6 +9,7 @@ import { categoryLabel } from "@/types/product";
 import type { Product } from "@/types/product";
 import { formatProductPrice } from "../lib/format-price";
 import { productGalleryImages } from "../lib/gallery-images";
+import { productMeasureRows } from "../lib/measures";
 import { ProductWhatsAppCTA } from "./product-whatsapp-cta";
 
 type ProductDetailModalProps = {
@@ -377,14 +378,14 @@ export function ProductDetailModal({
             </p>
 
             <dl className="mt-4 space-y-1 font-body-md text-body-md text-on-surface-variant">
-              {product.specifications.dimensions ? (
-                <div>
+              {productMeasureRows(product).map((row) => (
+                <div key={row.label}>
                   <dt className="inline font-label-caps text-label-caps text-secondary tracking-widest">
-                    Medidas:{" "}
+                    {row.label}:{" "}
                   </dt>
-                  <dd className="inline">{product.specifications.dimensions}</dd>
+                  <dd className="inline">{row.value}</dd>
                 </div>
-              ) : null}
+              ))}
               {product.specifications.finish ? (
                 <div>
                   <dt className="inline font-label-caps text-label-caps text-secondary tracking-widest">

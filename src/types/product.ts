@@ -9,6 +9,10 @@ export interface Product {
   specifications: {
     material: string;
     dimensions: string;
+    heightCm?: number;
+    widthCm?: number;
+    depthCm?: number;
+    diameterCm?: number;
     finish: string;
     customizable: boolean;
   };

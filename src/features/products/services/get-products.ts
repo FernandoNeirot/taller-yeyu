@@ -75,6 +75,10 @@ function toFirestorePayload(input: ProductInput, images: string[]) {
     specifications: {
       material: "",
       dimensions: input.dimensions.trim(),
+      heightCm: input.heightCm ?? undefined,
+      widthCm: input.widthCm ?? undefined,
+      depthCm: input.depthCm ?? undefined,
+      diameterCm: input.diameterCm ?? undefined,
       finish: input.finish.trim(),
       customizable: input.customizable,
     },
@@ -83,6 +87,17 @@ function toFirestorePayload(input: ProductInput, images: string[]) {
     price: input.price,
     isActive: input.isActive,
     available: input.isActive,
+    dimensions:
+      input.heightCm &&
+      (input.widthCm || input.diameterCm) &&
+      (input.depthCm || input.diameterCm || input.widthCm)
+        ? {
+            heightCm: input.heightCm,
+            widthCm: input.widthCm ?? input.diameterCm ?? input.heightCm,
+            lengthCm:
+              input.depthCm ?? input.diameterCm ?? input.widthCm ?? input.heightCm,
+          }
+        : undefined,
   };
 }
 

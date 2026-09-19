@@ -13,6 +13,7 @@ import {
 import { cartItemKey, computeCartTotals } from "@/features/cart/totals";
 import type { CartItem } from "@/features/cart/types";
 import { getProductLogistics } from "@/features/products/lib/logistics";
+import { formatProductDimensions } from "@/features/products/lib/measures";
 import type { Product } from "@/types/product";
 
 const STORAGE_KEY = "talleryeyu-cart-v1";
@@ -110,7 +111,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             customizable: product.specifications.customizable,
             weightGrams: logistics.weightGrams,
             dimensions: logistics.dimensions,
-            specificationsDimensions: product.specifications.dimensions,
+            specificationsDimensions: formatProductDimensions(product),
           },
         ];
       });

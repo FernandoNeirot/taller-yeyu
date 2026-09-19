@@ -5,6 +5,7 @@ import { categoryLabel } from "@/types/product";
 import type { Product } from "@/types/product";
 import { formatProductPrice } from "../lib/format-price";
 import { galleryHref } from "../lib/gallery-url";
+import { productMeasureRows } from "../lib/measures";
 import { ProductGallery } from "./product-gallery";
 import { ProductWhatsAppCTA } from "./product-whatsapp-cta";
 import { ShareProductButton } from "./share-product-button";
@@ -98,14 +99,14 @@ export function ProductDetail({ product }: { product: Product }) {
                 <dd className="inline">{product.specifications.material}</dd>
               </div>
             ) : null}
-            {product.specifications.dimensions ? (
-              <div>
+            {productMeasureRows(product).map((row) => (
+              <div key={row.label}>
                 <dt className="inline font-label-caps text-label-caps text-secondary tracking-widest">
-                  Medidas:{" "}
+                  {row.label}:{" "}
                 </dt>
-                <dd className="inline">{product.specifications.dimensions}</dd>
+                <dd className="inline">{row.value}</dd>
               </div>
-            ) : null}
+            ))}
             {product.specifications.finish ? (
               <div>
                 <dt className="inline font-label-caps text-label-caps text-secondary tracking-widest">
