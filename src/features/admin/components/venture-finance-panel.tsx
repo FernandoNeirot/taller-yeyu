@@ -163,6 +163,44 @@ export function VentureFinancePanel({
 
   const isMaterials = form.category === "Materiales";
   const subcategory = form.subcategory as MaterialSubcategory | "";
+  const hideMaterialDescription = isMaterials && !editingId;
+  const hideMaterialAmounts =
+    isMaterials && !editingId && subcategory !== "pinturas";
+
+  const derivedMaterialDescription = useMemo(() => {
+    if (subcategory === "accesorios") {
+      return accessoryRows
+        .map((row) => row.name.trim())
+        .filter(Boolean)
+        .join(", ");
+    }
+    if (subcategory === "maderas") {
+      return woodRows
+        .map((row) => row.name.trim())
+        .filter(Boolean)
+        .join(", ");
+    }
+    if (subcategory === "pinturas") {
+      return paintRows
+        .map((row) => row.color.trim())
+        .filter(Boolean)
+        .join(", ");
+    }
+    return "";
+  }, [accessoryRows, paintRows, subcategory, woodRows]);
+
+  const derivedMaterialTotal = useMemo(() => {
+    if (subcategory === "accesorios") {
+      return accessoryRows.reduce(
+        (sum, row) => sum + moneyToNumber(row.totalPrice),
+        0,
+      );
+    }
+    if (subcategory === "maderas") {
+      return woodRows.reduce((sum, row) => sum + moneyToNumber(row.price), 0);
+    }
+    return 0;
+  }, [accessoryRows, subcategory, woodRows]);
 
   function resetForm() {
     setForm(emptyForm());
@@ -285,20 +323,28 @@ export function VentureFinancePanel({
             <input type="hidden" name="subcategory" value="" />
           )}
 
-          <label className="flex flex-col gap-xs">
-            <span className="text-sm text-on-surface-variant">Descripción</span>
-            <textarea
+          {hideMaterialDescription ? (
+            <input
+              type="hidden"
               name="description"
-              required
-              rows={3}
-              value={form.description}
-              onChange={(event) =>
-                setForm({ ...form, description: event.target.value })
-              }
-              placeholder="Detalle de la compra o movimiento"
-              className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
+              value={derivedMaterialDescription}
             />
-          </label>
+          ) : (
+            <label className="flex flex-col gap-xs">
+              <span className="text-sm text-on-surface-variant">Descripción</span>
+              <textarea
+                name="description"
+                required
+                rows={3}
+                value={form.description}
+                onChange={(event) =>
+                  setForm({ ...form, description: event.target.value })
+                }
+                placeholder="Detalle de la compra o movimiento"
+                className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
+              />
+            </label>
+          )}
 
           <div className="flex gap-md">
             <label className="inline-flex items-center gap-xs">
@@ -323,37 +369,58 @@ export function VentureFinancePanel({
             </label>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
-            <label className="flex flex-col gap-xs">
-              <span className="text-sm text-on-surface-variant">Monto total</span>
-              <div className="flex gap-sm">
-                <div className="flex-1">
-                  <MoneyInput
-                    name="totalAmount"
+          {hideMaterialAmounts ? (
+            <>
+              <input
+                type="hidden"
+                name="totalAmount"
+                value={derivedMaterialTotal || ""}
+              />
+              <input
+                type="hidden"
+                name="paidAmount"
+                value={form.isPaid ? derivedMaterialTotal || "" : ""}
+              />
+            </>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
+              <label className="flex flex-col gap-xs">
+                <span className="text-sm text-on-surface-variant">
+                  Monto total
+                </span>
+                <div className="flex gap-sm">
+                  <div className="flex-1">
+                    <MoneyInput
+                      name="totalAmount"
+                      value={form.totalAmount}
+                      onChange={(value) =>
+                        setForm({ ...form, totalAmount: value })
+                      }
+                      required
+                    />
+                  </div>
+                  <CalculatorButton
                     value={form.totalAmount}
-                    onChange={(value) => setForm({ ...form, totalAmount: value })}
-                    required
+                    onApply={(value) =>
+                      setForm({ ...form, totalAmount: value })
+                    }
                   />
                 </div>
-                <CalculatorButton
-                  value={form.totalAmount}
-                  onApply={(value) => setForm({ ...form, totalAmount: value })}
+              </label>
+              <label className="flex flex-col gap-xs">
+                <span className="text-sm text-on-surface-variant">
+                  {form.movementType === "ingreso"
+                    ? "Monto cobrado"
+                    : "Monto pagado"}
+                </span>
+                <MoneyInput
+                  name="paidAmount"
+                  value={form.paidAmount}
+                  onChange={(value) => setForm({ ...form, paidAmount: value })}
                 />
-              </div>
-            </label>
-            <label className="flex flex-col gap-xs">
-              <span className="text-sm text-on-surface-variant">
-                {form.movementType === "ingreso"
-                  ? "Monto cobrado"
-                  : "Monto pagado"}
-              </span>
-              <MoneyInput
-                name="paidAmount"
-                value={form.paidAmount}
-                onChange={(value) => setForm({ ...form, paidAmount: value })}
-              />
-            </label>
-          </div>
+              </label>
+            </div>
+          )}
 
           <label className="inline-flex items-center gap-xs">
             <input

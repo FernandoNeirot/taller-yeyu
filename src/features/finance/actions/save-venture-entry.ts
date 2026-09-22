@@ -46,18 +46,96 @@ export async function saveVentureEntryAction(
   const date = String(formData.get("date") ?? "").trim();
   const category = String(formData.get("category") ?? "").trim();
   const subcategory = String(formData.get("subcategory") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
+  let description = String(formData.get("description") ?? "").trim();
   const movementType = formData.get("movementType");
-  const totalAmount = Number(formData.get("totalAmount"));
-  const paidAmount = Number(formData.get("paidAmount") || 0);
+  let totalAmount = Number(formData.get("totalAmount"));
+  let paidAmount = Number(formData.get("paidAmount") || 0);
   const isPaid = formData.get("isPaid") === "on";
 
-  if (!date || !category || !description) {
-    return { error: "Completá fecha, categoría y descripción." };
+  if (!date || !category) {
+    return { error: "Completá fecha y categoría." };
   }
 
   if (!isMovementType(movementType)) {
     return { error: "Seleccioná si es ingreso o egreso." };
+  }
+
+  if (category === "Materiales" && !subcategory) {
+    return { error: "Seleccioná subcategoría de materiales." };
+  }
+
+  const woods =
+    category === "Materiales" && !id && subcategory === "maderas"
+      ? parseJsonArray<WoodMaterialInput>(formData.get("woodItems")).filter(
+          (item) =>
+            item.name?.trim() &&
+            Number(item.widthCm) > 0 &&
+            Number(item.lengthCm) > 0 &&
+            Number(item.price) > 0,
+        )
+      : [];
+  const paints =
+    category === "Materiales" && !id && subcategory === "pinturas"
+      ? parseJsonArray<PaintMaterialInput>(formData.get("paintItems")).filter(
+          (item) =>
+            item.color?.trim() &&
+            Number(item.quantity) > 0 &&
+            Number(item.weightGrams) > 0,
+        )
+      : [];
+  const accessories =
+    category === "Materiales" && !id && subcategory === "accesorios"
+      ? (parseJsonArray<AccessoryMaterialInput>(
+          formData.get("accessoryItems"),
+        ).filter(
+          (item) =>
+            item.name?.trim() &&
+            (item.measureType === "unidad" ||
+              item.measureType === "centimetro") &&
+            Number(item.quantity) > 0 &&
+            Number(item.totalPrice) > 0,
+        ) as AccessoryMaterialInput[])
+      : [];
+
+  if (category === "Materiales" && !id) {
+    if (subcategory === "maderas") {
+      if (woods.length === 0) {
+        return {
+          error: "Agregá al menos una madera con nombre, ancho, largo y precio.",
+        };
+      }
+      description = woods.map((item) => item.name.trim()).join(", ");
+      totalAmount = woods.reduce((sum, item) => sum + Number(item.price), 0);
+      paidAmount = isPaid ? totalAmount : 0;
+    }
+
+    if (subcategory === "pinturas") {
+      if (paints.length === 0) {
+        return {
+          error: "Agregá al menos una pintura con color, cantidad y peso.",
+        };
+      }
+      description = paints.map((item) => item.color.trim()).join(", ");
+    }
+
+    if (subcategory === "accesorios") {
+      if (accessories.length === 0) {
+        return {
+          error:
+            "Agregá al menos un accesorio con nombre, medida, cantidad y precio.",
+        };
+      }
+      description = accessories.map((item) => item.name.trim()).join(", ");
+      totalAmount = accessories.reduce(
+        (sum, item) => sum + Number(item.totalPrice),
+        0,
+      );
+      paidAmount = isPaid ? totalAmount : 0;
+    }
+  }
+
+  if (!description) {
+    return { error: "Completá fecha, categoría y descripción." };
   }
 
   if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
@@ -71,10 +149,6 @@ export async function saveVentureEntryAction(
           ? "El monto cobrado no es válido."
           : "El monto pagado no es válido.",
     };
-  }
-
-  if (category === "Materiales" && !subcategory) {
-    return { error: "Seleccioná subcategoría de materiales." };
   }
 
   const input = normalizeVentureFinanceInput({
@@ -93,20 +167,6 @@ export async function saveVentureEntryAction(
       const materialType = subcategory as MaterialSubcategory;
 
       if (materialType === "maderas") {
-        const woods = parseJsonArray<WoodMaterialInput>(
-          formData.get("woodItems"),
-        ).filter(
-          (item) =>
-            item.name?.trim() &&
-            Number(item.widthCm) > 0 &&
-            Number(item.lengthCm) > 0 &&
-            Number(item.price) > 0,
-        );
-        if (woods.length === 0) {
-          return {
-            error: "Agregá al menos una madera con nombre, ancho, largo y precio.",
-          };
-        }
         const entry = await createVentureFinanceEntry(input, user);
         await createWoodMaterials(woods, {
           financeEntryId: entry.id,
@@ -117,19 +177,6 @@ export async function saveVentureEntryAction(
       }
 
       if (materialType === "pinturas") {
-        const paints = parseJsonArray<PaintMaterialInput>(
-          formData.get("paintItems"),
-        ).filter(
-          (item) =>
-            item.color?.trim() &&
-            Number(item.quantity) > 0 &&
-            Number(item.weightGrams) > 0,
-        );
-        if (paints.length === 0) {
-          return {
-            error: "Agregá al menos una pintura con color, cantidad y peso.",
-          };
-        }
         const entry = await createVentureFinanceEntry(input, user);
         await createPaintMaterials(paints, totalAmount, {
           financeEntryId: entry.id,
@@ -140,22 +187,6 @@ export async function saveVentureEntryAction(
       }
 
       if (materialType === "accesorios") {
-        const accessories = parseJsonArray<AccessoryMaterialInput>(
-          formData.get("accessoryItems"),
-        ).filter(
-          (item) =>
-            item.name?.trim() &&
-            (item.measureType === "unidad" ||
-              item.measureType === "centimetro") &&
-            Number(item.quantity) > 0 &&
-            Number(item.totalPrice) > 0,
-        ) as AccessoryMaterialInput[];
-        if (accessories.length === 0) {
-          return {
-            error:
-              "Agregá al menos un accesorio con nombre, medida, cantidad y precio.",
-          };
-        }
         const entry = await createVentureFinanceEntry(input, user);
         await createAccessoryMaterials(accessories, {
           financeEntryId: entry.id,
