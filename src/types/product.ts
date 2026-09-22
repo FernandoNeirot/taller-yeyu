@@ -1,3 +1,5 @@
+import type { ProductCostQuote } from "@/features/products/lib/cost-quote";
+
 export interface Product {
   id?: string;
   title: string;
@@ -6,6 +8,7 @@ export interface Product {
   fullDescription: string;
   categories: string[];
   topics: string[];
+  costQuote?: ProductCostQuote;
   specifications: {
     material: string;
     dimensions: string;

@@ -1,5 +1,6 @@
 import { type DocumentData } from "firebase-admin/firestore";
 import type { Product } from "@/types/product";
+import { mapStoredCostQuote } from "../lib/cost-quote";
 
 function toStringArray(value: unknown) {
   return Array.isArray(value) ? value.map(String).filter(Boolean) : [];
@@ -61,6 +62,7 @@ export function mapCatalogDoc(
     featuredImage,
     galleryImages: galleryImages.length > 0 ? galleryImages : [featuredImage],
     price: toPrice(data.price),
+    costQuote: mapStoredCostQuote(data.costQuote),
     isActive: data.isActive !== false && data.available !== false,
     createdAt,
     weightGrams,

@@ -1,3 +1,5 @@
+import type { ProductCostQuote } from "../lib/cost-quote";
+
 export type { Product } from "@/types/product";
 
 export type ProductInput = {
@@ -15,4 +17,5 @@ export type ProductInput = {
   customizable: boolean;
   price: number | null;
   isActive: boolean;
+  costQuote?: ProductCostQuote;
 };

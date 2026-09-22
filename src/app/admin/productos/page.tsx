@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdmin } from "@/features/admin/services/auth";
+import { getMaterials } from "@/features/finance/services/venture-finance";
 import { ProductManager } from "@/features/products/components/product-manager";
+import { buildAccessoryCatalog } from "@/features/products/lib/cost-quote";
 import { getProducts } from "@/features/products/services/get-products";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +15,11 @@ export const metadata: Metadata = {
 
 export default async function AdminProductsPage() {
   await requireAdmin();
-  const products = await getProducts();
+  const [products, materials] = await Promise.all([
+    getProducts(),
+    getMaterials(),
+  ]);
+  const accessories = buildAccessoryCatalog(materials);
 
   return (
     <main className="min-h-screen px-container-margin py-xl max-w-6xl mx-auto">
@@ -41,7 +47,7 @@ export default async function AdminProductsPage() {
         </p>
       </div>
 
-      <ProductManager products={products} />
+      <ProductManager products={products} accessories={accessories} />
     </main>
   );
 }

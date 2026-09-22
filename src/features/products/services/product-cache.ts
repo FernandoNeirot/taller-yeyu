@@ -1,7 +1,7 @@
 import type { Product } from "@/types/product";
 
 export const PRODUCT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-export const PRODUCT_SEED_REVISION = 3;
+export const PRODUCT_SEED_REVISION = 4;
 
 type ProductCache = {
   products: Product[];
@@ -19,6 +19,17 @@ function cloneProduct(product: Product): Product {
     galleryImages: [...product.galleryImages],
     specifications: { ...product.specifications },
     dimensions: product.dimensions ? { ...product.dimensions } : undefined,
+    costQuote: product.costQuote
+      ? {
+          ...product.costQuote,
+          woods: product.costQuote.woods
+            ? product.costQuote.woods.map((item) => ({ ...item }))
+            : undefined,
+          accessories: product.costQuote.accessories
+            ? product.costQuote.accessories.map((item) => ({ ...item }))
+            : undefined,
+        }
+      : undefined,
   };
 }
 

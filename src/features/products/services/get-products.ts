@@ -85,6 +85,9 @@ function toFirestorePayload(input: ProductInput, images: string[]) {
     featuredImage: galleryImages[0] ?? "/principal.png",
     galleryImages,
     price: input.price,
+    costQuote: input.costQuote
+      ? (JSON.parse(JSON.stringify(input.costQuote)) as typeof input.costQuote)
+      : null,
     isActive: input.isActive,
     available: input.isActive,
     dimensions:
@@ -235,6 +238,7 @@ export async function createProduct(input: ProductInput, images: string[]) {
     id: payload.slug,
     ...payload,
     price: payload.price ?? undefined,
+    costQuote: payload.costQuote ?? undefined,
     createdAt: new Date().toISOString(),
   } satisfies Product;
 
@@ -264,6 +268,7 @@ export async function updateProduct(
     id,
     ...payload,
     price: payload.price ?? undefined,
+    costQuote: payload.costQuote ?? undefined,
     createdAt: current.createdAt,
   } satisfies Product;
 

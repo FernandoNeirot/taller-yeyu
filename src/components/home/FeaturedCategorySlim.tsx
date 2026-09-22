@@ -52,6 +52,7 @@ export function FeaturedCategorySlim({ products }: FeaturedCategorySlimProps) {
       <div className="mt-lg hidden md:grid md:grid-cols-3 md:gap-md lg:grid-cols-5">
         {products.map((product) => (
           <FeaturedProductCard
+            compact
             key={product.slug}
             product={product}
             href={productHref(product.slug)}

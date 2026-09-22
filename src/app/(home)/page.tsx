@@ -43,10 +43,9 @@ export default function Home() {
         className="relative w-full min-h-[85vh] flex items-center justify-center px-container-margin py-xl overflow-hidden"
       >
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-linear-to-b from-background/85 via-background/75 to-background z-10" />
           <Image
             alt=""
-            className="object-cover opacity-70"
+            className="object-cover"
             src={HERO_IMAGE}
             fill
             priority
@@ -54,8 +53,12 @@ export default function Home() {
             sizes="100vw"
             quality={70}
           />
+          <div
+            className="absolute inset-0 z-10"
+            style={{ background: "rgba(19, 19, 19, 0.88)", width: "100%", height: "100%" }}
+          />
         </div>
-        <div className="relative z-20 flex flex-col items-center text-center max-w-3xl mx-auto space-y-md rounded-3xl bg-background/90 px-6 py-8 sm:px-10">
+        <div className="relative z-20 flex flex-col items-center text-center max-w-3xl mx-auto space-y-md">
           <h1 className="flex flex-col items-center">
             <span className="sr-only">Taller Yeyu</span>
             <Logo

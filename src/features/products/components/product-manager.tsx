@@ -1,6 +1,16 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
 import { MaterialIcon } from "@/components/ui/material-icon";
@@ -18,7 +28,15 @@ import {
   compressImageToWebp,
   fileToBase64,
 } from "../utils/compress-image";
+import { formatProductPrice } from "../lib/format-price";
 import { ProductDetailModal } from "./product-detail-modal";
+import {
+  ProductCostQuoteFields,
+  costQuoteToForm,
+  emptyCostQuoteForm,
+  type CostQuoteFormState,
+} from "./product-cost-quote";
+import type { MaterialCatalogItem } from "@/features/quotes/types";
 
 type FormState = {
   title: string;
@@ -53,6 +71,68 @@ const emptyForm: FormState = {
   hidden: false,
   price: "",
 };
+
+type FormSectionId =
+  | "basic"
+  | "classify"
+  | "measures"
+  | "price"
+  | "quote"
+  | "photos";
+
+const defaultOpenSections: Record<FormSectionId, boolean> = {
+  basic: true,
+  classify: false,
+  measures: false,
+  price: false,
+  quote: false,
+  photos: false,
+};
+
+function FormSection({
+  id,
+  title,
+  summary,
+  open,
+  onToggle,
+  children,
+}: {
+  id: string;
+  title: string;
+  summary?: string;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-outline-variant/30 bg-surface-container-low/40">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-sm px-4 py-3 text-left"
+      >
+        <span className="min-w-0">
+          <span className="block font-semibold text-on-surface">{title}</span>
+          {!open && summary ? (
+            <span className="mt-0.5 block text-xs text-on-surface-variant">
+              {summary}
+            </span>
+          ) : null}
+        </span>
+        <MaterialIcon name={open ? "expand_less" : "expand_more"} />
+      </button>
+      <div
+        id={id}
+        hidden={!open}
+        className={open ? "flex flex-col gap-sm px-4 pb-4" : undefined}
+      >
+        {children}
+      </div>
+    </section>
+  );
+}
 
 type VisibilityFilter = "all" | "visible" | "hidden";
 
@@ -110,8 +190,10 @@ function productToForm(product: Product): FormState {
 
 export function ProductManager({
   products: initialList,
+  accessories = [],
 }: {
   products: Product[];
+  accessories?: MaterialCatalogItem[];
 }) {
   const [products, setProducts] = useState(initialList);
   const [query, setQuery] = useState("");
@@ -120,6 +202,9 @@ export function ProductManager({
   const [formOpen, setFormOpen] = useState(false);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [costQuote, setCostQuote] =
+    useState<CostQuoteFormState>(emptyCostQuoteForm);
+  const [openSections, setOpenSections] = useState(defaultOpenSections);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<{ preview: string; base64: string }[]>(
@@ -128,6 +213,11 @@ export function ProductManager({
   const [imageError, setImageError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formTitleId = useId();
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [state, action, pending] = useActionState(saveProductAction, null);
   const [deleteState, deleteAction, deletePending] = useActionState(
     deleteProductAction,
@@ -178,6 +268,7 @@ export function ProductManager({
         return [...next].sort((a, b) => a.title.localeCompare(b.title, "es"));
       });
       setForm(emptyForm);
+      setCostQuote(emptyCostQuoteForm);
       setEditingId(null);
       setExistingImages([]);
       setNewFiles((current) => {
@@ -196,6 +287,7 @@ export function ProductManager({
       setProducts((prev) => prev.filter((item) => productId(item) !== deletedId));
       if (editingId === deletedId) {
         setForm(emptyForm);
+        setCostQuote(emptyCostQuoteForm);
         setEditingId(null);
         setExistingImages([]);
         setNewFiles((current) => {
@@ -231,6 +323,8 @@ export function ProductManager({
 
   const resetFormFields = useCallback(() => {
     setForm(emptyForm);
+    setCostQuote(emptyCostQuoteForm);
+    setOpenSections(defaultOpenSections);
     setEditingId(null);
     setExistingImages([]);
     setNewFiles((current) => {
@@ -279,8 +373,20 @@ export function ProductManager({
     setFormOpen(true);
   }
 
+  function toggleSection(id: FormSectionId) {
+    setOpenSections((current) => ({
+      ...current,
+      [id]: !current[id],
+    }));
+  }
+
   function startEdit(product: Product) {
     setForm(productToForm(product));
+    setCostQuote(costQuoteToForm(product.costQuote));
+    setOpenSections({
+      ...defaultOpenSections,
+      quote: Boolean(product.costQuote),
+    });
     setEditingId(productId(product));
     setExistingImages(product.galleryImages.slice(0, MAX_PRODUCT_IMAGES));
     setNewFiles((current) => {
@@ -338,7 +444,7 @@ export function ProductManager({
   }
 
   const formModal =
-    formOpen && typeof document !== "undefined"
+    formOpen && isClient
       ? createPortal(
           <div
             style={{
@@ -422,214 +528,309 @@ export function ProductManager({
                   />
                 ))}
 
-                <label className="flex flex-col gap-xs">
-                  <span className="text-sm text-on-surface-variant">Título</span>
-                  <input
-                    name="title"
-                    required
-                    value={form.title}
-                    onChange={(event) =>
-                      setForm({ ...form, title: event.target.value })
-                    }
-                    className={fieldClassName}
-                    style={{ width: "100%" }}
-                  />
-                </label>
+                <FormSection
+                  id="product-section-basic"
+                  title="Datos básicos"
+                  summary={form.title.trim() || "Título y descripciones"}
+                  open={openSections.basic}
+                  onToggle={() => toggleSection("basic")}
+                >
+                  <label className="flex flex-col gap-xs">
+                    <span className="text-sm text-on-surface-variant">Título</span>
+                    <input
+                      name="title"
+                      required
+                      value={form.title}
+                      onChange={(event) =>
+                        setForm({ ...form, title: event.target.value })
+                      }
+                      className={fieldClassName}
+                      style={{ width: "100%" }}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-xs">
+                    <span className="text-sm text-on-surface-variant">
+                      Descripción corta
+                    </span>
+                    <textarea
+                      name="shortDescription"
+                      rows={2}
+                      value={form.shortDescription}
+                      onChange={(event) =>
+                        setForm({ ...form, shortDescription: event.target.value })
+                      }
+                      className={fieldClassName}
+                      style={{ width: "100%" }}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-xs">
+                    <span className="text-sm text-on-surface-variant">
+                      Descripción
+                    </span>
+                    <textarea
+                      name="fullDescription"
+                      required
+                      rows={4}
+                      value={form.fullDescription}
+                      onChange={(event) =>
+                        setForm({ ...form, fullDescription: event.target.value })
+                      }
+                      className={fieldClassName}
+                      style={{ width: "100%" }}
+                    />
+                  </label>
+                </FormSection>
 
-                <label className="flex flex-col gap-xs">
-                  <span className="text-sm text-on-surface-variant">
-                    Descripción corta
-                  </span>
-                  <textarea
-                    name="shortDescription"
-                    rows={2}
-                    value={form.shortDescription}
-                    onChange={(event) =>
-                      setForm({ ...form, shortDescription: event.target.value })
-                    }
-                    className={fieldClassName}
-                    style={{ width: "100%" }}
-                  />
-                </label>
-
-                <label className="flex flex-col gap-xs">
-                  <span className="text-sm text-on-surface-variant">
-                    Descripción
-                  </span>
-                  <textarea
-                    name="fullDescription"
-                    required
-                    rows={4}
-                    value={form.fullDescription}
-                    onChange={(event) =>
-                      setForm({ ...form, fullDescription: event.target.value })
-                    }
-                    className={fieldClassName}
-                    style={{ width: "100%" }}
-                  />
-                </label>
-
-                <fieldset className="flex flex-col gap-xs">
-                  <legend className="text-sm text-on-surface-variant">
-                    Categorías
-                  </legend>
-                  <div className="flex flex-col gap-xs">
-                    {catalogCategories.map((category) => (
-                      <label
-                        key={category.id}
-                        className="inline-flex items-center gap-xs"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={form.categories.includes(category.id)}
-                          onChange={() => toggleCategory(category.id)}
-                        />
-                        <span className="text-on-surface">{category.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-
-                <label className="flex flex-col gap-xs">
-                  <span className="text-sm text-on-surface-variant">
-                    Temáticas (separadas por coma)
-                  </span>
-                  <input
-                    name="topics"
-                    value={form.topics}
-                    placeholder="infantil, personajes, iluminacion"
-                    onChange={(event) =>
-                      setForm({ ...form, topics: event.target.value })
-                    }
-                    className={fieldClassName}
-                    style={{ width: "100%" }}
-                  />
-                </label>
+                <FormSection
+                  id="product-section-classify"
+                  title="Clasificación"
+                  summary={
+                    [
+                      form.categories.length
+                        ? `${form.categories.length} ${
+                            form.categories.length === 1
+                              ? "categoría"
+                              : "categorías"
+                          }`
+                        : "Sin categorías",
+                      form.topics.trim() || null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")
+                  }
+                  open={openSections.classify}
+                  onToggle={() => toggleSection("classify")}
+                >
+                  <fieldset className="flex flex-col gap-xs">
+                    <legend className="text-sm text-on-surface-variant">
+                      Categorías
+                    </legend>
+                    <div className="flex flex-col gap-xs">
+                      {catalogCategories.map((category) => (
+                        <label
+                          key={category.id}
+                          className="inline-flex items-center gap-xs"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={form.categories.includes(category.id)}
+                            onChange={() => toggleCategory(category.id)}
+                          />
+                          <span className="text-on-surface">{category.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <label className="flex flex-col gap-xs">
+                    <span className="text-sm text-on-surface-variant">
+                      Temáticas (separadas por coma)
+                    </span>
+                    <input
+                      name="topics"
+                      value={form.topics}
+                      placeholder="infantil, personajes, iluminacion"
+                      onChange={(event) =>
+                        setForm({ ...form, topics: event.target.value })
+                      }
+                      className={fieldClassName}
+                      style={{ width: "100%" }}
+                    />
+                  </label>
+                </FormSection>
 
                 <input type="hidden" name="dimensions" value={form.dimensions} />
-                <fieldset className="flex flex-col gap-xs">
-                  <legend className="text-sm text-on-surface-variant">
-                    Medidas (cm)
-                  </legend>
-                  <div className="grid grid-cols-2 gap-sm">
-                    <label className="flex flex-col gap-xs">
-                      <span className="text-sm text-on-surface-variant">Alto</span>
+                <FormSection
+                  id="product-section-measures"
+                  title="Medidas y acabado"
+                  summary={
+                    [
+                      form.heightCm && `Alto ${form.heightCm}`,
+                      form.widthCm && `Ancho ${form.widthCm}`,
+                      form.depthCm && `Prof. ${form.depthCm}`,
+                      form.diameterCm && `Diám. ${form.diameterCm}`,
+                      form.finish.trim() || null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ") || "Sin medidas"
+                  }
+                  open={openSections.measures}
+                  onToggle={() => toggleSection("measures")}
+                >
+                  <fieldset className="flex flex-col gap-xs">
+                    <legend className="text-sm text-on-surface-variant">
+                      Medidas (cm)
+                    </legend>
+                    <div className="grid grid-cols-2 gap-sm">
+                      <label className="flex flex-col gap-xs">
+                        <span className="text-sm text-on-surface-variant">
+                          Alto
+                        </span>
+                        <input
+                          name="heightCm"
+                          inputMode="decimal"
+                          value={form.heightCm}
+                          placeholder="Opcional"
+                          onChange={(event) =>
+                            setForm({ ...form, heightCm: event.target.value })
+                          }
+                          className={fieldClassName}
+                          style={{ width: "100%" }}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-xs">
+                        <span className="text-sm text-on-surface-variant">
+                          Ancho
+                        </span>
+                        <input
+                          name="widthCm"
+                          inputMode="decimal"
+                          value={form.widthCm}
+                          placeholder="Opcional"
+                          onChange={(event) =>
+                            setForm({ ...form, widthCm: event.target.value })
+                          }
+                          className={fieldClassName}
+                          style={{ width: "100%" }}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-xs">
+                        <span className="text-sm text-on-surface-variant">
+                          Profundo
+                        </span>
+                        <input
+                          name="depthCm"
+                          inputMode="decimal"
+                          value={form.depthCm}
+                          placeholder="Opcional"
+                          onChange={(event) =>
+                            setForm({ ...form, depthCm: event.target.value })
+                          }
+                          className={fieldClassName}
+                          style={{ width: "100%" }}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-xs">
+                        <span className="text-sm text-on-surface-variant">
+                          Diámetro
+                        </span>
+                        <input
+                          name="diameterCm"
+                          inputMode="decimal"
+                          value={form.diameterCm}
+                          placeholder="Opcional"
+                          onChange={(event) =>
+                            setForm({ ...form, diameterCm: event.target.value })
+                          }
+                          className={fieldClassName}
+                          style={{ width: "100%" }}
+                        />
+                      </label>
+                    </div>
+                  </fieldset>
+                  <label className="flex flex-col gap-xs">
+                    <span className="text-sm text-on-surface-variant">
+                      Acabado
+                    </span>
+                    <input
+                      name="finish"
+                      value={form.finish}
+                      onChange={(event) =>
+                        setForm({ ...form, finish: event.target.value })
+                      }
+                      className={fieldClassName}
+                      style={{ width: "100%" }}
+                    />
+                  </label>
+                </FormSection>
+
+                <FormSection
+                  id="product-section-price"
+                  title="Precio y publicación"
+                  summary={
+                    [
+                      form.price
+                        ? formatProductPrice(Number(form.price) || 0)
+                        : "Sin precio",
+                      form.hidden ? "Oculto" : "Visible",
+                    ].join(" · ")
+                  }
+                  open={openSections.price}
+                  onToggle={() => toggleSection("price")}
+                >
+                  <label className="flex flex-col gap-xs">
+                    <span className="text-sm text-on-surface-variant">Precio</span>
+                    <MoneyInput
+                      name="price"
+                      value={form.price}
+                      onChange={(value) => setForm({ ...form, price: value })}
+                    />
+                  </label>
+                  <div className="flex flex-wrap gap-md">
+                    <label className="inline-flex items-center gap-xs">
                       <input
-                        name="heightCm"
-                        inputMode="decimal"
-                        value={form.heightCm}
-                        placeholder="Opcional"
+                        name="customizable"
+                        type="checkbox"
+                        checked={form.customizable}
                         onChange={(event) =>
-                          setForm({ ...form, heightCm: event.target.value })
+                          setForm({ ...form, customizable: event.target.checked })
                         }
-                        className={fieldClassName}
-                        style={{ width: "100%" }}
                       />
+                      <span className="text-on-surface">Personalizable</span>
                     </label>
-                    <label className="flex flex-col gap-xs">
-                      <span className="text-sm text-on-surface-variant">
-                        Ancho
-                      </span>
+                    <label className="inline-flex items-center gap-xs">
                       <input
-                        name="widthCm"
-                        inputMode="decimal"
-                        value={form.widthCm}
-                        placeholder="Opcional"
+                        name="hidden"
+                        type="checkbox"
+                        checked={form.hidden}
                         onChange={(event) =>
-                          setForm({ ...form, widthCm: event.target.value })
+                          setForm({ ...form, hidden: event.target.checked })
                         }
-                        className={fieldClassName}
-                        style={{ width: "100%" }}
                       />
-                    </label>
-                    <label className="flex flex-col gap-xs">
-                      <span className="text-sm text-on-surface-variant">
-                        Profundo
+                      <span className="text-on-surface">
+                        Ocultar de la galería
                       </span>
-                      <input
-                        name="depthCm"
-                        inputMode="decimal"
-                        value={form.depthCm}
-                        placeholder="Opcional"
-                        onChange={(event) =>
-                          setForm({ ...form, depthCm: event.target.value })
-                        }
-                        className={fieldClassName}
-                        style={{ width: "100%" }}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-xs">
-                      <span className="text-sm text-on-surface-variant">
-                        Diámetro
-                      </span>
-                      <input
-                        name="diameterCm"
-                        inputMode="decimal"
-                        value={form.diameterCm}
-                        placeholder="Opcional"
-                        onChange={(event) =>
-                          setForm({ ...form, diameterCm: event.target.value })
-                        }
-                        className={fieldClassName}
-                        style={{ width: "100%" }}
-                      />
                     </label>
                   </div>
-                </fieldset>
-                <label className="flex flex-col gap-xs">
-                  <span className="text-sm text-on-surface-variant">
-                    Acabado
-                  </span>
-                  <input
-                    name="finish"
-                    value={form.finish}
-                    onChange={(event) =>
-                      setForm({ ...form, finish: event.target.value })
-                    }
-                    className={fieldClassName}
-                    style={{ width: "100%" }}
+                </FormSection>
+
+                <FormSection
+                  id="product-section-quote"
+                  title="Cotizador"
+                  summary={
+                    [
+                      costQuote.woods.length
+                        ? `${costQuote.woods.length} ${
+                            costQuote.woods.length === 1 ? "madera" : "maderas"
+                          }`
+                        : null,
+                      costQuote.machineMinutes
+                        ? `${costQuote.machineMinutes} min`
+                        : null,
+                      costQuote.accessories.length
+                        ? `${costQuote.accessories.length} adicionales`
+                        : null,
+                      costQuote.usesPaint ? "Pintura" : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ") || "Sin costo"
+                  }
+                  open={openSections.quote}
+                  onToggle={() => toggleSection("quote")}
+                >
+                  <ProductCostQuoteFields
+                    value={costQuote}
+                    onChange={setCostQuote}
+                    accessories={accessories}
                   />
-                </label>
+                </FormSection>
 
-                <label className="flex flex-col gap-xs">
-                  <span className="text-sm text-on-surface-variant">Precio</span>
-                  <MoneyInput
-                    name="price"
-                    value={form.price}
-                    onChange={(value) => setForm({ ...form, price: value })}
-                  />
-                </label>
-
-                <div className="flex flex-wrap gap-md">
-                  <label className="inline-flex items-center gap-xs">
-                    <input
-                      name="customizable"
-                      type="checkbox"
-                      checked={form.customizable}
-                      onChange={(event) =>
-                        setForm({ ...form, customizable: event.target.checked })
-                      }
-                    />
-                    <span className="text-on-surface">Personalizable</span>
-                  </label>
-                  <label className="inline-flex items-center gap-xs">
-                    <input
-                      name="hidden"
-                      type="checkbox"
-                      checked={form.hidden}
-                      onChange={(event) =>
-                        setForm({ ...form, hidden: event.target.checked })
-                      }
-                    />
-                    <span className="text-on-surface">Ocultar de la galería</span>
-                  </label>
-                </div>
-
-                <div className="flex flex-col gap-xs">
-                  <span className="text-sm text-on-surface-variant">
-                    Fotos (
-                    {existingImages.length + newFiles.length}/{MAX_PRODUCT_IMAGES})
-                  </span>
+                <FormSection
+                  id="product-section-photos"
+                  title="Fotos"
+                  summary={`${existingImages.length + newFiles.length}/${MAX_PRODUCT_IMAGES} fotos`}
+                  open={openSections.photos}
+                  onToggle={() => toggleSection("photos")}
+                >
                   <div className="grid grid-cols-3 gap-sm">
                     {existingImages.map((url, index) => (
                       <div
@@ -700,7 +901,7 @@ export function ProductManager({
                       value={file.base64}
                     />
                   ))}
-                </div>
+                </FormSection>
 
                 <div className="flex gap-sm mt-sm">
                   <button
@@ -869,6 +1070,11 @@ export function ProductManager({
                     {hidden ? (
                       <p className="mt-1 text-sm text-secondary">
                         Oculto en galería
+                      </p>
+                    ) : null}
+                    {product.costQuote?.totalAmount ? (
+                      <p className="mt-1 text-sm text-on-surface-variant">
+                        Costo {formatProductPrice(product.costQuote.totalAmount)}
                       </p>
                     ) : null}
                   </div>

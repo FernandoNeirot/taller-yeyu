@@ -30,7 +30,13 @@ export function FeaturedProductCard({
         />
       </div>
       <div className={compact ? "flex flex-1 flex-col p-2 md:p-3" : "flex flex-1 flex-col p-2.5 md:p-3"}>
-        <h3 className="font-headline-md text-[13px] leading-snug text-on-surface line-clamp-2 md:text-headline-md md:leading-tight">
+        <h3
+          className={
+            compact
+              ? "font-headline-md text-[13px] leading-snug text-on-surface line-clamp-2 md:text-sm md:leading-snug"
+              : "font-headline-md text-[13px] leading-snug text-on-surface line-clamp-2 md:text-headline-md md:leading-tight"
+          }
+        >
           {product.title}
         </h3>
         {compact ? null : (

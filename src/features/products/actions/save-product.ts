@@ -9,6 +9,12 @@ import {
   slugify,
   updateProduct,
 } from "../services/get-products";
+import { getMaterials } from "@/features/finance/services/venture-finance";
+import {
+  buildAccessoryCatalog,
+  finalizeCostQuote,
+  parseCostQuoteJson,
+} from "../lib/cost-quote";
 import { formatMeasuresSummary } from "../lib/measures";
 import { uploadProductImageBuffers } from "../services/upload-product-images";
 import type { Product } from "../types";
@@ -79,6 +85,11 @@ export async function saveProductAction(
     const widthCm = optionalNumber(formData.get("widthCm"));
     const depthCm = optionalNumber(formData.get("depthCm"));
     const diameterCm = optionalNumber(formData.get("diameterCm"));
+    const accessories = buildAccessoryCatalog(await getMaterials());
+    const costQuote = finalizeCostQuote(
+      parseCostQuoteJson(formData.get("costQuote")) ?? {},
+      accessories,
+    );
     const input = {
       title,
       shortDescription,
@@ -102,6 +113,7 @@ export async function saveProductAction(
       customizable: formData.get("customizable") === "on",
       price: optionalNumber(formData.get("price")),
       isActive: formData.get("hidden") !== "on",
+      costQuote,
     };
 
     const product = id
