@@ -6,6 +6,7 @@ import { MoneyInput } from "@/components/ui/money-input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { formatProductPrice } from "../lib/format-price";
 import {
+  DEFAULT_LABOR_HOURLY_RATE,
   DEFAULT_MACHINE_HOURLY_RATE,
   WOOD_NATURAL_SHEET_PRICE,
   WOOD_SHEET_LENGTH_CM,
@@ -39,6 +40,8 @@ export type CostQuoteFormState = {
   woods: WoodFormRow[];
   machineMinutes: string;
   machineHourlyRate: string;
+  laborMinutes: string;
+  laborHourlyRate: string;
   accessories: {
     id: string;
     materialId: string;
@@ -52,6 +55,8 @@ export const emptyCostQuoteForm: CostQuoteFormState = {
   woods: [],
   machineMinutes: "",
   machineHourlyRate: String(DEFAULT_MACHINE_HOURLY_RATE),
+  laborMinutes: "",
+  laborHourlyRate: String(DEFAULT_LABOR_HOURLY_RATE),
   accessories: [],
   usesPaint: false,
   paintAmount: "",
@@ -91,6 +96,11 @@ export function costQuoteToForm(
       quote.machineHourlyRate != null
         ? String(quote.machineHourlyRate)
         : String(DEFAULT_MACHINE_HOURLY_RATE),
+    laborMinutes: quote.laborMinutes != null ? String(quote.laborMinutes) : "",
+    laborHourlyRate:
+      quote.laborHourlyRate != null
+        ? String(quote.laborHourlyRate)
+        : String(DEFAULT_LABOR_HOURLY_RATE),
     accessories: (quote.accessories ?? []).map((item) => ({
       id: item.id,
       materialId: item.materialId,
@@ -99,6 +109,48 @@ export function costQuoteToForm(
     usesPaint: Boolean(quote.usesPaint),
     paintAmount: quote.paintAmount != null ? String(quote.paintAmount) : "",
   };
+}
+
+export function costQuoteFormTotal(
+  value: CostQuoteFormState,
+  accessories: MaterialCatalogItem[],
+) {
+  const catalogById = new Map(accessories.map((item) => [item.id, item]));
+  const quote = finalizeCostQuote(
+    {
+      woods: value.woods.map((row) => ({
+        id: row.id,
+        quantity: toNumber(row.quantity) || undefined,
+        widthCm: toNumber(row.widthCm) || undefined,
+        lengthCm: toNumber(row.lengthCm) || undefined,
+        face: isWoodFaceType(row.face) ? row.face : undefined,
+      })),
+      machineMinutes: toNumber(value.machineMinutes) || undefined,
+      machineHourlyRate: toNumber(value.machineHourlyRate) || undefined,
+      laborMinutes: toNumber(value.laborMinutes) || undefined,
+      laborHourlyRate: toNumber(value.laborHourlyRate) || undefined,
+      accessories: value.accessories
+        .map((row) => {
+          const material = catalogById.get(row.materialId);
+          const quantity = toNumber(row.quantity);
+          if (!material || quantity <= 0) return null;
+          return {
+            id: row.id,
+            materialId: material.id,
+            materialName: material.name,
+            quantity,
+            unitPrice: material.unitPrice ?? 0,
+            measureType: material.measureType,
+            amount: computeAccessoryAmount(quantity, material.unitPrice ?? 0),
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null),
+      usesPaint: value.usesPaint,
+      paintAmount: toNumber(value.paintAmount) || undefined,
+    },
+    accessories,
+  );
+  return quote?.totalAmount ?? 0;
 }
 
 function toNumber(value: string) {
@@ -114,9 +166,14 @@ function formatMinutes(value: number) {
 type MinutesAdderProps = {
   minutes: string;
   onChange: (minutes: string) => void;
+  label?: string;
 };
 
-function MinutesAdder({ minutes, onChange }: MinutesAdderProps) {
+function MinutesAdder({
+  minutes,
+  onChange,
+  label = "Minutos por unidad",
+}: MinutesAdderProps) {
   function sumExpression() {
     const sum = minutes
       .split("+")
@@ -127,9 +184,7 @@ function MinutesAdder({ minutes, onChange }: MinutesAdderProps) {
   return (
     <div className="flex items-end gap-xs">
       <label className="flex min-w-0 flex-1 flex-col gap-xs">
-        <span className="text-xs text-on-surface-variant">
-          Minutos por unidad
-        </span>
+        <span className="text-xs text-on-surface-variant">{label}</span>
         <input
           inputMode="decimal"
           value={minutes}
@@ -191,6 +246,10 @@ export function ProductCostQuoteFields({
       minutes: toNumber(value.machineMinutes),
       hourlyRate: toNumber(value.machineHourlyRate),
     });
+    const laborAmount = computeMachineAmount({
+      minutes: toNumber(value.laborMinutes),
+      hourlyRate: toNumber(value.laborHourlyRate),
+    });
     const accessoryRows = value.accessories.map((row) => {
       const material = catalogById.get(row.materialId);
       const quantity = toNumber(row.quantity);
@@ -215,6 +274,9 @@ export function ProductCostQuoteFields({
         machineMinutes: toNumber(value.machineMinutes) || undefined,
         machineHourlyRate: toNumber(value.machineHourlyRate) || undefined,
         machineAmount,
+        laborMinutes: toNumber(value.laborMinutes) || undefined,
+        laborHourlyRate: toNumber(value.laborHourlyRate) || undefined,
+        laborAmount,
         accessories: accessoryRows
           .filter((row) => row.material && toNumber(row.quantity) > 0)
           .map((row) => ({
@@ -236,6 +298,7 @@ export function ProductCostQuoteFields({
       woodRows,
       woodAmount,
       machineAmount,
+      laborAmount,
       accessoryRows,
       total: quote ? computeCostQuoteTotal(quote) : 0,
       payload: quote ?? null,
@@ -452,6 +515,35 @@ export function ProductCostQuoteFields({
         {computed.machineAmount > 0 ? (
           <p className="text-xs text-on-surface-variant">
             Costo máquina: {formatProductPrice(computed.machineAmount)}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-xs">
+        <p className="text-sm text-on-surface-variant">
+          Tiempo manual empleado
+        </p>
+        <div className="grid grid-cols-1 gap-sm sm:grid-cols-2">
+          <MinutesAdder
+            label="Minutos"
+            minutes={value.laborMinutes}
+            onChange={(laborMinutes) => onChange({ ...value, laborMinutes })}
+          />
+          <label className="flex flex-col gap-xs">
+            <span className="text-xs text-on-surface-variant">
+              Valor hora
+            </span>
+            <MoneyInput
+              value={value.laborHourlyRate}
+              onChange={(laborHourlyRate) =>
+                onChange({ ...value, laborHourlyRate })
+              }
+            />
+          </label>
+        </div>
+        {computed.laborAmount > 0 ? (
+          <p className="text-xs text-on-surface-variant">
+            Costo manual: {formatProductPrice(computed.laborAmount)}
           </p>
         ) : null}
       </div>

@@ -7,6 +7,7 @@ export const WOOD_SHEET_AREA_CM2 = WOOD_SHEET_WIDTH_CM * WOOD_SHEET_LENGTH_CM;
 export const WOOD_NATURAL_SHEET_PRICE = 28000;
 export const WOOD_WHITE_FACE_SHEET_PRICE = 40000;
 export const DEFAULT_MACHINE_HOURLY_RATE = 6000;
+export const DEFAULT_LABOR_HOURLY_RATE = 4000;
 
 export type WoodFaceType = "natural" | "white";
 
@@ -39,6 +40,9 @@ export type ProductCostQuote = {
   machineMinutes?: number;
   machineHourlyRate?: number;
   machineAmount?: number;
+  laborMinutes?: number;
+  laborHourlyRate?: number;
+  laborAmount?: number;
   accessories?: ProductCostAccessory[];
   usesPaint?: boolean;
   paintAmount?: number;
@@ -151,6 +155,7 @@ export function computeCostQuoteTotal(quote: ProductCostQuote) {
   return (
     (quote.woodAmount ?? 0) +
     (quote.machineAmount ?? 0) +
+    (quote.laborAmount ?? 0) +
     accessoriesTotal +
     paint
   );
@@ -206,6 +211,20 @@ export function finalizeCostQuote(
     hourlyRate: machineHourlyRate,
   });
 
+  const laborMinutes = optionalPositive(input.laborMinutes);
+  const rawLaborRate = optionalPositive(input.laborHourlyRate);
+  const hasCustomLaborRate =
+    rawLaborRate != null && rawLaborRate !== DEFAULT_LABOR_HOURLY_RATE;
+  const laborHourlyRate = laborMinutes
+    ? rawLaborRate ?? DEFAULT_LABOR_HOURLY_RATE
+    : hasCustomLaborRate
+      ? rawLaborRate
+      : undefined;
+  const laborAmount = computeMachineAmount({
+    minutes: laborMinutes,
+    hourlyRate: laborHourlyRate,
+  });
+
   const usesPaint = Boolean(input.usesPaint);
   const paintAmount = usesPaint ? optionalPositive(input.paintAmount) : undefined;
 
@@ -215,6 +234,9 @@ export function finalizeCostQuote(
     machineMinutes,
     machineHourlyRate,
     machineAmount: machineAmount || undefined,
+    laborMinutes,
+    laborHourlyRate,
+    laborAmount: laborAmount || undefined,
     accessories: accessories.length ? accessories : undefined,
     usesPaint: usesPaint || undefined,
     paintAmount,
@@ -228,6 +250,8 @@ export function finalizeCostQuote(
     woods.length ||
       machineMinutes ||
       hasCustomHourlyRate ||
+      laborMinutes ||
+      hasCustomLaborRate ||
       accessories.length ||
       usesPaint ||
       paintAmount,

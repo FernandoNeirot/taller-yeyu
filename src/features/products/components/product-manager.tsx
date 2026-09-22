@@ -32,6 +32,7 @@ import { formatProductPrice } from "../lib/format-price";
 import { ProductDetailModal } from "./product-detail-modal";
 import {
   ProductCostQuoteFields,
+  costQuoteFormTotal,
   costQuoteToForm,
   emptyCostQuoteForm,
   type CostQuoteFormState,
@@ -232,6 +233,10 @@ export function ProductManager({
   const [prevVisibilityState, setPrevVisibilityState] = useState(visibilityState);
 
   const remainingSlots = MAX_PRODUCT_IMAGES - existingImages.length - newFiles.length;
+  const quoteTotal = costQuoteFormTotal(costQuote, accessories);
+  const quoteMinutes =
+    (Number(costQuote.machineMinutes) || 0) +
+    (Number(costQuote.laborMinutes) || 0);
 
   const visibilityCounts = useMemo(() => {
     const hidden = products.filter((product) => !product.isActive).length;
@@ -798,18 +803,8 @@ export function ProductManager({
                   title="Cotizador"
                   summary={
                     [
-                      costQuote.woods.length
-                        ? `${costQuote.woods.length} ${
-                            costQuote.woods.length === 1 ? "madera" : "maderas"
-                          }`
-                        : null,
-                      costQuote.machineMinutes
-                        ? `${costQuote.machineMinutes} min`
-                        : null,
-                      costQuote.accessories.length
-                        ? `${costQuote.accessories.length} adicionales`
-                        : null,
-                      costQuote.usesPaint ? "Pintura" : null,
+                      quoteTotal > 0 ? formatProductPrice(quoteTotal) : null,
+                      quoteMinutes > 0 ? `${quoteMinutes} min` : null,
                     ]
                       .filter(Boolean)
                       .join(" · ") || "Sin costo"
