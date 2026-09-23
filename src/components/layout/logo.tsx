@@ -13,10 +13,10 @@ export function Logo({
 }: LogoProps) {
   return (
     <Image
-      src="/brand/logo-dark.webp"
+      src="/brand/logo-sm.webp"
       alt={alt}
-      width={208}
-      height={196}
+      width={160}
+      height={151}
       className={className}
       sizes="(min-width: 768px) 208px, 144px"
       style={{ width: "auto" }}

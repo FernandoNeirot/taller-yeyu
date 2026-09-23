@@ -33,7 +33,7 @@ export function Header() {
   return (
     <header
       ref={headerRef}
-      className="fixed top-0 w-full bg-background/80 dark:bg-background/80 backdrop-blur-md border-b border-outline-variant/30 transition-all duration-300"
+      className="fixed top-0 w-full border-b border-outline-variant/30 bg-background transition-all duration-300 md:bg-background/80 md:backdrop-blur-md"
       style={{ zIndex: 60 }}
       id="top-app-bar"
     >

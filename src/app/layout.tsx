@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
-import { MATERIAL_SYMBOLS_HREF } from "@/components/ui/material-symbols";
+import { DeferredMaterialSymbols } from "@/components/ui/deferred-material-symbols";
 import { JsonLd, getSiteJsonLd } from "@/lib/seo/json-ld";
 import { shareImages } from "@/lib/seo/metadata";
 import {
@@ -13,14 +13,20 @@ import { Providers } from "./providers";
 
 const manrope = Manrope({
   subsets: ["latin"],
+  weight: ["600", "700", "800"],
   variable: "--font-manrope",
   display: "swap",
+  preload: true,
+  adjustFontFallback: true,
 });
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
+  weight: ["400"],
   variable: "--font-plus-jakarta-sans",
   display: "swap",
+  preload: false,
+  adjustFontFallback: true,
 });
 
 const googleVerification = getGoogleVerification();
@@ -107,10 +113,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           crossOrigin="anonymous"
         />
         <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link rel="stylesheet" href={MATERIAL_SYMBOLS_HREF} />
       </head>
       <body className="min-h-full antialiased bg-background text-on-background">
+        <DeferredMaterialSymbols />
         <JsonLd data={getSiteJsonLd()} />
         <Providers>
           {children}

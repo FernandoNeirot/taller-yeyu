@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 };
 
 const HERO_IMAGE = "/principal.webp";
+const HERO_IMAGE_MOBILE = "/principal-mobile.webp";
 const PROCESS_IMAGE = "/proceso.webp";
 
 const processHighlights = [
@@ -38,21 +39,39 @@ function FeaturedCategoriesFallback() {
 export default function Home() {
   return (
     <main id="contenido" className="w-full">
+      <link
+        rel="preload"
+        as="image"
+        href={HERO_IMAGE_MOBILE}
+        media="(max-width: 767px)"
+        fetchPriority="high"
+      />
+      <link
+        rel="preload"
+        as="image"
+        href={HERO_IMAGE}
+        media="(min-width: 768px)"
+        fetchPriority="high"
+      />
       <section
         id="inicio"
-        className="relative w-full min-h-[85vh] flex items-center justify-center px-container-margin py-xl overflow-hidden"
+        className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden px-container-margin py-xl"
       >
         <div className="absolute inset-0 z-0">
-          <Image
-            alt=""
-            className="object-cover"
-            src={HERO_IMAGE}
-            fill
-            priority
-            fetchPriority="high"
-            sizes="100vw"
-            quality={70}
-          />
+          <picture className="absolute inset-0 block h-full w-full">
+            <source
+              media="(max-width: 767px)"
+              srcSet={HERO_IMAGE_MOBILE}
+              type="image/webp"
+            />
+            <img
+              alt=""
+              src={HERO_IMAGE}
+              fetchPriority="high"
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
+          </picture>
           <div
             className="absolute inset-0 z-10"
             style={{ background: "rgba(19, 19, 19, 0.88)", width: "100%", height: "100%" }}
@@ -64,7 +83,6 @@ export default function Home() {
             <Logo
               alt=""
               className="h-36 sm:h-44 md:h-52 w-auto object-contain drop-shadow-[0_16px_32px_rgba(0,0,0,0.55)]"
-              priority
             />
           </h1>
           <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">
