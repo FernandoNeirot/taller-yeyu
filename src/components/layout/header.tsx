@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { useAdminAccessHint } from "@/features/admin/lib/admin-access-hint";
 import { Logo } from "./logo";
 import { isNavActive, navItems } from "./nav";
 import { CartButton } from "@/components/cart/cart-button";
 
 export function Header() {
   const pathname = usePathname();
+  const showAdmin = useAdminAccessHint();
   const headerRef = useRef<HTMLElement>(null);
   const lastScrollTop = useRef(0);
 
@@ -63,8 +65,24 @@ export function Header() {
               </Link>
             );
           })}
+          {showAdmin ? (
+            <Link
+              href="/admin/login"
+              className="font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors duration-300"
+            >
+              ADMIN
+            </Link>
+          ) : null}
           <CartButton />
         </nav>
+        {showAdmin ? (
+          <Link
+            href="/admin/login"
+            className="absolute left-4 font-label-caps text-label-caps text-on-surface-variant hover:text-primary md:hidden"
+          >
+            ADMIN
+          </Link>
+        ) : null}
         <div className="absolute right-4 md:hidden">
           <CartButton />
         </div>
