@@ -20,7 +20,7 @@ export function Footer() {
     <footer className="w-full py-xl px-container-margin bg-surface-container-lowest dark:bg-surface-container-lowest border-t border-outline-variant pb-32 md:pb-xl">
       <div className="flex flex-col md:flex-row justify-between items-center gap-md max-w-7xl mx-auto">
         <div className="h-14">
-          <Logo alt="" className="h-full w-auto object-contain" />
+          <Logo alt="" loading="lazy" className="h-full w-auto object-contain" />
         </div>
         <nav aria-label="Redes sociales" className="flex gap-lg">
           {socialLinks.map((link) => (

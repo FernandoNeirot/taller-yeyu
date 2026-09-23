@@ -37,8 +37,8 @@ await Promise.all([
   writeWebp(
     path.join(publicDir, "principal.png"),
     path.join(publicDir, "principal-mobile.webp"),
-    640,
-    42,
+    480,
+    36,
   ),
   writeWebp(
     path.join(publicDir, "brand", "logo-dark.png"),
@@ -49,8 +49,8 @@ await Promise.all([
   writeWebp(
     path.join(publicDir, "brand", "logo-dark.png"),
     path.join(publicDir, "brand", "logo-sm.webp"),
-    320,
-    70,
+    240,
+    62,
   ),
   writeWebp(processBuffer, path.join(publicDir, "proceso.webp"), 1200, 72),
 ]);

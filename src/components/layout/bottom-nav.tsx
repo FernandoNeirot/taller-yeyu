@@ -28,6 +28,7 @@ export function BottomNav() {
                 : "flex flex-col items-center justify-center border-t-2 border-transparent pt-2 text-on-surface-variant hover:bg-surface-container-high/50 active:scale-90"
             }
             href={item.href}
+            prefetch={false}
             style={{ width: "20%" }}
           >
             <MaterialIcon name={item.icon} filled={active} className="mb-1" />

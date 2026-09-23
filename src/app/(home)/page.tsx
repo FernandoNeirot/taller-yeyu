@@ -60,15 +60,16 @@ export default function Home() {
         <div className="absolute inset-0 z-0">
           <picture className="absolute inset-0 block h-full w-full">
             <source
-              media="(max-width: 767px)"
-              srcSet={HERO_IMAGE_MOBILE}
+              media="(min-width: 768px)"
+              srcSet={HERO_IMAGE}
               type="image/webp"
             />
             <img
               alt=""
-              src={HERO_IMAGE}
+              src={HERO_IMAGE_MOBILE}
+              width={480}
+              height={268}
               fetchPriority="high"
-              decoding="async"
               className="h-full w-full object-cover"
             />
           </picture>
@@ -97,6 +98,7 @@ export default function Home() {
           <Link
             className="touch-target inline-flex items-center justify-center px-8 bg-primary-container text-white font-label-caps text-label-caps tracking-widest hover:bg-secondary-container transition-colors duration-300 active:scale-95 uppercase"
             href="/galeria"
+            prefetch={false}
           >
             Ver Catálogo
           </Link>

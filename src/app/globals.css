@@ -103,9 +103,9 @@
   --font-headline-md: var(--font-manrope);
   --font-label-caps: var(--font-manrope);
   --font-headline-xl: var(--font-manrope);
-  --font-body-md: var(--font-plus-jakarta-sans);
-  --font-body-lg: var(--font-plus-jakarta-sans);
-  --font-sans: var(--font-plus-jakarta-sans);
+  --font-body-md: ui-sans-serif, system-ui, sans-serif;
+  --font-body-lg: ui-sans-serif, system-ui, sans-serif;
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
 }
 
 html {

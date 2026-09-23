@@ -1,26 +1,24 @@
-import Image from "next/image";
-
 type LogoProps = {
   className?: string;
-  priority?: boolean;
   alt?: string;
+  loading?: "eager" | "lazy";
 };
 
 export function Logo({
   className,
-  priority = false,
   alt = "Taller Yeyu",
+  loading = "eager",
 }: LogoProps) {
   return (
-    <Image
+    <img
       src="/brand/logo-sm.webp"
       alt={alt}
-      width={160}
-      height={151}
+      width={240}
+      height={226}
       className={className}
-      sizes="(min-width: 768px) 208px, 144px"
-      style={{ width: "auto" }}
-      priority={priority}
+      loading={loading}
+      fetchPriority="low"
+      decoding="async"
     />
   );
 }

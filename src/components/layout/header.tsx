@@ -43,6 +43,7 @@ export function Header() {
         <Link
           className="flex items-center h-14"
           href="/"
+          prefetch={false}
           aria-label="Taller Yeyu, ir al inicio"
         >
           <Logo alt="" className="h-full w-auto object-contain" />
@@ -60,6 +61,7 @@ export function Header() {
                     : "font-label-caps text-label-caps text-on-surface-variant dark:text-on-surface-variant hover:text-primary transition-colors duration-300"
                 }
                 href={link.href}
+                prefetch={false}
               >
                 {link.label}
               </Link>
@@ -68,6 +70,7 @@ export function Header() {
           {showAdmin ? (
             <Link
               href="/admin/login"
+              prefetch={false}
               className="font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors duration-300"
             >
               ADMIN
@@ -78,6 +81,7 @@ export function Header() {
         {showAdmin ? (
           <Link
             href="/admin/login"
+            prefetch={false}
             className="absolute left-4 font-label-caps text-label-caps text-on-surface-variant hover:text-primary md:hidden"
           >
             ADMIN
