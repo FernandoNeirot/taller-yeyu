@@ -1,13 +1,11 @@
 import Link from "next/link";
-import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { categoryLabel } from "@/types/product";
 import type { Product } from "@/types/product";
-import { formatProductPrice } from "../lib/format-price";
 import { galleryHref } from "../lib/gallery-url";
 import { productMeasureRows } from "../lib/measures";
 import { ProductGallery } from "./product-gallery";
-import { ProductWhatsAppCTA } from "./product-whatsapp-cta";
+import { ProductOffer } from "./product-offer";
 import { ShareProductButton } from "./share-product-button";
 
 export function ProductDetail({ product }: { product: Product }) {
@@ -69,16 +67,7 @@ export function ProductDetail({ product }: { product: Product }) {
             />
           </div>
 
-          {product.price != null ? (
-            <p className="mt-3 font-headline-md text-headline-md text-primary">
-              {formatProductPrice(product.price)}
-            </p>
-          ) : (
-            <p className="mt-3 font-body-md text-body-md text-on-surface-variant">
-              Precio a cotizar
-            </p>
-          )}
-
+          <ProductOffer product={product}>
           {product.specifications.customizable ? (
             <span className="mt-3 inline-flex w-fit items-center gap-1 rounded-full bg-surface-container px-3 py-1 font-label-caps text-label-caps text-on-surface tracking-widest">
               <MaterialIcon name="draw" className="text-sm" />
@@ -116,11 +105,7 @@ export function ProductDetail({ product }: { product: Product }) {
               </div>
             ) : null}
           </dl>
-
-          <div className="mt-6 flex flex-col gap-2">
-            <AddToCartButton product={product} />
-            <ProductWhatsAppCTA product={product} />
-          </div>
+          </ProductOffer>
         </div>
       </div>
     </article>

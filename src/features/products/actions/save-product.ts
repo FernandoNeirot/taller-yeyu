@@ -16,6 +16,8 @@ import {
   parseCostQuoteJson,
 } from "../lib/cost-quote";
 import { formatMeasuresSummary } from "../lib/measures";
+import { normalizeQuantityPrices } from "../lib/quantity-prices";
+import { normalizeVariants } from "../lib/variants";
 import { uploadProductImageBuffers } from "../services/upload-product-images";
 import type { Product } from "../types";
 import { MAX_PRODUCT_IMAGES } from "../utils/compress-image";
@@ -24,6 +26,16 @@ export type SaveProductState = {
   error?: string;
   product?: Product;
 };
+
+function parseQuantityPrices(value: FormDataEntryValue | null) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return undefined;
+  }
+}
 
 function optionalNumber(value: FormDataEntryValue | null) {
   const raw = String(value ?? "").trim();
@@ -112,6 +124,10 @@ export async function saveProductAction(
       finish: String(formData.get("finish") ?? ""),
       customizable: formData.get("customizable") === "on",
       price: optionalNumber(formData.get("price")),
+      quantityPrices: normalizeQuantityPrices(
+        parseQuantityPrices(formData.get("quantityPrices")),
+      ),
+      variants: normalizeVariants(parseQuantityPrices(formData.get("variants"))),
       isActive: formData.get("hidden") !== "on",
       costQuote,
     };

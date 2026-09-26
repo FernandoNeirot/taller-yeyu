@@ -5,11 +5,13 @@ import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { useCart } from "@/context/CartContext";
+import { cartLineTotal } from "@/features/cart/totals";
 import { buildCartWhatsAppMessage } from "@/features/cart/whatsapp-message";
 import type { ShippingOption } from "@/features/cart/types";
 import { CHECKOUT_PAYMENTS_ENABLED } from "@/features/checkout/flags";
 import { exceedsStandardMail } from "@/features/products/lib/logistics";
 import { formatProductPrice } from "@/features/products/lib/format-price";
+import { adjacentQuantity, purchaseOptions } from "@/features/products/lib/quantity-prices";
 import {
   buildWhatsAppLink,
   getWhatsAppPhoneNumber,
@@ -20,12 +22,13 @@ function checkoutItems(items: ReturnType<typeof useCart>["items"]) {
     id: item.id,
     quantity: item.quantity,
     customNotes: item.customNotes,
+    variantDescription: item.variantDescription,
   }));
 }
 
 function cartSignature(items: ReturnType<typeof useCart>["items"]) {
   return items
-    .map((item) => `${item.id}:${item.quantity}:${item.customNotes}`)
+    .map((item) => `${item.id}:${item.quantity}:${item.customNotes}:${item.variantDescription ?? ""}`)
     .join("|");
 }
 
@@ -68,7 +71,7 @@ export function CartDrawer() {
     shippingOptions.find((option) => option.id === activeShippingId) ?? null;
   const shippingPrice = shipping?.price ?? 0;
   const total = subtotalPrice + shippingPrice;
-  const hasUnpricedItems = items.some((item) => item.price == null);
+  const hasUnpricedItems = items.some((item) => cartLineTotal(item) == null);
   const hasCustomizable = items.some((item) => item.customizable);
   const oversized = items.some((item) =>
     exceedsStandardMail(
@@ -306,14 +309,19 @@ export function CartDrawer() {
                         {" · "}
                         {item.weightGrams} g
                       </p>
+                      {item.variantDescription ? (
+                        <p className="mt-1 text-[11px] text-secondary">
+                          {item.variantDescription}
+                        </p>
+                      ) : null}
                       {item.customNotes ? (
                         <p className="mt-1 text-[11px] text-secondary">
                           {item.customNotes}
                         </p>
                       ) : null}
                       <p className="mt-1 text-sm font-semibold text-primary">
-                        {item.price != null
-                          ? formatProductPrice(item.price * item.quantity)
+                        {cartLineTotal(item) != null
+                          ? formatProductPrice(cartLineTotal(item) ?? 0)
                           : "A cotizar"}
                       </p>
                     </div>
@@ -325,12 +333,26 @@ export function CartDrawer() {
                     <div className="inline-flex items-center rounded-lg bg-surface-container-highest">
                       <button
                         type="button"
-                        aria-label="Quitar una unidad"
+                        aria-label={
+                          item.quantityPrices?.length
+                            ? "Elegir menos unidades"
+                            : "Quitar una unidad"
+                        }
                         onClick={() =>
                           updateQuantity(
                             item.id,
-                            item.quantity - 1,
+                            item.quantityPrices?.length
+                              ? (adjacentQuantity(
+                                  purchaseOptions({
+                                    price: item.price,
+                                    quantityPrices: item.quantityPrices,
+                                  }),
+                                  item.quantity,
+                                  -1,
+                                ) ?? 0)
+                              : item.quantity - 1,
                             item.customNotes,
+                            item.variantDescription,
                           )
                         }
                         style={{ minWidth: 36, minHeight: 36 }}
@@ -342,12 +364,38 @@ export function CartDrawer() {
                       </span>
                       <button
                         type="button"
-                        aria-label="Agregar una unidad"
+                        aria-label={
+                          item.quantityPrices?.length
+                            ? "Elegir más unidades"
+                            : "Agregar una unidad"
+                        }
+                        disabled={
+                          item.quantityPrices?.length
+                            ? adjacentQuantity(
+                                purchaseOptions({
+                                  price: item.price,
+                                  quantityPrices: item.quantityPrices,
+                                }),
+                                item.quantity,
+                                1,
+                              ) == null
+                            : false
+                        }
                         onClick={() =>
                           updateQuantity(
                             item.id,
-                            item.quantity + 1,
+                            item.quantityPrices?.length
+                              ? (adjacentQuantity(
+                                  purchaseOptions({
+                                    price: item.price,
+                                    quantityPrices: item.quantityPrices,
+                                  }),
+                                  item.quantity,
+                                  1,
+                                ) ?? item.quantity)
+                              : item.quantity + 1,
                             item.customNotes,
+                            item.variantDescription,
                           )
                         }
                         style={{ minWidth: 36, minHeight: 36 }}
@@ -358,7 +406,11 @@ export function CartDrawer() {
                     <button
                       type="button"
                       onClick={() =>
-                        removeFromCart(item.id, item.customNotes)
+                        removeFromCart(
+                          item.id,
+                          item.customNotes,
+                          item.variantDescription,
+                        )
                       }
                       className="text-xs text-error hover:underline"
                     >

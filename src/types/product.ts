@@ -1,4 +1,6 @@
 import type { ProductCostQuote } from "@/features/products/lib/cost-quote";
+import type { ProductQuantityPrice } from "@/features/products/lib/quantity-prices";
+import type { ProductVariant } from "@/features/products/lib/variants";
 
 export interface Product {
   id?: string;
@@ -22,6 +24,8 @@ export interface Product {
   featuredImage: string;
   galleryImages: string[];
   price?: number;
+  quantityPrices?: ProductQuantityPrice[];
+  variants?: ProductVariant[];
   isActive: boolean;
   createdAt: Date | string;
   weightGrams?: number;

@@ -1,6 +1,8 @@
 import { type DocumentData } from "firebase-admin/firestore";
 import type { Product } from "@/types/product";
 import { mapStoredCostQuote } from "../lib/cost-quote";
+import { normalizeQuantityPrices } from "../lib/quantity-prices";
+import { normalizeVariants } from "../lib/variants";
 
 function toStringArray(value: unknown) {
   return Array.isArray(value) ? value.map(String).filter(Boolean) : [];
@@ -62,6 +64,8 @@ export function mapCatalogDoc(
     featuredImage,
     galleryImages: galleryImages.length > 0 ? galleryImages : [featuredImage],
     price: toPrice(data.price),
+    quantityPrices: normalizeQuantityPrices(data.quantityPrices),
+    variants: normalizeVariants(data.variants),
     costQuote: mapStoredCostQuote(data.costQuote),
     isActive: data.isActive !== false && data.available !== false,
     createdAt,

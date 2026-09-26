@@ -7,9 +7,23 @@ import { MaterialIcon } from "@/components/ui/material-icon";
 import { categoryLabel } from "@/types/product";
 import type { Product } from "@/types/product";
 import { formatProductPrice } from "../lib/format-price";
+import { normalizeVariants } from "../lib/variants";
 import { productHref } from "../lib/product-url";
 import { ProductWhatsAppCTA } from "./product-whatsapp-cta";
 import type { GalleryViewMode } from "./view-toggle";
+
+function catalogPriceLabel(product: Product) {
+  const amounts: number[] = [];
+  if (product.price != null) amounts.push(product.price);
+  for (const tier of product.quantityPrices ?? []) amounts.push(tier.price);
+  for (const option of normalizeVariants(product.variants) ?? []) {
+    amounts.push(option.price);
+  }
+  if (amounts.length === 0) return null;
+  const lowest = Math.min(...amounts);
+  if (amounts.length > 1) return `Desde ${formatProductPrice(lowest)}`;
+  return formatProductPrice(lowest);
+}
 
 type ProductCardProps = {
   product: Product;
@@ -23,6 +37,7 @@ export function ProductCard({
   priority = false,
 }: ProductCardProps) {
   const href = productHref(product.slug);
+  const priceLabel = catalogPriceLabel(product);
   const primaryCategory = product.categories[0];
   const isList = viewMode === "list";
 
@@ -103,9 +118,9 @@ export function ProductCard({
                   {product.shortDescription}
                 </p>
               ) : null}
-              {product.price != null ? (
+              {priceLabel ? (
                 <p className="mt-1 text-xs font-semibold text-primary">
-                  {formatProductPrice(product.price)}
+                  {priceLabel}
                 </p>
               ) : null}
             </Link>
@@ -162,9 +177,9 @@ export function ProductCard({
               <h3 className="mt-1 line-clamp-2 text-xs font-bold leading-tight text-white">
                 {product.title}
               </h3>
-              {product.price != null ? (
+              {priceLabel ? (
                 <p className="mt-1 text-xs font-semibold text-primary">
-                  {formatProductPrice(product.price)}
+                  {priceLabel}
                 </p>
               ) : null}
             </div>

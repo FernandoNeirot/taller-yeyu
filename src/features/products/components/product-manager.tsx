@@ -14,7 +14,7 @@ import {
 import Image from "next/image";
 import { createPortal } from "react-dom";
 import { MaterialIcon } from "@/components/ui/material-icon";
-import { MoneyInput } from "@/components/ui/money-input";
+import { MoneyInput, moneyToNumber } from "@/components/ui/money-input";
 import {
   catalogCategories,
   topicLabel,
@@ -29,6 +29,8 @@ import {
   fileToBase64,
 } from "../utils/compress-image";
 import { formatProductPrice } from "../lib/format-price";
+import { normalizeQuantityPrices } from "../lib/quantity-prices";
+import { normalizeVariants } from "../lib/variants";
 import { ProductDetailModal } from "./product-detail-modal";
 import {
   ProductCostQuoteFields,
@@ -38,6 +40,18 @@ import {
   type CostQuoteFormState,
 } from "./product-cost-quote";
 import type { MaterialCatalogItem } from "@/features/quotes/types";
+
+type VariantFormRow = {
+  id: string;
+  description: string;
+  price: string;
+};
+
+type QuantityPriceFormRow = {
+  id: string;
+  quantity: string;
+  price: string;
+};
 
 type FormState = {
   title: string;
@@ -54,7 +68,45 @@ type FormState = {
   customizable: boolean;
   hidden: boolean;
   price: string;
+  quantityPrices: QuantityPriceFormRow[];
+  variants: VariantFormRow[];
 };
+
+function quantityPriceSummary(form: FormState) {
+  return form.quantityPrices
+    .filter((row) => Number(row.quantity) > 0 && moneyToNumber(row.price) > 0)
+    .map(
+      (row) =>
+        `${Number(row.quantity)} a ${formatProductPrice(moneyToNumber(row.price))}`,
+    )
+    .join(" · ");
+}
+
+function newQuantityRow(): QuantityPriceFormRow {
+  const id =
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `qty-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return { id, quantity: "", price: "" };
+}
+
+function newVariantRow(): VariantFormRow {
+  return {
+    id: newQuantityRow().id,
+    description: "",
+    price: "",
+  };
+}
+
+function variantSummary(form: FormState) {
+  return form.variants
+    .filter((row) => row.description.trim() && moneyToNumber(row.price) > 0)
+    .map(
+      (row) =>
+        `${row.description.trim()} ${formatProductPrice(moneyToNumber(row.price))}`,
+    )
+    .join(" · ");
+}
 
 const emptyForm: FormState = {
   title: "",
@@ -71,6 +123,8 @@ const emptyForm: FormState = {
   customizable: true,
   hidden: false,
   price: "",
+  quantityPrices: [],
+  variants: [],
 };
 
 type FormSectionId =
@@ -186,6 +240,16 @@ function productToForm(product: Product): FormState {
     customizable: product.specifications.customizable,
     hidden: !product.isActive,
     price: product.price == null ? "" : String(product.price),
+    quantityPrices: (product.quantityPrices ?? []).map((tier) => ({
+      id: newQuantityRow().id,
+      quantity: String(tier.quantity),
+      price: String(tier.price),
+    })),
+    variants: (product.variants ?? []).map((option) => ({
+      id: newQuantityRow().id,
+      description: option.description,
+      price: String(option.price),
+    })),
   };
 }
 
@@ -364,6 +428,7 @@ export function ProductManager({
     if (!formOpen) return;
     function onKey(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
+      if (document.querySelector("[data-price-calculator]")) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       resetForm();
@@ -390,6 +455,7 @@ export function ProductManager({
     setCostQuote(costQuoteToForm(product.costQuote));
     setOpenSections({
       ...defaultOpenSections,
+      price: Boolean(product.quantityPrices?.length || product.variants?.length),
       quote: Boolean(product.costQuote),
     });
     setEditingId(productId(product));
@@ -753,9 +819,11 @@ export function ProductManager({
                   title="Precio y publicación"
                   summary={
                     [
-                      form.price
-                        ? formatProductPrice(Number(form.price) || 0)
-                        : "Sin precio",
+                      variantSummary(form) ||
+                        quantityPriceSummary(form) ||
+                        (form.price
+                          ? formatProductPrice(Number(form.price) || 0)
+                          : "Sin precio"),
                       form.hidden ? "Oculto" : "Visible",
                     ].join(" · ")
                   }
@@ -770,6 +838,192 @@ export function ProductManager({
                       onChange={(value) => setForm({ ...form, price: value })}
                     />
                   </label>
+                  <div className="flex flex-col gap-sm">
+                    <div>
+                      <p className="text-sm text-on-surface">Precios por cantidad</p>
+                      <p className="text-xs text-on-surface-variant">
+                        El precio es el total de esa cantidad. Por ejemplo, 4 a
+                        $8.000, 8 a $14.000 y 12 a $18.000.
+                      </p>
+                    </div>
+                    {form.quantityPrices.map((row) => (
+                      <div
+                        key={row.id}
+                        className="grid gap-sm sm:grid-cols-[7rem_1fr_auto]"
+                      >
+                        <label className="flex flex-col gap-xs">
+                          <span className="text-sm text-on-surface-variant">
+                            Cantidad
+                          </span>
+                          <input
+                            inputMode="numeric"
+                            value={row.quantity}
+                            onChange={(event) => {
+                              const quantity = event.target.value.replace(
+                                /\D/g,
+                                "",
+                              );
+                              setForm({
+                                ...form,
+                                quantityPrices: form.quantityPrices.map((item) =>
+                                  item.id === row.id ? { ...item, quantity } : item,
+                                ),
+                              });
+                            }}
+                            className={fieldClassName}
+                          />
+                        </label>
+                        <label className="flex flex-col gap-xs">
+                          <span className="text-sm text-on-surface-variant">
+                            Precio
+                          </span>
+                          <MoneyInput
+                            value={row.price}
+                            onChange={(value) =>
+                              setForm({
+                                ...form,
+                                quantityPrices: form.quantityPrices.map((item) =>
+                                  item.id === row.id ? { ...item, price: value } : item,
+                                ),
+                              })
+                            }
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          aria-label="Quitar cantidad"
+                          onClick={() =>
+                            setForm({
+                              ...form,
+                              quantityPrices: form.quantityPrices.filter(
+                                (item) => item.id !== row.id,
+                              ),
+                            })
+                          }
+                          className="inline-flex h-11 items-center justify-center self-end rounded-lg px-3 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                        >
+                          <MaterialIcon name="delete" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          quantityPrices: [...form.quantityPrices, newQuantityRow()],
+                        })
+                      }
+                      className="inline-flex w-fit items-center gap-1 rounded-lg px-2 py-2 text-sm text-primary hover:bg-primary/10"
+                    >
+                      <MaterialIcon name="add" className="text-base" />
+                      Agregar cantidad
+                    </button>
+                    <input
+                      type="hidden"
+                      name="quantityPrices"
+                      value={JSON.stringify(
+                        normalizeQuantityPrices(
+                          form.quantityPrices.map((row) => ({
+                            quantity: Number(row.quantity),
+                            price: moneyToNumber(row.price),
+                          })),
+                        ) ?? [],
+                      )}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-sm">
+                    <div>
+                      <p className="text-sm text-on-surface">Variantes</p>
+                      <p className="text-xs text-on-surface-variant">
+                        Cada opción lleva una descripción y su precio. Por
+                        ejemplo, Pintado y Sin pintar. Si también hay un precio
+                        por cantidad, al elegir esa cantidad se usa ese total.
+                      </p>
+                    </div>
+                    {form.variants.map((row) => (
+                      <div
+                        key={row.id}
+                        className="grid gap-sm sm:grid-cols-[1fr_11rem_auto]"
+                      >
+                        <label className="flex flex-col gap-xs">
+                          <span className="text-sm text-on-surface-variant">
+                            Descripción
+                          </span>
+                          <input
+                            value={row.description}
+                            onChange={(event) =>
+                              setForm({
+                                ...form,
+                                variants: form.variants.map((item) =>
+                                  item.id === row.id
+                                    ? { ...item, description: event.target.value }
+                                    : item,
+                                ),
+                              })
+                            }
+                            className={fieldClassName}
+                          />
+                        </label>
+                        <label className="flex flex-col gap-xs">
+                          <span className="text-sm text-on-surface-variant">
+                            Precio
+                          </span>
+                          <MoneyInput
+                            value={row.price}
+                            onChange={(value) =>
+                              setForm({
+                                ...form,
+                                variants: form.variants.map((item) =>
+                                  item.id === row.id ? { ...item, price: value } : item,
+                                ),
+                              })
+                            }
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          aria-label="Quitar variante"
+                          onClick={() =>
+                            setForm({
+                              ...form,
+                              variants: form.variants.filter(
+                                (item) => item.id !== row.id,
+                              ),
+                            })
+                          }
+                          className="inline-flex h-11 items-center justify-center self-end rounded-lg px-3 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                        >
+                          <MaterialIcon name="delete" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          variants: [...form.variants, newVariantRow()],
+                        })
+                      }
+                      className="inline-flex w-fit items-center gap-1 rounded-lg px-2 py-2 text-sm text-primary hover:bg-primary/10"
+                    >
+                      <MaterialIcon name="add" className="text-base" />
+                      Agregar variante
+                    </button>
+                    <input
+                      type="hidden"
+                      name="variants"
+                      value={JSON.stringify(
+                        normalizeVariants(
+                          form.variants.map((row) => ({
+                            description: row.description,
+                            price: moneyToNumber(row.price),
+                          })),
+                        ) ?? [],
+                      )}
+                    />
+                  </div>
                   <div className="flex flex-wrap gap-md">
                     <label className="inline-flex items-center gap-xs">
                       <input
@@ -1065,6 +1319,26 @@ export function ProductManager({
                     {hidden ? (
                       <p className="mt-1 text-sm text-secondary">
                         Oculto en galería
+                      </p>
+                    ) : null}
+                    {product.variants?.length ? (
+                      <p className="mt-1 text-sm text-on-surface-variant">
+                        {product.variants
+                          .map(
+                            (option) =>
+                              `${option.description} ${formatProductPrice(option.price)}`,
+                          )
+                          .join(" · ")}
+                      </p>
+                    ) : null}
+                    {product.quantityPrices?.length ? (
+                      <p className="mt-1 text-sm text-on-surface-variant">
+                        {product.quantityPrices
+                          .map(
+                            (tier) =>
+                              `${tier.quantity} a ${formatProductPrice(tier.price)}`,
+                          )
+                          .join(" · ")}
                       </p>
                     ) : null}
                     {product.costQuote?.totalAmount ? (

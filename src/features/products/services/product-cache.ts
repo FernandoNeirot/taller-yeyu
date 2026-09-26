@@ -19,6 +19,12 @@ function cloneProduct(product: Product): Product {
     galleryImages: [...product.galleryImages],
     specifications: { ...product.specifications },
     dimensions: product.dimensions ? { ...product.dimensions } : undefined,
+    quantityPrices: product.quantityPrices
+      ? product.quantityPrices.map((item) => ({ ...item }))
+      : undefined,
+    variants: product.variants
+      ? product.variants.map((item) => ({ ...item }))
+      : undefined,
     costQuote: product.costQuote
       ? {
           ...product.costQuote,

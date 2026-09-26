@@ -371,6 +371,24 @@ export function ProductDetailModal({
                 {formatProductPrice(product.price)}
               </p>
             ) : null}
+            {product.variants?.length ? (
+              <ul className="mt-2 space-y-1 font-body-md text-body-md text-on-surface">
+                {product.variants.map((option) => (
+                  <li key={option.description}>
+                    {option.description} {formatProductPrice(option.price)}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {product.quantityPrices?.length ? (
+              <ul className="mt-2 space-y-1 font-body-md text-body-md text-on-surface">
+                {product.quantityPrices.map((tier) => (
+                  <li key={tier.quantity}>
+                    {tier.quantity} a {formatProductPrice(tier.price)}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
 
             <p className="mt-2 font-body-md text-body-md text-on-surface-variant">
               {product.fullDescription || product.shortDescription}

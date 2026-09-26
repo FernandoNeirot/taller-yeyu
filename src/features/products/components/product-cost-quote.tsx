@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { MoneyInput } from "@/components/ui/money-input";
+import { PriceCalculator } from "@/components/ui/price-calculator";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { formatProductPrice } from "../lib/format-price";
 import {
@@ -174,12 +175,8 @@ function MinutesAdder({
   onChange,
   label = "Minutos por unidad",
 }: MinutesAdderProps) {
-  function sumExpression() {
-    const sum = minutes
-      .split("+")
-      .reduce((total, part) => total + toNumber(part.trim()), 0);
-    onChange(formatMinutes(sum));
-  }
+  const [open, setOpen] = useState(false);
+  const initialValue = Number.isFinite(Number(minutes)) && Number(minutes) > 0 ? minutes : "";
 
   return (
     <div className="flex items-end gap-xs">
@@ -190,24 +187,29 @@ function MinutesAdder({
           value={minutes}
           placeholder="Opcional"
           onChange={(event) => onChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              sumExpression();
-            }
-          }}
           className={fieldClassName}
         />
       </label>
       <button
         type="button"
-        onClick={sumExpression}
-        aria-label="Sumar minutos"
-        title="Sumar"
+        onClick={() => setOpen(true)}
+        aria-label="Abrir calculadora"
+        title="Calculadora"
         className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-outline-variant/40 text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface"
       >
         <MaterialIcon name="calculate" />
       </button>
+      <PriceCalculator
+        open={open}
+        initialValue={initialValue}
+        prefix=""
+        applyLabel="Usar minutos"
+        onClose={() => setOpen(false)}
+        onApply={(rawValue) => {
+          const parsed = Number(rawValue);
+          onChange(Number.isFinite(parsed) && parsed > 0 ? formatMinutes(parsed) : "");
+        }}
+      />
     </div>
   );
 }

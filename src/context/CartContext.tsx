@@ -14,6 +14,13 @@ import { cartItemKey, computeCartTotals } from "@/features/cart/totals";
 import type { CartItem } from "@/features/cart/types";
 import { getProductLogistics } from "@/features/products/lib/logistics";
 import { formatProductDimensions } from "@/features/products/lib/measures";
+import {
+  adjacentQuantity,
+  normalizeQuantityPrices,
+  priceForQuantity,
+  purchaseOptions,
+} from "@/features/products/lib/quantity-prices";
+import type { ProductVariant } from "@/features/products/lib/variants";
 import type { Product } from "@/types/product";
 
 const STORAGE_KEY = "talleryeyu-cart-v1";
@@ -29,10 +36,19 @@ type CartContextValue = {
     product: Product,
     quantity?: number,
     customNotes?: string,
-    options?: { openCart?: boolean },
+    options?: { openCart?: boolean; variant?: ProductVariant },
   ) => void;
-  removeFromCart: (id: string, customNotes?: string) => void;
-  updateQuantity: (id: string, qty: number, customNotes?: string) => void;
+  removeFromCart: (
+    id: string,
+    customNotes?: string,
+    variantDescription?: string,
+  ) => void;
+  updateQuantity: (
+    id: string,
+    qty: number,
+    customNotes?: string,
+    variantDescription?: string,
+  ) => void;
   clearCart: () => void;
   subtotalPrice: number;
   totalWeightGrams: number;
@@ -77,23 +93,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
       product: Product,
       quantity = 1,
       customNotes = "",
-      options?: { openCart?: boolean },
+      options?: { openCart?: boolean; variant?: ProductVariant },
     ) => {
       const id = productId(product);
       const notes = customNotes.trim();
-      const key = cartItemKey(id, notes);
+      const variantDescription = options?.variant?.description.trim() ?? "";
+      const key = cartItemKey(id, notes, variantDescription);
       const logistics = getProductLogistics(product);
-      const qty = Math.max(1, Math.floor(quantity));
+      const offers = normalizeQuantityPrices(product.quantityPrices) ?? [];
+      const requested = Math.max(1, Math.floor(quantity));
+      const selectedOffer = priceForQuantity(offers, requested);
+      const qty = selectedOffer?.quantity ?? requested;
+      const unitPrice = options?.variant?.price ?? product.price;
 
       setItems((current) => {
         const index = current.findIndex(
-          (item) => cartItemKey(item.id, item.customNotes) === key,
+          (item) =>
+            cartItemKey(item.id, item.customNotes, item.variantDescription) ===
+            key,
         );
         if (index >= 0) {
           const next = [...current];
+          const previous = next[index];
           next[index] = {
-            ...next[index],
-            quantity: next[index].quantity + qty,
+            ...previous,
+            price: unitPrice,
+            quantityPrices: offers.length > 0 ? offers : undefined,
+            variantDescription: variantDescription || undefined,
+            quantity: offers.length > 0 ? qty : previous.quantity + qty,
           };
           return next;
         }
@@ -105,7 +132,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
             slug: product.slug,
             title: product.title,
             featuredImage: product.featuredImage,
-            price: product.price,
+            price: unitPrice,
+            quantityPrices: offers.length > 0 ? offers : undefined,
+            variantDescription: variantDescription || undefined,
             quantity: qty,
             customNotes: notes,
             customizable: product.specifications.customizable,
@@ -121,27 +150,73 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const removeFromCart = useCallback((id: string, customNotes = "") => {
-    const key = cartItemKey(id, customNotes);
-    setItems((current) =>
-      current.filter((item) => cartItemKey(item.id, item.customNotes) !== key),
-    );
-  }, []);
+  const removeFromCart = useCallback(
+    (id: string, customNotes = "", variantDescription = "") => {
+      const key = cartItemKey(id, customNotes, variantDescription);
+      setItems((current) =>
+        current.filter(
+          (item) =>
+            cartItemKey(item.id, item.customNotes, item.variantDescription) !==
+            key,
+        ),
+      );
+    },
+    [],
+  );
 
   const updateQuantity = useCallback(
-    (id: string, qty: number, customNotes = "") => {
-      const key = cartItemKey(id, customNotes);
+    (
+      id: string,
+      qty: number,
+      customNotes = "",
+      variantDescription = "",
+    ) => {
+      const key = cartItemKey(id, customNotes, variantDescription);
       const nextQty = Math.floor(qty);
       setItems((current) => {
-        if (nextQty < 1) {
+        const item = current.find(
+          (entry) =>
+            cartItemKey(entry.id, entry.customNotes, entry.variantDescription) ===
+            key,
+        );
+        if (!item) return current;
+
+        let resolved = nextQty;
+        const steps = purchaseOptions({
+          price: item.price,
+          quantityPrices: item.quantityPrices,
+        });
+        if (item.quantityPrices?.length && steps.length > 0) {
+          const exact = priceForQuantity(steps, nextQty);
+          if (exact) {
+            resolved = exact.quantity;
+          } else if (nextQty < 1) {
+            resolved = 0;
+          } else {
+            const stepped = adjacentQuantity(
+              steps,
+              item.quantity,
+              nextQty > item.quantity ? 1 : -1,
+            );
+            resolved = stepped ?? (nextQty < item.quantity ? 0 : item.quantity);
+          }
+        }
+
+        if (resolved < 1) {
           return current.filter(
-            (item) => cartItemKey(item.id, item.customNotes) !== key,
+            (entry) =>
+              cartItemKey(
+                entry.id,
+                entry.customNotes,
+                entry.variantDescription,
+              ) !== key,
           );
         }
-        return current.map((item) =>
-          cartItemKey(item.id, item.customNotes) === key
-            ? { ...item, quantity: nextQty }
-            : item,
+        return current.map((entry) =>
+          cartItemKey(entry.id, entry.customNotes, entry.variantDescription) ===
+          key
+            ? { ...entry, quantity: resolved }
+            : entry,
         );
       });
     },

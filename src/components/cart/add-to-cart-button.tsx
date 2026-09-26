@@ -5,20 +5,27 @@ import { createPortal } from "react-dom";
 import { AddToCartModal } from "@/components/cart/AddToCartModal";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { useCart } from "@/context/CartContext";
+import { hasQuantityOffers } from "@/features/products/lib/quantity-prices";
+import { hasVariants } from "@/features/products/lib/variants";
 import type { Product } from "@/types/product";
 
 export function AddToCartButton({
   product,
   compact = false,
+  initialQuantity = 1,
+  initialVariantDescription,
 }: {
   product: Product;
   compact?: boolean;
+  initialQuantity?: number;
+  initialVariantDescription?: string;
 }) {
   const [open, setOpen] = useState(false);
   const { items, addToCart, updateQuantity } = useCart();
   const productId = product.id ?? product.slug;
   const lines = items.filter((item) => item.id === productId);
   const quantity = lines.reduce((sum, item) => sum + item.quantity, 0);
+  const usesChoices = hasQuantityOffers(product) || hasVariants(product);
 
   function addOne(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();
@@ -37,7 +44,7 @@ export function AddToCartButton({
     updateQuantity(last.id, last.quantity - 1, last.customNotes);
   }
 
-  if (quantity > 0) {
+  if (quantity > 0 && !usesChoices) {
     return (
       <div
         className={
@@ -127,6 +134,8 @@ export function AddToCartButton({
       </button>
       <AddToCartModal
         product={open ? product : null}
+        initialQuantity={initialQuantity}
+        initialVariantDescription={initialVariantDescription}
         onClose={() => setOpen(false)}
       />
     </>

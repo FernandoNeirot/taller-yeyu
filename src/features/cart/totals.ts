@@ -1,13 +1,25 @@
 import type { CartItem } from "@/features/cart/types";
 import { packageVolumeCm3, type PackageSize } from "@/features/products/lib/logistics";
+import { priceForQuantity } from "@/features/products/lib/quantity-prices";
 
-export function cartItemKey(id: string, customNotes = "") {
-  return `${id}::${customNotes.trim()}`;
+export function cartItemKey(
+  id: string,
+  customNotes = "",
+  variantDescription = "",
+) {
+  return `${id}::${customNotes.trim()}::${variantDescription.trim()}`;
+}
+
+export function cartLineTotal(item: CartItem) {
+  const tier = priceForQuantity(item.quantityPrices ?? [], item.quantity);
+  if (tier) return tier.price;
+  if (item.price == null) return null;
+  return item.price * item.quantity;
 }
 
 export function computeCartTotals(items: CartItem[]) {
   const subtotalPrice = items.reduce(
-    (sum, item) => sum + (item.price ?? 0) * item.quantity,
+    (sum, item) => sum + (cartLineTotal(item) ?? 0),
     0,
   );
   const totalWeightGrams = items.reduce(

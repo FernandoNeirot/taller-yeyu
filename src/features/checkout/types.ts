@@ -6,6 +6,7 @@ export type CheckoutItemInput = {
   id: string;
   quantity: number;
   customNotes?: string;
+  variantDescription?: string;
 };
 
 export type CheckoutRequest = {

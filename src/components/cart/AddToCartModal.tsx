@@ -7,10 +7,20 @@ import { MaterialIcon } from "@/components/ui/material-icon";
 import { useCart } from "@/context/CartContext";
 import { formatProductPrice } from "@/features/products/lib/format-price";
 import { formatProductDimensions } from "@/features/products/lib/measures";
+import { QuantityPricePicker } from "@/features/products/components/quantity-price-picker";
+import { VariantPricePicker } from "@/features/products/components/variant-price-picker";
+import {
+  hasQuantityOffers,
+  priceForQuantity,
+  purchaseOptions,
+} from "@/features/products/lib/quantity-prices";
+import { hasVariants, normalizeVariants } from "@/features/products/lib/variants";
 import type { Product } from "@/types/product";
 
 type AddToCartModalProps = {
   product: Product | null;
+  initialQuantity?: number;
+  initialVariantDescription?: string;
   onClose: () => void;
 };
 
@@ -24,12 +34,21 @@ function subscribeDesktop(onStoreChange: () => void) {
   return () => media.removeEventListener("change", onStoreChange);
 }
 
-export function AddToCartModal({ product, onClose }: AddToCartModalProps) {
+export function AddToCartModal({
+  product,
+  initialQuantity = 1,
+  initialVariantDescription,
+  onClose,
+}: AddToCartModalProps) {
   const titleId = useId();
   const { addToCart, openCart, showToast } = useCart();
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(initialQuantity);
   const [customNotes, setCustomNotes] = useState("");
-  const [formSlug, setFormSlug] = useState(product?.slug ?? "");
+  const [variantDescription, setVariantDescription] = useState(
+    initialVariantDescription ?? "",
+  );
+  const selectionKey = `${product?.slug ?? ""}:${initialQuantity}:${initialVariantDescription ?? ""}`;
+  const [formKey, setFormKey] = useState(selectionKey);
   const mounted = useSyncExternalStore(subscribeToNothing, () => true, () => false);
   const isDesktop = useSyncExternalStore(
     subscribeDesktop,
@@ -37,9 +56,10 @@ export function AddToCartModal({ product, onClose }: AddToCartModalProps) {
     () => false,
   );
 
-  if (product && formSlug !== product.slug) {
-    setFormSlug(product.slug);
-    setQuantity(1);
+  if (product && formKey !== selectionKey) {
+    setFormKey(selectionKey);
+    setQuantity(initialQuantity);
+    setVariantDescription(initialVariantDescription ?? "");
     setCustomNotes("");
   }
 
@@ -64,9 +84,32 @@ export function AddToCartModal({ product, onClose }: AddToCartModalProps) {
   if (!mounted || !product) return null;
 
   const selected = product;
+  const options = purchaseOptions(selected);
+  const showQuantityOffers = hasQuantityOffers(selected);
+  const variants = normalizeVariants(selected.variants) ?? [];
+  const showVariants = hasVariants(selected);
+  const selectedOffer =
+    priceForQuantity(options, quantity) ?? options[0] ?? null;
+  const selectedVariant =
+    variants.find((option) => option.description === variantDescription) ??
+    variants[0] ??
+    null;
+  const quantityTier = (selected.quantityPrices ?? []).find(
+    (tier) => tier.quantity === (selectedOffer?.quantity ?? quantity),
+  );
+  const chosenQuantity = selectedOffer?.quantity ?? quantity;
+  const shownPrice = quantityTier
+    ? quantityTier.price
+    : selectedVariant
+      ? selectedVariant.price * Math.max(1, chosenQuantity)
+      : selected.price != null
+        ? selected.price * Math.max(1, chosenQuantity)
+        : null;
 
   function addProduct() {
-    addToCart(selected, quantity, customNotes);
+    addToCart(selected, chosenQuantity, customNotes, {
+      variant: selectedVariant ?? undefined,
+    });
   }
 
   function keepShopping() {
@@ -156,9 +199,16 @@ export function AddToCartModal({ product, onClose }: AddToCartModalProps) {
                 {formatProductDimensions(product)}
               </p>
             ) : null}
-            {product.price != null ? (
+            {shownPrice != null ? (
               <p className="mt-1 text-sm font-semibold text-orange-200">
-                {formatProductPrice(product.price)}
+                {formatProductPrice(shownPrice)}
+                {quantityTier && quantityTier.quantity > 1
+                  ? ` por ${quantityTier.quantity}`
+                  : selectedVariant
+                    ? ` · ${selectedVariant.description}`
+                    : chosenQuantity > 1
+                      ? ` por ${chosenQuantity}`
+                      : ""}
               </p>
             ) : (
               <p className="mt-1 text-xs text-neutral-400">Precio a cotizar</p>
@@ -166,35 +216,52 @@ export function AddToCartModal({ product, onClose }: AddToCartModalProps) {
           </div>
         </div>
 
-        <div className="mt-5">
-          <p className="text-xs font-semibold tracking-widest text-neutral-400 uppercase">
-            Cantidad
-          </p>
-          <div
-            className="mt-2 inline-flex items-center rounded-xl bg-zinc-800"
-            style={{ height: 44 }}
-          >
-            <button
-              type="button"
-              aria-label="Quitar una unidad"
-              onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-              style={{ minWidth: 44, minHeight: 44 }}
+        {showVariants ? (
+          <VariantPricePicker
+            options={variants}
+            description={selectedVariant?.description ?? ""}
+            onChange={setVariantDescription}
+            tone="modal"
+          />
+        ) : null}
+        {showQuantityOffers ? (
+          <QuantityPricePicker
+            options={options}
+            quantity={selectedOffer?.quantity ?? quantity}
+            onChange={setQuantity}
+            variant="modal"
+          />
+        ) : (
+          <div className="mt-5">
+            <p className="text-xs font-semibold tracking-widest text-neutral-400 uppercase">
+              Cantidad
+            </p>
+            <div
+              className="mt-2 inline-flex items-center rounded-xl bg-zinc-800"
+              style={{ height: 44 }}
             >
-              <MaterialIcon name="remove" />
-            </button>
-            <span className="min-w-10 text-center text-sm font-semibold">
-              {quantity}
-            </span>
-            <button
-              type="button"
-              aria-label="Agregar una unidad"
-              onClick={() => setQuantity((value) => value + 1)}
-              style={{ minWidth: 44, minHeight: 44 }}
-            >
-              <MaterialIcon name="add" />
-            </button>
+              <button
+                type="button"
+                aria-label="Quitar una unidad"
+                onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                style={{ minWidth: 44, minHeight: 44 }}
+              >
+                <MaterialIcon name="remove" />
+              </button>
+              <span className="min-w-10 text-center text-sm font-semibold">
+                {quantity}
+              </span>
+              <button
+                type="button"
+                aria-label="Agregar una unidad"
+                onClick={() => setQuantity((value) => value + 1)}
+                style={{ minWidth: 44, minHeight: 44 }}
+              >
+                <MaterialIcon name="add" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {product.specifications.customizable ? (
           <label className="mt-4 block">

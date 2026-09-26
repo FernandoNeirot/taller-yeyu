@@ -9,6 +9,8 @@ type PriceCalculatorProps = {
   initialValue?: string;
   onClose: () => void;
   onApply: (rawValue: string) => void;
+  applyLabel?: string;
+  prefix?: string;
 };
 
 function formatDisplay(value: string) {
@@ -29,6 +31,8 @@ export function PriceCalculator({
   initialValue = "",
   onClose,
   onApply,
+  applyLabel = "Usar precio",
+  prefix = "$ ",
 }: PriceCalculatorProps) {
   const [mounted, setMounted] = useState(false);
   const [current, setCurrent] = useState(initialValue || "0");
@@ -153,6 +157,7 @@ export function PriceCalculator({
 
   return createPortal(
     <div
+      data-price-calculator=""
       style={{
         position: "fixed",
         top: 0,
@@ -220,7 +225,7 @@ export function PriceCalculator({
             {operator ? `${formatDisplay(String(stored ?? 0))} ${operator}` : " "}
           </p>
           <p className="font-headline-md text-on-surface" style={{ fontSize: 32 }}>
-            $ {formatDisplay(current)}
+            {prefix}{formatDisplay(current)}
           </p>
         </div>
         <div
@@ -246,7 +251,7 @@ export function PriceCalculator({
                   className="bg-primary-container text-white font-label-caps text-label-caps"
                   style={{ gridColumn: "span 2", borderRadius: 8 }}
                 >
-                  Usar precio
+                  {applyLabel}
                 </button>
               );
             }

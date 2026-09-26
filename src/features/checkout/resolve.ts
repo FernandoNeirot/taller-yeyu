@@ -1,4 +1,4 @@
-import { computeCartTotals } from "@/features/cart/totals";
+import { cartLineTotal, computeCartTotals } from "@/features/cart/totals";
 import type { CartItem, ShippingOption } from "@/features/cart/types";
 import { quoteAndreaniShipping } from "@/lib/andreani";
 import {
@@ -6,6 +6,11 @@ import {
   getProductLogistics,
 } from "@/features/products/lib/logistics";
 import { formatProductDimensions } from "@/features/products/lib/measures";
+import {
+  hasQuantityOffers,
+  normalizeQuantityPrices,
+} from "@/features/products/lib/quantity-prices";
+import { normalizeVariants } from "@/features/products/lib/variants";
 import { getProducts } from "@/features/products/services/get-products";
 import type {
   CheckoutItemInput,
@@ -52,13 +57,20 @@ export async function resolveCheckoutItems(
 
     const logistics = getProductLogistics(product);
     const notes = String(raw.customNotes ?? "").trim();
+    const variant = normalizeVariants(product.variants)?.find(
+      (option) => option.description === String(raw.variantDescription ?? "").trim(),
+    );
 
     items.push({
       id: product.id ?? product.slug,
       slug: product.slug,
       title: product.title,
       featuredImage: product.featuredImage,
-      price: product.price,
+      price: variant?.price ?? product.price,
+      quantityPrices: hasQuantityOffers(product)
+        ? normalizeQuantityPrices(product.quantityPrices)
+        : undefined,
+      variantDescription: variant?.description,
       quantity,
       customNotes: notes,
       customizable: product.specifications.customizable,
@@ -110,7 +122,7 @@ export async function resolveCheckout(
     ...totals,
     shipping,
     totalPrice: totals.subtotalPrice + (shipping?.price ?? 0),
-    hasUnpricedItems: items.some((item) => item.price == null),
+    hasUnpricedItems: items.some((item) => cartLineTotal(item) == null),
     hasCustomizableItems: items.some((item) => item.customizable),
     exceedsStandardMail: items.some((item) =>
       exceedsStandardMail(item.dimensions, item.weightGrams * item.quantity),

@@ -1,4 +1,5 @@
 import type { PackageSize } from "@/features/products/lib/logistics";
+import type { ProductQuantityPrice } from "@/features/products/lib/quantity-prices";
 
 export type CartItem = {
   id: string;
@@ -6,6 +7,8 @@ export type CartItem = {
   title: string;
   featuredImage: string;
   price?: number;
+  quantityPrices?: ProductQuantityPrice[];
+  variantDescription?: string;
   quantity: number;
   customNotes: string;
   customizable: boolean;
