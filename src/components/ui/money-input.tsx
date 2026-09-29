@@ -4,6 +4,7 @@ type MoneyInputProps = {
   onChange: (value: string) => void;
   required?: boolean;
   placeholder?: string;
+  integer?: boolean;
 };
 
 export function formatMoneyDisplay(raw: string) {
@@ -49,26 +50,47 @@ export function moneyToNumber(raw: string) {
   return Number(raw);
 }
 
+export function integerMoney(raw: string) {
+  if (!raw) return "";
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return "";
+  const rounded = Math.round(parsed);
+  return rounded === 0 ? "" : String(rounded);
+}
+
+function parseIntegerMoneyInput(input: string) {
+  return input.replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+}
+
 export function MoneyInput({
   name,
   value,
   onChange,
   required = false,
   placeholder = "$ 0",
+  integer = false,
 }: MoneyInputProps) {
+  const stored = integer ? integerMoney(value) : value;
+
   return (
     <div className="relative">
       <input
         type="text"
-        inputMode="decimal"
+        inputMode={integer ? "numeric" : "decimal"}
         autoComplete="off"
-        value={formatMoneyDisplay(value)}
+        value={formatMoneyDisplay(stored)}
         placeholder={placeholder}
-        required={required && !value}
-        onChange={(event) => onChange(parseMoneyInput(event.target.value))}
+        required={required && !stored}
+        onChange={(event) =>
+          onChange(
+            integer
+              ? parseIntegerMoneyInput(event.target.value)
+              : parseMoneyInput(event.target.value),
+          )
+        }
         className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
       />
-      {name ? <input type="hidden" name={name} value={value} /> : null}
+      {name ? <input type="hidden" name={name} value={stored} /> : null}
     </div>
   );
 }

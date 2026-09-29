@@ -3,8 +3,20 @@
 import { useActionState, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { MoneyInput, moneyToNumber } from "@/components/ui/money-input";
+import { integerMoney, MoneyInput, moneyToNumber } from "@/components/ui/money-input";
 import { CalculatorButton } from "@/components/ui/price-calculator";
+import { FinanceModal } from "./finance-modal";
+import {
+  FinanceDeleteButton,
+  FinanceDetail,
+  FinanceListPager,
+  FinanceMobileEntry,
+  FinanceSearchField,
+  matchesFinanceQuery,
+  paginateFinanceEntries,
+} from "./finance-list-controls";
+import { formatFinanceAmount } from "@/features/finance/format-amount";
+import { deleteVentureEntryAction } from "@/features/finance/actions/delete-finance-entry";
 import { saveVentureEntryAction } from "@/features/finance/actions/save-venture-entry";
 import {
   getPaymentStatus,
@@ -70,7 +82,7 @@ function emptyForm(): FormState {
 
 function amountToRaw(value: number) {
   if (!value) return "";
-  return String(value);
+  return String(Math.round(value));
 }
 
 function newId() {
@@ -153,13 +165,22 @@ export function VentureFinancePanel({
   const [form, setForm] = useState<FormState>(emptyForm);
   const [entries, setEntries] = useState(initialEntries);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [woodRows, setWoodRows] = useState<WoodRow[]>([emptyWood()]);
   const [paintRows, setPaintRows] = useState<PaintRow[]>([emptyPaint()]);
   const [accessoryRows, setAccessoryRows] = useState<AccessoryRow[]>([
     emptyAccessory(),
   ]);
   const [state, action, pending] = useActionState(saveVentureEntryAction, null);
+  const [deleteState, deleteAction, deletePending] = useActionState(
+    deleteVentureEntryAction,
+    null,
+  );
   const [prevState, setPrevState] = useState(state);
+  const [prevDeleteState, setPrevDeleteState] = useState(deleteState);
 
   const isMaterials = form.category === "Materiales";
   const subcategory = form.subcategory as MaterialSubcategory | "";
@@ -192,12 +213,15 @@ export function VentureFinancePanel({
   const derivedMaterialTotal = useMemo(() => {
     if (subcategory === "accesorios") {
       return accessoryRows.reduce(
-        (sum, row) => sum + moneyToNumber(row.totalPrice),
+        (sum, row) => sum + Math.round(moneyToNumber(row.totalPrice)),
         0,
       );
     }
     if (subcategory === "maderas") {
-      return woodRows.reduce((sum, row) => sum + moneyToNumber(row.price), 0);
+      return woodRows.reduce(
+        (sum, row) => sum + Math.round(moneyToNumber(row.price)),
+        0,
+      );
     }
     return 0;
   }, [accessoryRows, subcategory, woodRows]);
@@ -208,6 +232,16 @@ export function VentureFinancePanel({
     setWoodRows([emptyWood()]);
     setPaintRows([emptyPaint()]);
     setAccessoryRows([emptyAccessory()]);
+    setFormOpen(false);
+  }
+
+  function startCreate() {
+    setForm(emptyForm());
+    setEditingId(null);
+    setWoodRows([emptyWood()]);
+    setPaintRows([emptyPaint()]);
+    setAccessoryRows([emptyAccessory()]);
+    setFormOpen(true);
   }
 
   if (state !== prevState) {
@@ -222,7 +256,29 @@ export function VentureFinancePanel({
         return [saved, ...prev];
       });
       resetForm();
+      setPage(1);
     }
+  }
+
+  if (deleteState !== prevDeleteState) {
+    setPrevDeleteState(deleteState);
+    const deletedId = deleteState?.deletedId;
+    if (deletedId) {
+      setEntries((prev) => prev.filter((entry) => entry.id !== deletedId));
+      setExpandedIds((current) => current.filter((id) => id !== deletedId));
+      if (editingId === deletedId) resetForm();
+    }
+  }
+
+  function showPage(next: number) {
+    setPage(next);
+    setExpandedIds([]);
+  }
+
+  function toggleExpanded(id: string) {
+    setExpandedIds((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+    );
   }
 
   function startEdit(entry: VentureFinanceEntry) {
@@ -237,6 +293,7 @@ export function VentureFinancePanel({
       paidAmount: amountToRaw(entry.paidAmount),
       isPaid: entry.isPaid,
     });
+    setFormOpen(true);
   }
 
   const totals = useMemo(() => {
@@ -248,14 +305,38 @@ export function VentureFinancePanel({
       .reduce((acc, entry) => acc + entry.totalAmount, 0);
     return { ingresos, egresos, balance: ingresos - egresos };
   }, [entries]);
+  const filteredEntries = useMemo(
+    () =>
+      entries.filter((entry) =>
+        matchesFinanceQuery(
+          [
+            entry.date,
+            formatTableDate(entry.date),
+            entry.category,
+            entry.subcategory
+              ? (materialSubcategoryLabels[
+                  entry.subcategory as MaterialSubcategory
+                ] ?? entry.subcategory)
+              : "",
+            entry.description,
+            entry.movementType,
+            entry.totalAmount,
+          ],
+          query,
+        ),
+      ),
+    [entries, query],
+  );
+  const entryPage = paginateFinanceEntries(filteredEntries, page);
 
   return (
-    <section className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-lg">
-      <article className="rounded-2xl border border-outline-variant/20 bg-surface-container p-lg">
-        <h2 className="font-headline-md text-headline-md text-on-surface mb-xs">
-          {editingId ? "Editar movimiento" : "Carga de emprendimiento"}
-        </h2>
-
+    <>
+      <FinanceModal
+        open={formOpen}
+        title={editingId ? "Editar movimiento" : "Nuevo movimiento"}
+        onClose={resetForm}
+        maxWidth="48rem"
+      >
         <form action={action} className="flex flex-col gap-sm">
           {state?.error ? (
             <div className="rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
@@ -390,7 +471,7 @@ export function VentureFinancePanel({
                 </span>
                 <div className="flex gap-sm">
                   <div className="flex-1">
-                    <MoneyInput
+                    <MoneyInput integer
                       name="totalAmount"
                       value={form.totalAmount}
                       onChange={(value) =>
@@ -402,7 +483,7 @@ export function VentureFinancePanel({
                   <CalculatorButton
                     value={form.totalAmount}
                     onApply={(value) =>
-                      setForm({ ...form, totalAmount: value })
+                      setForm({ ...form, totalAmount: integerMoney(value) })
                     }
                   />
                 </div>
@@ -413,7 +494,7 @@ export function VentureFinancePanel({
                     ? "Monto cobrado"
                     : "Monto pagado"}
                 </span>
-                <MoneyInput
+                <MoneyInput integer
                   name="paidAmount"
                   value={form.paidAmount}
                   onChange={(value) => setForm({ ...form, paidAmount: value })}
@@ -522,7 +603,7 @@ export function VentureFinancePanel({
                     <span className="text-xs text-on-surface-variant">Precio</span>
                     <div className="flex gap-sm">
                       <div className="flex-1">
-                        <MoneyInput
+                        <MoneyInput integer
                           value={row.price}
                           onChange={(value) =>
                             setWoodRows((prev) =>
@@ -538,7 +619,9 @@ export function VentureFinancePanel({
                         onApply={(value) =>
                           setWoodRows((prev) =>
                             prev.map((item) =>
-                              item.id === row.id ? { ...item, price: value } : item,
+                              item.id === row.id
+                                ? { ...item, price: integerMoney(value) }
+                                : item,
                             ),
                           )
                         }
@@ -568,7 +651,7 @@ export function VentureFinancePanel({
                     name: row.name,
                     widthCm: Number(row.widthCm),
                     lengthCm: Number(row.lengthCm),
-                    price: moneyToNumber(row.price),
+                    price: Math.round(moneyToNumber(row.price)),
                   })),
                 )}
               />
@@ -772,7 +855,7 @@ export function VentureFinancePanel({
                     </span>
                     <div className="flex gap-sm">
                       <div className="flex-1">
-                        <MoneyInput
+                        <MoneyInput integer
                           value={row.totalPrice}
                           onChange={(value) =>
                             setAccessoryRows((prev) =>
@@ -791,7 +874,7 @@ export function VentureFinancePanel({
                           setAccessoryRows((prev) =>
                             prev.map((item) =>
                               item.id === row.id
-                                ? { ...item, totalPrice: value }
+                                ? { ...item, totalPrice: integerMoney(value) }
                                 : item,
                             ),
                           )
@@ -822,7 +905,7 @@ export function VentureFinancePanel({
                     name: row.name,
                     measureType: row.measureType,
                     quantity: Number(row.quantity),
-                    totalPrice: moneyToNumber(row.totalPrice),
+                    totalPrice: Math.round(moneyToNumber(row.totalPrice)),
                   })),
                 )}
               />
@@ -841,37 +924,29 @@ export function VentureFinancePanel({
                   ? "Guardar cambios"
                   : "Guardar movimiento"}
             </button>
-            {editingId ? (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="rounded-lg border border-outline-variant/40 px-4 py-3 text-on-surface-variant font-label-caps text-label-caps tracking-widest uppercase"
-              >
-                Cancelar
-              </button>
-            ) : null}
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded-lg border border-outline-variant/40 px-4 py-3 text-on-surface-variant font-label-caps text-label-caps tracking-widest uppercase"
+            >
+              Cancelar
+            </button>
           </div>
         </form>
-      </article>
+      </FinanceModal>
 
       <article className="rounded-2xl border border-outline-variant/20 bg-surface-container p-lg">
         <div className="grid grid-cols-3 gap-sm mb-md">
           <div className="rounded-xl bg-surface-container-high p-sm">
             <p className="text-xs text-on-surface-variant">Ingresos</p>
             <p className="text-on-surface font-semibold">
-              {totals.ingresos.toLocaleString("es-AR", {
-                style: "currency",
-                currency: "ARS",
-              })}
+              {formatFinanceAmount(totals.ingresos)}
             </p>
           </div>
           <div className="rounded-xl bg-surface-container-high p-sm">
             <p className="text-xs text-on-surface-variant">Egresos</p>
             <p className="text-on-surface font-semibold">
-              {totals.egresos.toLocaleString("es-AR", {
-                style: "currency",
-                currency: "ARS",
-              })}
+              {formatFinanceAmount(totals.egresos)}
             </p>
           </div>
           <div className="rounded-xl bg-surface-container-high p-sm">
@@ -883,89 +958,186 @@ export function VentureFinancePanel({
                   : "font-semibold text-red-400"
               }
             >
-              {totals.balance.toLocaleString("es-AR", {
-                style: "currency",
-                currency: "ARS",
-              })}
+              {formatFinanceAmount(totals.balance)}
             </p>
           </div>
         </div>
 
-        <h3 className="font-headline-md text-headline-md text-on-surface mb-sm">
-          Registros del emprendimiento
-        </h3>
+        <div className="mb-sm flex flex-wrap items-center justify-between gap-sm">
+          <h2 className="font-headline-md text-headline-md text-on-surface">
+            Registros del emprendimiento
+          </h2>
+          <button
+            type="button"
+            onClick={startCreate}
+            className="rounded-lg bg-primary-container px-4 py-2 text-white font-label-caps text-label-caps tracking-widest uppercase hover:bg-secondary-container transition-colors"
+          >
+            Nuevo movimiento
+          </button>
+        </div>
+        {deleteState?.error ? (
+          <div className="mb-sm rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
+            {deleteState.error}
+          </div>
+        ) : null}
 
         {entries.length === 0 ? (
           <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-lg text-center text-on-surface-variant">
             Todavía no hay movimientos cargados.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-on-surface-variant border-b border-outline-variant/30">
-                  <th className="py-2 pr-2">Fecha</th>
-                  <th className="py-2 pr-2">Categoría</th>
-                  <th className="py-2 pr-2">Movimiento</th>
-                  <th className="py-2 pr-2">Total</th>
-                  <th className="py-2 pr-2">Estado</th>
-                  <th className="py-2"> </th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((entry) => (
-                  <tr
-                    key={entry.id}
-                    className={
-                      entry.id === editingId
-                        ? "border-b border-outline-variant/10 bg-primary/10"
-                        : "border-b border-outline-variant/10"
-                    }
-                  >
-                    <td className="py-2 pr-2">{formatTableDate(entry.date)}</td>
-                    <td className="py-2 pr-2">
-                      {entry.category}
-                      {entry.subcategory
-                        ? ` / ${
-                            materialSubcategoryLabels[
-                              entry.subcategory as MaterialSubcategory
-                            ] ?? entry.subcategory
-                          }`
-                        : ""}
-                    </td>
-                    <td className="py-2 pr-2 capitalize">{entry.movementType}</td>
-                    <td className="py-2 pr-2">
-                      {entry.totalAmount.toLocaleString("es-AR", {
-                        style: "currency",
-                        currency: "ARS",
-                      })}
-                    </td>
-                    <td className="py-2 pr-2">
-                      <SettlementStatusIcon
-                        movementType={entry.movementType}
-                        totalAmount={entry.totalAmount}
-                        paidAmount={entry.paidAmount}
-                        isPaid={entry.isPaid}
-                      />
-                    </td>
-                    <td className="py-2 w-10">
-                      <button
-                        type="button"
-                        onClick={() => startEdit(entry)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10 transition-colors"
-                        aria-label="Editar movimiento"
-                        title="Editar"
+          <>
+            <FinanceSearchField
+              value={query}
+              onChange={(value) => {
+                setQuery(value);
+                setPage(1);
+                setExpandedIds([]);
+              }}
+            />
+            {filteredEntries.length === 0 ? (
+              <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-lg text-center text-on-surface-variant">
+                No hay movimientos que coincidan con la búsqueda.
+              </div>
+            ) : (
+              <>
+                <ul className="min-[450px]:hidden">
+                  {entryPage.items.map((entry) => {
+                    const category = entry.subcategory
+                      ? `${entry.category} / ${
+                          materialSubcategoryLabels[
+                            entry.subcategory as MaterialSubcategory
+                          ] ?? entry.subcategory
+                        }`
+                      : entry.category;
+                    return (
+                      <FinanceMobileEntry
+                        key={entry.id}
+                        date={formatTableDate(entry.date)}
+                        category={category}
+                        description={entry.description}
+                        expanded={expandedIds.includes(entry.id)}
+                        onToggle={() => toggleExpanded(entry.id)}
                       >
-                        <MaterialIcon name="edit" className="text-base" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        <FinanceDetail label="Movimiento">
+                          <span className="capitalize">{entry.movementType}</span>
+                        </FinanceDetail>
+                        <FinanceDetail label="Total">
+                          {formatFinanceAmount(entry.totalAmount)}
+                        </FinanceDetail>
+                        <FinanceDetail label="Estado">
+                          <SettlementStatusIcon
+                            movementType={entry.movementType}
+                            totalAmount={entry.totalAmount}
+                            paidAmount={entry.paidAmount}
+                            isPaid={entry.isPaid}
+                          />
+                        </FinanceDetail>
+                        <div className="mt-1 flex flex-wrap items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(entry)}
+                            className="inline-flex items-center gap-1 text-sm text-primary"
+                          >
+                            <MaterialIcon name="edit" className="text-base" />
+                            Editar
+                          </button>
+                          <FinanceDeleteButton
+                            action={deleteAction}
+                            id={entry.id}
+                            pending={deletePending}
+                            message={
+                              entry.category === "Materiales"
+                                ? "¿Eliminar este movimiento? Los materiales cargados con él también se quitan del catálogo."
+                                : "¿Eliminar este movimiento? Esta acción no se puede deshacer."
+                            }
+                            label="Eliminar"
+                          />
+                        </div>
+                      </FinanceMobileEntry>
+                    );
+                  })}
+                </ul>
+                <div className="hidden overflow-x-auto min-[450px]:block">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-on-surface-variant border-b border-outline-variant/30">
+                        <th className="py-2 pr-2">Fecha</th>
+                        <th className="py-2 pr-2">Categoría</th>
+                        <th className="py-2 pr-2">Descripción</th>
+                        <th className="py-2 pr-2">Movimiento</th>
+                        <th className="py-2 pr-2">Total</th>
+                        <th className="py-2 pr-2">Estado</th>
+                        <th className="py-2"> </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {entryPage.items.map((entry) => (
+                        <tr key={entry.id} className="border-b border-outline-variant/10">
+                          <td className="py-2 pr-2">{formatTableDate(entry.date)}</td>
+                          <td className="py-2 pr-2">
+                            {entry.category}
+                            {entry.subcategory
+                              ? ` / ${
+                                  materialSubcategoryLabels[
+                                    entry.subcategory as MaterialSubcategory
+                                  ] ?? entry.subcategory
+                                }`
+                              : ""}
+                          </td>
+                          <td className="max-w-xs py-2 pr-2">
+                            <span className="line-clamp-2">{entry.description}</span>
+                          </td>
+                          <td className="py-2 pr-2 capitalize">{entry.movementType}</td>
+                          <td className="py-2 pr-2">
+                            {formatFinanceAmount(entry.totalAmount)}
+                          </td>
+                          <td className="py-2 pr-2">
+                            <SettlementStatusIcon
+                              movementType={entry.movementType}
+                              totalAmount={entry.totalAmount}
+                              paidAmount={entry.paidAmount}
+                              isPaid={entry.isPaid}
+                            />
+                          </td>
+                          <td className="py-2">
+                            <div className="flex items-center">
+                              <button
+                                type="button"
+                                onClick={() => startEdit(entry)}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10 transition-colors"
+                                aria-label="Editar movimiento"
+                                title="Editar"
+                              >
+                                <MaterialIcon name="edit" className="text-base" />
+                              </button>
+                              <FinanceDeleteButton
+                                action={deleteAction}
+                                id={entry.id}
+                                pending={deletePending}
+                                message={
+                                  entry.category === "Materiales"
+                                    ? "¿Eliminar este movimiento? Los materiales cargados con él también se quitan del catálogo."
+                                    : "¿Eliminar este movimiento? Esta acción no se puede deshacer."
+                                }
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <FinanceListPager
+                  page={entryPage.page}
+                  pageCount={entryPage.pageCount}
+                  onPageChange={showPage}
+                />
+              </>
+            )}
+          </>
         )}
       </article>
-    </section>
+    </>
   );
 }

@@ -26,8 +26,8 @@ function toNumber(value: unknown) {
 }
 
 export function normalizeVentureFinanceInput(input: VentureFinanceInput) {
-  const totalAmount = Number(input.totalAmount);
-  const paidAmountRaw = Number(input.paidAmount);
+  const totalAmount = Math.round(Number(input.totalAmount));
+  const paidAmountRaw = Math.round(Number(input.paidAmount));
   const paidAmount = input.isPaid
     ? totalAmount
     : Math.min(Math.max(paidAmountRaw, 0), totalAmount);
@@ -135,6 +135,28 @@ export async function updateVentureFinanceEntry(
   } satisfies VentureFinanceEntry;
 }
 
+export async function deleteVentureFinanceEntry(id: string) {
+  const db = getAdminFirestore();
+  const docRef = db.collection(VENTURE_FINANCE_COLLECTION).doc(id);
+  const existing = await docRef.get();
+  if (!existing.exists) {
+    throw new Error("El movimiento no existe.");
+  }
+
+  const materials = await db
+    .collection(MATERIALS_COLLECTION)
+    .where("financeEntryId", "==", id)
+    .get();
+
+  const batch = db.batch();
+  for (const material of materials.docs) {
+    batch.delete(material.ref);
+  }
+  batch.delete(docRef);
+  await batch.commit();
+  return id;
+}
+
 export async function createWoodMaterials(
   items: WoodMaterialInput[],
   meta: { financeEntryId: string; date: string; createdBy: string },
@@ -145,7 +167,7 @@ export async function createWoodMaterials(
   for (const item of items) {
     const widthCm = Number(item.widthCm);
     const lengthCm = Number(item.lengthCm);
-    const price = Number(item.price);
+    const price = Math.round(Number(item.price));
     const areaCm2 = widthCm * lengthCm;
     const pricePerCm2 = areaCm2 > 0 ? price / areaCm2 : 0;
     const docRef = getAdminFirestore().collection(MATERIALS_COLLECTION).doc();
@@ -253,7 +275,7 @@ export async function createAccessoryMaterials(
 
   for (const item of items) {
     const quantity = Number(item.quantity);
-    const totalPrice = Number(item.totalPrice);
+    const totalPrice = Math.round(Number(item.totalPrice));
     const unitPrice = quantity > 0 ? totalPrice / quantity : 0;
     const measureType = item.measureType as AccessoryMeasureType;
     const docRef = getAdminFirestore().collection(MATERIALS_COLLECTION).doc();

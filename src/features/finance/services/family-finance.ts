@@ -19,8 +19,8 @@ function toNumber(value: unknown) {
 }
 
 export function normalizeFamilyFinanceInput(input: FamilyFinanceInput) {
-  const totalAmount = Number(input.totalAmount);
-  const paidAmountRaw = Number(input.paidAmount);
+  const totalAmount = Math.round(Number(input.totalAmount));
+  const paidAmountRaw = Math.round(Number(input.paidAmount));
   const paidAmount = input.isPaid
     ? totalAmount
     : Math.min(Math.max(paidAmountRaw, 0), totalAmount);
@@ -125,5 +125,15 @@ export async function updateFamilyFinanceEntry(
     ...payload,
     createdBy: String(existing.data()?.createdBy ?? ""),
   } satisfies FamilyFinanceEntry;
+}
+
+export async function deleteFamilyFinanceEntry(id: string) {
+  const docRef = getAdminFirestore().collection(FAMILY_FINANCE_COLLECTION).doc(id);
+  const existing = await docRef.get();
+  if (!existing.exists) {
+    throw new Error("El movimiento no existe.");
+  }
+  await docRef.delete();
+  return id;
 }
 

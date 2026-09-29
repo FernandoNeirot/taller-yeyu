@@ -3,9 +3,11 @@
 import { useActionState, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { MoneyInput } from "@/components/ui/money-input";
+import { integerMoney, MoneyInput } from "@/components/ui/money-input";
 import { CalculatorButton } from "@/components/ui/price-calculator";
+import { formatFinanceAmount } from "@/features/finance/format-amount";
 import { saveFamilyEntryAction } from "@/features/finance/actions/create-family-entry";
+import { deleteFamilyEntryAction } from "@/features/finance/actions/delete-finance-entry";
 import {
   familyCategories,
   getPaymentStatus,
@@ -13,6 +15,16 @@ import {
   type MovementType,
   type VentureFinanceEntry,
 } from "@/features/finance/types";
+import { FinanceModal } from "./finance-modal";
+import {
+  FinanceDeleteButton,
+  FinanceDetail,
+  FinanceListPager,
+  FinanceMobileEntry,
+  FinanceSearchField,
+  matchesFinanceQuery,
+  paginateFinanceEntries,
+} from "./finance-list-controls";
 import { VentureFinancePanel } from "./venture-finance-panel";
 
 type Scope = "familiar" | "emprendimiento";
@@ -29,7 +41,7 @@ type FormState = {
 
 function amountToRaw(value: number) {
   if (!value) return "";
-  return String(value);
+  return String(Math.round(value));
 }
 
 function entryToForm(entry: {
@@ -129,11 +141,20 @@ export function FinancialControl({
   const [familyForm, setFamilyForm] = useState<FormState>(emptyForm);
   const [familyEntries, setFamilyEntries] = useState(initialFamilyEntries);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [familyState, familyAction, familyPending] = useActionState(
     saveFamilyEntryAction,
     null,
   );
+  const [deleteState, deleteAction, deletePending] = useActionState(
+    deleteFamilyEntryAction,
+    null,
+  );
   const [prevFamilyState, setPrevFamilyState] = useState(familyState);
+  const [prevDeleteState, setPrevDeleteState] = useState(deleteState);
 
   if (familyState !== prevFamilyState) {
     setPrevFamilyState(familyState);
@@ -151,6 +172,22 @@ export function FinancialControl({
       });
       setFamilyForm(emptyForm());
       setEditingId(null);
+      setFormOpen(false);
+      setPage(1);
+    }
+  }
+
+  if (deleteState !== prevDeleteState) {
+    setPrevDeleteState(deleteState);
+    const deletedId = deleteState?.deletedId;
+    if (deletedId) {
+      setFamilyEntries((prev) => prev.filter((entry) => entry.id !== deletedId));
+      setExpandedIds((current) => current.filter((id) => id !== deletedId));
+      if (editingId === deletedId) {
+        setFormOpen(false);
+        setEditingId(null);
+        setFamilyForm(emptyForm());
+      }
     }
   }
 
@@ -158,14 +195,33 @@ export function FinancialControl({
     setFamilyForm((prev) => ({ ...prev, ...updater }));
   }
 
+  function startCreate() {
+    setEditingId(null);
+    setFamilyForm(emptyForm());
+    setFormOpen(true);
+  }
+
   function startEdit(entry: FamilyFinanceEntry) {
     setEditingId(entry.id);
     setFamilyForm(entryToForm(entry));
+    setFormOpen(true);
   }
 
-  function cancelEdit() {
+  function closeForm() {
+    setFormOpen(false);
     setEditingId(null);
     setFamilyForm(emptyForm());
+  }
+
+  function showPage(next: number) {
+    setPage(next);
+    setExpandedIds([]);
+  }
+
+  function toggleExpanded(id: string) {
+    setExpandedIds((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+    );
   }
 
   const totalIngresos = useMemo(
@@ -185,6 +241,24 @@ export function FinancialControl({
   );
 
   const balance = totalIngresos - totalEgresos;
+  const filteredEntries = useMemo(
+    () =>
+      familyEntries.filter((entry) =>
+        matchesFinanceQuery(
+          [
+            entry.date,
+            formatTableDate(entry.date),
+            entry.category,
+            entry.description,
+            entry.movementType,
+            entry.totalAmount,
+          ],
+          query,
+        ),
+      ),
+    [familyEntries, query],
+  );
+  const entryPage = paginateFinanceEntries(filteredEntries, page);
 
   return (
     <div className="flex flex-col gap-lg">
@@ -192,7 +266,7 @@ export function FinancialControl({
         <button
           type="button"
           onClick={() => {
-            setEditingId(null);
+            closeForm();
             setScope("familiar");
           }}
           className={
@@ -206,7 +280,7 @@ export function FinancialControl({
         <button
           type="button"
           onClick={() => {
-            setEditingId(null);
+            closeForm();
             setScope("emprendimiento");
           }}
           className={
@@ -222,12 +296,12 @@ export function FinancialControl({
       {scope === "emprendimiento" ? (
         <VentureFinancePanel entries={ventureEntries} />
       ) : (
-        <section className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-lg">
-          <article className="rounded-2xl border border-outline-variant/20 bg-surface-container p-lg">
-            <h2 className="font-headline-md text-headline-md text-on-surface mb-xs">
-              {editingId ? "Editar" : "Carga de"} control familiar
-            </h2>
-
+        <>
+          <FinanceModal
+            open={formOpen}
+            title={editingId ? "Editar movimiento" : "Nuevo movimiento"}
+            onClose={closeForm}
+          >
             <form action={familyAction} className="flex flex-col gap-sm">
               {familyState?.error ? (
                 <div className="rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
@@ -328,7 +402,7 @@ export function FinancialControl({
                   </span>
                   <div className="flex gap-sm">
                     <div className="flex-1">
-                      <MoneyInput
+                      <MoneyInput integer
                         name="totalAmount"
                         value={familyForm.totalAmount}
                         onChange={(value) =>
@@ -341,7 +415,7 @@ export function FinancialControl({
                     <CalculatorButton
                       value={familyForm.totalAmount}
                       onApply={(value) =>
-                        setCurrentForm({ totalAmount: value })
+                        setCurrentForm({ totalAmount: integerMoney(value) })
                       }
                     />
                   </div>
@@ -352,7 +426,7 @@ export function FinancialControl({
                       ? "Monto cobrado"
                       : "Monto pagado"}
                   </span>
-                  <MoneyInput
+                  <MoneyInput integer
                     name="paidAmount"
                     value={familyForm.paidAmount}
                     onChange={(value) => setCurrentForm({ paidAmount: value })}
@@ -389,37 +463,29 @@ export function FinancialControl({
                       ? "Guardar cambios"
                       : "Guardar movimiento"}
                 </button>
-                {editingId ? (
-                  <button
-                    type="button"
-                    onClick={cancelEdit}
-                    className="rounded-lg border border-outline-variant/40 px-4 py-3 text-on-surface-variant font-label-caps text-label-caps tracking-widest uppercase hover:bg-surface-container-high transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  className="rounded-lg border border-outline-variant/40 px-4 py-3 text-on-surface-variant font-label-caps text-label-caps tracking-widest uppercase hover:bg-surface-container-high transition-colors"
+                >
+                  Cancelar
+                </button>
               </div>
             </form>
-          </article>
+          </FinanceModal>
 
           <article className="rounded-2xl border border-outline-variant/20 bg-surface-container p-lg">
             <div className="grid grid-cols-3 gap-sm mb-md">
               <div className="rounded-xl bg-surface-container-high p-sm">
                 <p className="text-xs text-on-surface-variant">Ingresos</p>
                 <p className="text-on-surface font-semibold">
-                  {totalIngresos.toLocaleString("es-AR", {
-                    style: "currency",
-                    currency: "ARS",
-                  })}
+                  {formatFinanceAmount(totalIngresos)}
                 </p>
               </div>
               <div className="rounded-xl bg-surface-container-high p-sm">
                 <p className="text-xs text-on-surface-variant">Egresos</p>
                 <p className="text-on-surface font-semibold">
-                  {totalEgresos.toLocaleString("es-AR", {
-                    style: "currency",
-                    currency: "ARS",
-                  })}
+                  {formatFinanceAmount(totalEgresos)}
                 </p>
               </div>
               <div className="rounded-xl bg-surface-container-high p-sm">
@@ -431,90 +497,173 @@ export function FinancialControl({
                       : "font-semibold text-red-400"
                   }
                 >
-                  {balance.toLocaleString("es-AR", {
-                    style: "currency",
-                    currency: "ARS",
-                  })}
+                  {formatFinanceAmount(balance)}
                 </p>
               </div>
             </div>
 
-            <h3 className="font-headline-md text-headline-md text-on-surface mb-sm">
-              Registros familiares
-            </h3>
+            <div className="mb-sm flex flex-wrap items-center justify-between gap-sm">
+              <h2 className="font-headline-md text-headline-md text-on-surface">
+                Registros familiares
+              </h2>
+              <button
+                type="button"
+                onClick={startCreate}
+                className="rounded-lg bg-primary-container px-4 py-2 text-white font-label-caps text-label-caps tracking-widest uppercase hover:bg-secondary-container transition-colors"
+              >
+                Nuevo movimiento
+              </button>
+            </div>
+            {deleteState?.error ? (
+              <div className="mb-sm rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
+                {deleteState.error}
+              </div>
+            ) : null}
 
             {familyEntries.length === 0 ? (
               <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-lg text-center text-on-surface-variant">
                 Todavía no hay movimientos cargados.
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-on-surface-variant border-b border-outline-variant/30">
-                      <th className="py-2 pr-2">Fecha</th>
-                      <th className="py-2 pr-2">Categoría</th>
-                      <th className="py-2 pr-2">Movimiento</th>
-                      <th className="py-2 pr-2">Total</th>
-                      <th className="py-2 pr-2">Cobrado / Pagado</th>
-                      <th className="py-2">Estado</th>
-                      <th className="py-2"> </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {familyEntries.map((entry) => (
-                      <tr
-                        key={entry.id}
-                        className={
-                          entry.id === editingId
-                            ? "border-b border-outline-variant/10 bg-primary/10"
-                            : "border-b border-outline-variant/10"
-                        }
-                      >
-                        <td className="py-2 pr-2">{formatTableDate(entry.date)}</td>
-                        <td className="py-2 pr-2">{entry.category}</td>
-                        <td className="py-2 pr-2 capitalize">
-                          {entry.movementType}
-                        </td>
-                        <td className="py-2 pr-2">
-                          {entry.totalAmount.toLocaleString("es-AR", {
-                            style: "currency",
-                            currency: "ARS",
-                          })}
-                        </td>
-                        <td className="py-2 pr-2">
-                          {entry.paidAmount.toLocaleString("es-AR", {
-                            style: "currency",
-                            currency: "ARS",
-                          })}
-                        </td>
-                        <td className="py-2">
-                          <SettlementStatusIcon
-                            movementType={entry.movementType}
-                            totalAmount={entry.totalAmount}
-                            paidAmount={entry.paidAmount}
-                            isPaid={entry.isPaid}
-                          />
-                        </td>
-                        <td className="py-2 w-10">
-                          <button
-                            type="button"
-                            onClick={() => startEdit(entry)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10 transition-colors"
-                            aria-label="Editar movimiento"
-                            title="Editar"
-                          >
-                            <MaterialIcon name="edit" className="text-base" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                <FinanceSearchField
+                  value={query}
+                  onChange={(value) => {
+                    setQuery(value);
+                    setPage(1);
+                    setExpandedIds([]);
+                  }}
+                />
+                {filteredEntries.length === 0 ? (
+                  <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-lg text-center text-on-surface-variant">
+                    No hay movimientos que coincidan con la búsqueda.
+                  </div>
+                ) : (
+                  <>
+                    <ul className="min-[450px]:hidden">
+                      {entryPage.items.map((entry) => (
+                        <FinanceMobileEntry
+                          key={entry.id}
+                          date={formatTableDate(entry.date)}
+                          category={entry.category}
+                          description={entry.description}
+                          expanded={expandedIds.includes(entry.id)}
+                          onToggle={() => toggleExpanded(entry.id)}
+                        >
+                          <FinanceDetail label="Movimiento">
+                            <span className="capitalize">{entry.movementType}</span>
+                          </FinanceDetail>
+                          <FinanceDetail label="Total">
+                            {formatFinanceAmount(entry.totalAmount)}
+                          </FinanceDetail>
+                          <FinanceDetail label="Cobrado / Pagado">
+                            {formatFinanceAmount(entry.paidAmount)}
+                          </FinanceDetail>
+                          <FinanceDetail label="Estado">
+                            <SettlementStatusIcon
+                              movementType={entry.movementType}
+                              totalAmount={entry.totalAmount}
+                              paidAmount={entry.paidAmount}
+                              isPaid={entry.isPaid}
+                            />
+                          </FinanceDetail>
+                          <div className="mt-1 flex flex-wrap items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => startEdit(entry)}
+                              className="inline-flex items-center gap-1 text-sm text-primary"
+                            >
+                              <MaterialIcon name="edit" className="text-base" />
+                              Editar
+                            </button>
+                            <FinanceDeleteButton
+                              action={deleteAction}
+                              id={entry.id}
+                              pending={deletePending}
+                              message="¿Eliminar este movimiento? Esta acción no se puede deshacer."
+                              label="Eliminar"
+                            />
+                          </div>
+                        </FinanceMobileEntry>
+                      ))}
+                    </ul>
+                    <div className="hidden overflow-x-auto min-[450px]:block">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-on-surface-variant border-b border-outline-variant/30">
+                            <th className="py-2 pr-2">Fecha</th>
+                            <th className="py-2 pr-2">Categoría</th>
+                            <th className="py-2 pr-2">Descripción</th>
+                            <th className="py-2 pr-2">Movimiento</th>
+                            <th className="py-2 pr-2">Total</th>
+                            <th className="py-2 pr-2">Cobrado / Pagado</th>
+                            <th className="py-2">Estado</th>
+                            <th className="py-2"> </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {entryPage.items.map((entry) => (
+                            <tr
+                              key={entry.id}
+                              className="border-b border-outline-variant/10"
+                            >
+                              <td className="py-2 pr-2">{formatTableDate(entry.date)}</td>
+                              <td className="py-2 pr-2">{entry.category}</td>
+                              <td className="max-w-xs py-2 pr-2">
+                                <span className="line-clamp-2">{entry.description}</span>
+                              </td>
+                              <td className="py-2 pr-2 capitalize">
+                                {entry.movementType}
+                              </td>
+                              <td className="py-2 pr-2">
+                                {formatFinanceAmount(entry.totalAmount)}
+                              </td>
+                              <td className="py-2 pr-2">
+                                {formatFinanceAmount(entry.paidAmount)}
+                              </td>
+                              <td className="py-2">
+                                <SettlementStatusIcon
+                                  movementType={entry.movementType}
+                                  totalAmount={entry.totalAmount}
+                                  paidAmount={entry.paidAmount}
+                                  isPaid={entry.isPaid}
+                                />
+                              </td>
+                              <td className="py-2">
+                                <div className="flex items-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => startEdit(entry)}
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10 transition-colors"
+                                    aria-label="Editar movimiento"
+                                    title="Editar"
+                                  >
+                                    <MaterialIcon name="edit" className="text-base" />
+                                  </button>
+                                  <FinanceDeleteButton
+                                    action={deleteAction}
+                                    id={entry.id}
+                                    pending={deletePending}
+                                    message="¿Eliminar este movimiento? Esta acción no se puede deshacer."
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <FinanceListPager
+                      page={entryPage.page}
+                      pageCount={entryPage.pageCount}
+                      onPageChange={showPage}
+                    />
+                  </>
+                )}
+              </>
             )}
           </article>
-        </section>
+        </>
       )}
     </div>
   );
