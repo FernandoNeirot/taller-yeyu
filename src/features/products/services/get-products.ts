@@ -64,6 +64,23 @@ function toFirestorePayload(input: ProductInput, images: string[]) {
   const shortDescription = input.shortDescription.trim() || fullDescription;
   const galleryImages = images.filter(Boolean);
   const categories = input.categories.filter(isCatalogCategory);
+  const measures = {
+    ...(input.heightCm != null ? { heightCm: input.heightCm } : {}),
+    ...(input.widthCm != null ? { widthCm: input.widthCm } : {}),
+    ...(input.depthCm != null ? { depthCm: input.depthCm } : {}),
+    ...(input.diameterCm != null ? { diameterCm: input.diameterCm } : {}),
+  };
+  const packageSize =
+    input.heightCm &&
+    (input.widthCm || input.diameterCm) &&
+    (input.depthCm || input.diameterCm || input.widthCm)
+      ? {
+          heightCm: input.heightCm,
+          widthCm: input.widthCm ?? input.diameterCm ?? input.heightCm,
+          lengthCm:
+            input.depthCm ?? input.diameterCm ?? input.widthCm ?? input.heightCm,
+        }
+      : null;
 
   return {
     slug: slugify(title),
@@ -75,10 +92,7 @@ function toFirestorePayload(input: ProductInput, images: string[]) {
     specifications: {
       material: "",
       dimensions: input.dimensions.trim(),
-      heightCm: input.heightCm ?? undefined,
-      widthCm: input.widthCm ?? undefined,
-      depthCm: input.depthCm ?? undefined,
-      diameterCm: input.diameterCm ?? undefined,
+      ...measures,
       finish: input.finish.trim(),
       customizable: input.customizable,
     },
@@ -92,17 +106,7 @@ function toFirestorePayload(input: ProductInput, images: string[]) {
       : null,
     isActive: input.isActive,
     available: input.isActive,
-    dimensions:
-      input.heightCm &&
-      (input.widthCm || input.diameterCm) &&
-      (input.depthCm || input.diameterCm || input.widthCm)
-        ? {
-            heightCm: input.heightCm,
-            widthCm: input.widthCm ?? input.diameterCm ?? input.heightCm,
-            lengthCm:
-              input.depthCm ?? input.diameterCm ?? input.widthCm ?? input.heightCm,
-          }
-        : undefined,
+    dimensions: packageSize,
   };
 }
 
@@ -243,6 +247,7 @@ export async function createProduct(input: ProductInput, images: string[]) {
     quantityPrices: payload.quantityPrices ?? undefined,
     variants: payload.variants ?? undefined,
     costQuote: payload.costQuote ?? undefined,
+    dimensions: payload.dimensions ?? undefined,
     createdAt: new Date().toISOString(),
   } satisfies Product;
 
@@ -275,6 +280,7 @@ export async function updateProduct(
     quantityPrices: payload.quantityPrices ?? undefined,
     variants: payload.variants ?? undefined,
     costQuote: payload.costQuote ?? undefined,
+    dimensions: payload.dimensions ?? undefined,
     createdAt: current.createdAt,
   } satisfies Product;
 
