@@ -16,6 +16,7 @@ import {
   type VentureFinanceEntry,
 } from "@/features/finance/types";
 import { FinanceModal } from "./finance-modal";
+import { FinanceReports } from "./finance-reports";
 import {
   FinanceDeleteButton,
   FinanceDetail,
@@ -76,7 +77,7 @@ function emptyForm(): FormState {
     movementType: "egreso",
     totalAmount: "",
     paidAmount: "",
-    isPaid: false,
+    isPaid: true,
   };
 }
 
@@ -241,6 +242,18 @@ export function FinancialControl({
   );
 
   const balance = totalIngresos - totalEgresos;
+  const reportLines = useMemo(
+    () =>
+      familyEntries.map((entry) => ({
+        id: entry.id,
+        date: entry.date,
+        category: entry.category,
+        description: entry.description,
+        movementType: entry.movementType,
+        totalAmount: entry.totalAmount,
+      })),
+    [familyEntries],
+  );
   const filteredEntries = useMemo(
     () =>
       familyEntries.filter((entry) =>
@@ -514,6 +527,7 @@ export function FinancialControl({
                 Nuevo movimiento
               </button>
             </div>
+            <FinanceReports scope="Familiar" lines={reportLines} />
             {deleteState?.error ? (
               <div className="mb-sm rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
                 {deleteState.error}

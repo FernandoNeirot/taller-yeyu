@@ -6,6 +6,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { integerMoney, MoneyInput, moneyToNumber } from "@/components/ui/money-input";
 import { CalculatorButton } from "@/components/ui/price-calculator";
 import { FinanceModal } from "./finance-modal";
+import { FinanceReports } from "./finance-reports";
 import {
   FinanceDeleteButton,
   FinanceDetail,
@@ -76,7 +77,7 @@ function emptyForm(): FormState {
     movementType: "egreso",
     totalAmount: "",
     paidAmount: "",
-    isPaid: false,
+    isPaid: true,
   };
 }
 
@@ -305,6 +306,24 @@ export function VentureFinancePanel({
       .reduce((acc, entry) => acc + entry.totalAmount, 0);
     return { ingresos, egresos, balance: ingresos - egresos };
   }, [entries]);
+  const reportLines = useMemo(
+    () =>
+      entries.map((entry) => ({
+        id: entry.id,
+        date: entry.date,
+        category: entry.subcategory
+          ? `${entry.category} / ${
+              materialSubcategoryLabels[
+                entry.subcategory as MaterialSubcategory
+              ] ?? entry.subcategory
+            }`
+          : entry.category,
+        description: entry.description,
+        movementType: entry.movementType,
+        totalAmount: entry.totalAmount,
+      })),
+    [entries],
+  );
   const filteredEntries = useMemo(
     () =>
       entries.filter((entry) =>
@@ -975,6 +994,7 @@ export function VentureFinancePanel({
             Nuevo movimiento
           </button>
         </div>
+        <FinanceReports scope="Emprendimiento" lines={reportLines} />
         {deleteState?.error ? (
           <div className="mb-sm rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
             {deleteState.error}

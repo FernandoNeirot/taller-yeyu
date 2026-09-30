@@ -12,6 +12,7 @@ export const familyCategories = [
   "Ferreteria",
   "Limpieza",
   "Mascotas",
+  "Préstamo",
   "Servicios",
   "Sueldo",
 ] as const;
