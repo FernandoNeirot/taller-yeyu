@@ -65,14 +65,22 @@ export async function downloadFinanceReportPdf({
     y += lines.length * lineHeight + 1.5;
   }
 
+  function rowLine(strong = false) {
+    doc.setDrawColor(strong ? 90 : 196, strong ? 90 : 196, strong ? 90 : 196);
+    doc.setLineWidth(strong ? 0.35 : 0.2);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += strong ? 3.6 : 3.2;
+  }
+
   function pair(label: string, value: string, bold = false) {
     doc.setFont("helvetica", bold ? "bold" : "normal");
     doc.setFontSize(11);
     doc.setTextColor(28, 28, 28);
-    ensure(7);
+    ensure(8);
     doc.text(pdfText(label), margin, y);
     doc.text(pdfText(value), pageWidth - margin, y, { align: "right" });
-    y += 6;
+    y += 1.8;
+    rowLine(bold);
   }
 
   function detailRow(
@@ -96,12 +104,13 @@ export async function downloadFinanceReportPdf({
     );
     const lineCount = Math.max(categoryLines.length, descriptionLines.length, 1);
     const lineHeight = 4;
-    ensure(lineCount * lineHeight + 1.2);
+    ensure(lineCount * lineHeight + 4);
     doc.text(pdfText(date), margin, y);
     doc.text(categoryLines, margin + dateWidth, y);
     doc.text(descriptionLines, margin + dateWidth + categoryWidth, y);
     doc.text(pdfText(amount), pageWidth - margin, y, { align: "right" });
-    y += lineCount * lineHeight + 1.4;
+    y += (lineCount - 1) * lineHeight + 1.8;
+    rowLine(bold);
   }
 
   const title =
