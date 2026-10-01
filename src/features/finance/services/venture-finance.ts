@@ -4,6 +4,7 @@ import {
   VENTURE_FINANCE_COLLECTION,
   getAdminFirestore,
 } from "@/lib/firebase-admin";
+import { compareNewestCreated, timestampMillis } from "../entry-order";
 import {
   getPaymentStatus,
   type AccessoryMaterialInput,
@@ -77,7 +78,6 @@ export async function getVentureFinanceEntries(): Promise<VentureFinanceEntry[]>
   try {
     snapshot = await getAdminFirestore()
       .collection(VENTURE_FINANCE_COLLECTION)
-      .orderBy("date", "desc")
       .get();
   } catch (error) {
     console.error(
@@ -87,7 +87,18 @@ export async function getVentureFinanceEntries(): Promise<VentureFinanceEntry[]>
     return [];
   }
 
-  return snapshot.docs.map((doc) => mapVentureDoc(doc.id, doc.data()));
+  return snapshot.docs
+    .map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        date: String(data.date ?? ""),
+        createdAtMs: timestampMillis(data.createdAt),
+        entry: mapVentureDoc(doc.id, data),
+      };
+    })
+    .sort(compareNewestCreated)
+    .map((item) => item.entry);
 }
 
 export async function createVentureFinanceEntry(

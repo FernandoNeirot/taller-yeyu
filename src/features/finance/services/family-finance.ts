@@ -3,6 +3,7 @@ import {
   FAMILY_FINANCE_COLLECTION,
   getAdminFirestore,
 } from "@/lib/firebase-admin";
+import { compareNewestCreated, timestampMillis } from "../entry-order";
 import {
   getPaymentStatus,
   type FamilyFinanceEntry,
@@ -46,7 +47,6 @@ export async function getFamilyFinanceEntries(): Promise<FamilyFinanceEntry[]> {
   try {
     snapshot = await getAdminFirestore()
       .collection(FAMILY_FINANCE_COLLECTION)
-      .orderBy("date", "desc")
       .get();
   } catch (error) {
     console.error(
@@ -56,28 +56,38 @@ export async function getFamilyFinanceEntries(): Promise<FamilyFinanceEntry[]> {
     return [];
   }
 
-  return snapshot.docs.map((doc) => {
-    const data = doc.data();
-    const totalAmount = toNumber(data.totalAmount);
-    const paidAmount = toNumber(data.paidAmount);
-    const isPaid = Boolean(data.isPaid) || paidAmount >= totalAmount;
+  return snapshot.docs
+    .map((doc) => {
+      const data = doc.data();
+      const totalAmount = toNumber(data.totalAmount);
+      const paidAmount = toNumber(data.paidAmount);
+      const isPaid = Boolean(data.isPaid) || paidAmount >= totalAmount;
 
-    return {
-      id: doc.id,
-      date: String(data.date ?? ""),
-      category: String(data.category ?? ""),
-      description: String(data.description ?? ""),
-      movementType: isMovementType(data.movementType)
-        ? data.movementType
-        : "egreso",
-      totalAmount,
-      paidAmount,
-      remainingAmount: toNumber(data.remainingAmount) || Math.max(totalAmount - paidAmount, 0),
-      isPaid,
-      paymentStatus: getPaymentStatus(totalAmount, paidAmount, isPaid),
-      createdBy: String(data.createdBy ?? ""),
-    };
-  });
+      return {
+        id: doc.id,
+        date: String(data.date ?? ""),
+        createdAtMs: timestampMillis(data.createdAt),
+        entry: {
+          id: doc.id,
+          date: String(data.date ?? ""),
+          category: String(data.category ?? ""),
+          description: String(data.description ?? ""),
+          movementType: isMovementType(data.movementType)
+            ? data.movementType
+            : "egreso",
+          totalAmount,
+          paidAmount,
+          remainingAmount:
+            toNumber(data.remainingAmount) ||
+            Math.max(totalAmount - paidAmount, 0),
+          isPaid,
+          paymentStatus: getPaymentStatus(totalAmount, paidAmount, isPaid),
+          createdBy: String(data.createdBy ?? ""),
+        } satisfies FamilyFinanceEntry,
+      };
+    })
+    .sort(compareNewestCreated)
+    .map((item) => item.entry);
 }
 
 export async function createFamilyFinanceEntry(
