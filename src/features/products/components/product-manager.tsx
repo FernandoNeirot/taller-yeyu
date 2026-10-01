@@ -31,7 +31,12 @@ import {
 import { formatProductPrice } from "../lib/format-price";
 import { normalizeQuantityPrices } from "../lib/quantity-prices";
 import { normalizeVariants } from "../lib/variants";
+import { parseProductCreateJson } from "../lib/product-create-json";
 import { ProductDetailModal } from "./product-detail-modal";
+import {
+  CopyProductJsonExampleButton,
+  ProductJsonImport,
+} from "./product-json-import";
 import {
   ProductCostQuoteFields,
   costQuoteFormTotal,
@@ -443,6 +448,85 @@ export function ProductManager({
     setFormOpen(true);
   }
 
+  function applyProductJson(raw: string) {
+    const { product, warnings } = parseProductCreateJson(raw);
+    const quoteWarnings = [...warnings];
+    const quote = product.costQuote;
+    const nextQuote = quote
+      ? {
+          woods: quote.woods.map((wood) => ({
+            id: newQuantityRow().id,
+            quantity: wood.quantity,
+            widthCm: wood.widthCm,
+            lengthCm: wood.lengthCm,
+            face: wood.face,
+          })),
+          machineMinutes: quote.machineMinutes,
+          machineHourlyRate: quote.machineHourlyRate,
+          laborMinutes: quote.laborMinutes,
+          laborHourlyRate: quote.laborHourlyRate,
+          accessories: quote.accessories.flatMap((row) => {
+            const material = accessories.find((item) => {
+              if (row.materialId && item.id === row.materialId) return true;
+              const name = normalizeSearch(row.materialName);
+              return Boolean(name) && normalizeSearch(item.name) === name;
+            });
+            if (!material) {
+              const label = row.materialName || row.materialId;
+              quoteWarnings.push(`No encontré el accesorio "${label}".`);
+              return [];
+            }
+            return [
+              {
+                id: newQuantityRow().id,
+                materialId: material.id,
+                quantity: row.quantity,
+              },
+            ];
+          }),
+          usesPaint: quote.usesPaint,
+          paintAmount: quote.paintAmount,
+        }
+      : emptyCostQuoteForm;
+
+    setForm({
+      title: product.title,
+      shortDescription: product.shortDescription,
+      fullDescription: product.fullDescription,
+      categories: product.categories,
+      topics: product.topics,
+      dimensions: product.dimensions,
+      heightCm: product.heightCm,
+      widthCm: product.widthCm,
+      depthCm: product.depthCm,
+      diameterCm: product.diameterCm,
+      finish: product.finish,
+      customizable: product.customizable,
+      hidden: product.hidden,
+      price: product.price,
+      quantityPrices: product.quantityPrices.map((row) => ({
+        id: newQuantityRow().id,
+        quantity: row.quantity,
+        price: row.price,
+      })),
+      variants: product.variants.map((row) => ({
+        id: newQuantityRow().id,
+        description: row.description,
+        price: row.price,
+      })),
+    });
+    setCostQuote(nextQuote);
+    setOpenSections({
+      basic: true,
+      classify: true,
+      measures: true,
+      price: true,
+      quote: quote != null,
+      photos: true,
+    });
+    return quoteWarnings;
+  }
+
   function toggleSection(id: FormSectionId) {
     setOpenSections((current) => ({
       ...current,
@@ -578,6 +662,9 @@ export function ProductManager({
                     {imageError}
                   </div>
                 ) : null}
+                {editingId ? null : (
+                  <ProductJsonImport onApply={applyProductJson} />
+                )}
 
                 {editingId ? (
                   <input type="hidden" name="id" value={editingId} />
@@ -1186,14 +1273,20 @@ export function ProductManager({
           <h3 className="font-headline-md text-headline-md text-on-surface">
             Productos ({products.length})
           </h3>
-          <button
-            type="button"
-            onClick={startCreate}
-            className="inline-flex items-center justify-center gap-1 rounded-lg bg-primary-container px-4 py-3 text-white font-label-caps text-label-caps tracking-widest uppercase hover:bg-secondary-container transition-colors"
-          >
-            <MaterialIcon name="add" className="text-base" />
-            Nuevo producto
-          </button>
+          <div className="flex flex-wrap items-center gap-sm">
+            <CopyProductJsonExampleButton />
+            <button
+              type="button"
+              onClick={startCreate}
+              className="inline-flex items-center justify-center gap-1 rounded-lg bg-primary-container px-4 py-3 text-white font-label-caps text-label-caps tracking-widest uppercase hover:bg-secondary-container transition-colors"
+            >
+              <MaterialIcon
+                name="add"
+                className="text-base leading-none normal-case tracking-normal"
+              />
+              Nuevo producto
+            </button>
+          </div>
         </div>
 
         {deleteState?.error ? (
