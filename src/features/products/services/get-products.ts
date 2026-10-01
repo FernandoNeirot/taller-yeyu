@@ -148,34 +148,36 @@ async function seedCatalog(collection: CollectionReference) {
   await batch.commit();
 }
 
-async function addMissingSeedProducts(
-  collection: CollectionReference,
-  snapshot: QuerySnapshot,
-) {
-  const existing = new Set(snapshot.docs.map((doc) => doc.id));
-  const missing = initialProducts.filter((product) => !existing.has(product.slug));
-  if (missing.length === 0) return false;
+const CATALOG_INITIALIZED_ID = "__catalog";
 
-  const batch = getAdminFirestore().batch();
-  for (const product of missing) {
-    batch.set(collection.doc(product.slug), toSeedDoc(product));
-  }
-  await batch.commit();
-  return true;
+async function markCatalogInitialized(collection: CollectionReference) {
+  await collection.doc(CATALOG_INITIALIZED_ID).set(
+    {
+      initialized: true,
+      updatedAt: FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  );
 }
 
 async function loadProductsFromFirebase(): Promise<Product[]> {
   const collection = getAdminFirestore().collection(PRODUCTS_COLLECTION);
   let snapshot = await collection.get();
-  const hasCatalog = snapshot.docs.some((doc) =>
-    Array.isArray(doc.data().categories),
+  const initialized = snapshot.docs.some(
+    (doc) =>
+      doc.id === CATALOG_INITIALIZED_ID && doc.data().initialized === true,
+  );
+  const hasCatalog = snapshot.docs.some(
+    (doc) =>
+      doc.id !== CATALOG_INITIALIZED_ID && Array.isArray(doc.data().categories),
   );
 
-  if (!hasCatalog) {
+  if (!initialized && !hasCatalog) {
     await seedCatalog(collection);
+    await markCatalogInitialized(collection);
     snapshot = await collection.get();
-  } else if (await addMissingSeedProducts(collection, snapshot)) {
-    snapshot = await collection.get();
+  } else if (!initialized) {
+    await markCatalogInitialized(collection);
   }
 
   replaceProductCache(mapSnapshotProducts(snapshot));
@@ -313,8 +315,14 @@ export async function deleteProduct(id: string) {
     throw new Error("El producto no existe.");
   }
 
+  const productRef = getAdminFirestore().collection(PRODUCTS_COLLECTION).doc(id);
   await deleteProductImages(current.galleryImages);
-  await getAdminFirestore().collection(PRODUCTS_COLLECTION).doc(id).delete();
+  await productRef.delete();
+  const afterDelete = await productRef.get();
+  if (afterDelete.exists) {
+    throw new Error("No se pudo eliminar el producto de Firebase.");
+  }
+
   removeCachedProduct(id);
   revalidateCatalog();
 
