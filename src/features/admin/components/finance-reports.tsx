@@ -24,9 +24,27 @@ export function FinanceReports({
   lines: FinanceReportLine[];
 }) {
   const [kind, setKind] = useState<FinanceReportKind | null>(null);
+  const [category, setCategory] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
-  const report = useMemo(() => buildFinanceReport(lines), [lines]);
+  const categories = useMemo(() => {
+    return [
+      ...new Set(
+        lines.map((line) => line.category.trim() || "Sin categoría"),
+      ),
+    ].sort((a, b) => a.localeCompare(b, "es"));
+  }, [lines]);
+  const categoryFilter = categories.includes(category) ? category : "";
+  const filteredLines = useMemo(() => {
+    if (!categoryFilter) return lines;
+    return lines.filter(
+      (line) => (line.category.trim() || "Sin categoría") === categoryFilter,
+    );
+  }, [categoryFilter, lines]);
+  const report = useMemo(
+    () => buildFinanceReport(filteredLines),
+    [filteredLines],
+  );
   const title = kind === "detalle" ? "Reporte detallado" : "Reporte por categoría";
 
   async function download() {
@@ -34,7 +52,11 @@ export function FinanceReports({
     setDownloading(true);
     setError("");
     try {
-      await downloadFinanceReportPdf({ scope, kind, report });
+      await downloadFinanceReportPdf({
+        scope: categoryFilter ? `${scope} · ${categoryFilter}` : scope,
+        kind,
+        report,
+      });
     } catch {
       setError("No se pudo generar el PDF.");
     } finally {
@@ -66,9 +88,25 @@ export function FinanceReports({
         maxWidth="52rem"
         onClose={() => {
           setKind(null);
+          setCategory("");
           setError("");
         }}
       >
+        <label className="mb-md flex flex-col gap-xs">
+          <span className="text-sm text-on-surface-variant">Categoría</span>
+          <select
+            value={categoryFilter}
+            onChange={(event) => setCategory(event.target.value)}
+            className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
+          >
+            <option value="">Todas</option>
+            {categories.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="mb-md flex flex-wrap items-center justify-between gap-sm">
           <p className="text-sm text-on-surface-variant">{scope}</p>
           <button

@@ -561,6 +561,7 @@ export function FinancialControl({
                           date={formatTableDate(entry.date)}
                           category={entry.category}
                           description={entry.description}
+                          amount={formatFinanceAmount(entry.totalAmount)}
                           expanded={expandedIds.includes(entry.id)}
                           onToggle={() => toggleExpanded(entry.id)}
                         >

@@ -40,6 +40,7 @@ import {
 import {
   ProductCostQuoteFields,
   costQuoteFormTotal,
+  costQuoteMinutes,
   costQuoteToForm,
   emptyCostQuoteForm,
   type CostQuoteFormState,
@@ -303,9 +304,7 @@ export function ProductManager({
 
   const remainingSlots = MAX_PRODUCT_IMAGES - existingImages.length - newFiles.length;
   const quoteTotal = costQuoteFormTotal(costQuote, accessories);
-  const quoteMinutes =
-    (Number(costQuote.machineMinutes) || 0) +
-    (Number(costQuote.laborMinutes) || 0);
+  const quoteMinutes = costQuoteMinutes(costQuote);
 
   const visibilityCounts = useMemo(() => {
     const hidden = products.filter((product) => !product.isActive).length;
@@ -453,18 +452,26 @@ export function ProductManager({
     const quoteWarnings = [...warnings];
     const quote = product.costQuote;
     const nextQuote = quote
-      ? {
-          woods: quote.woods.map((wood) => ({
-            id: newQuantityRow().id,
-            quantity: wood.quantity,
-            widthCm: wood.widthCm,
-            lengthCm: wood.lengthCm,
-            face: wood.face,
-          })),
-          machineMinutes: quote.machineMinutes,
-          machineHourlyRate: quote.machineHourlyRate,
-          laborMinutes: quote.laborMinutes,
-          laborHourlyRate: quote.laborHourlyRate,
+      ? costQuoteToForm({
+          woods: quote.woods.flatMap((wood) => {
+            const quantity = Number(wood.quantity);
+            const widthCm = Number(wood.widthCm);
+            const lengthCm = Number(wood.lengthCm);
+            if (!wood.face && !quantity && !widthCm && !lengthCm) return [];
+            return [
+              {
+                id: newQuantityRow().id,
+                quantity: quantity || undefined,
+                widthCm: widthCm || undefined,
+                lengthCm: lengthCm || undefined,
+                face: wood.face || undefined,
+              },
+            ];
+          }),
+          machineMinutes: Number(quote.machineMinutes) || undefined,
+          machineHourlyRate: Number(quote.machineHourlyRate) || undefined,
+          laborMinutes: Number(quote.laborMinutes) || undefined,
+          laborHourlyRate: Number(quote.laborHourlyRate) || undefined,
           accessories: quote.accessories.flatMap((row) => {
             const material = accessories.find((item) => {
               if (row.materialId && item.id === row.materialId) return true;
@@ -476,17 +483,22 @@ export function ProductManager({
               quoteWarnings.push(`No encontré el accesorio "${label}".`);
               return [];
             }
+            const quantity = Number(row.quantity) || 0;
             return [
               {
                 id: newQuantityRow().id,
                 materialId: material.id,
-                quantity: row.quantity,
+                materialName: material.name,
+                quantity,
+                unitPrice: material.unitPrice ?? 0,
+                measureType: material.measureType,
+                amount: quantity * (material.unitPrice ?? 0),
               },
             ];
           }),
           usesPaint: quote.usesPaint,
-          paintAmount: quote.paintAmount,
-        }
+          paintAmount: Number(quote.paintAmount) || undefined,
+        })
       : emptyCostQuoteForm;
 
     setForm({
@@ -1156,7 +1168,7 @@ export function ProductManager({
                   <ProductCostQuoteFields
                     value={costQuote}
                     onChange={setCostQuote}
-                    accessories={accessories}
+                    materials={accessories}
                   />
                 </FormSection>
 

@@ -10,11 +10,8 @@ import {
   updateProduct,
 } from "../services/get-products";
 import { getMaterials } from "@/features/finance/services/venture-finance";
-import {
-  buildAccessoryCatalog,
-  finalizeCostQuote,
-  parseCostQuoteJson,
-} from "../lib/cost-quote";
+import { buildMaterialCatalog } from "@/features/quotes/types";
+import { finalizeCostQuote, parseCostQuoteJson } from "../lib/cost-quote";
 import { formatMeasuresSummary } from "../lib/measures";
 import { normalizeQuantityPrices } from "../lib/quantity-prices";
 import { normalizeVariants } from "../lib/variants";
@@ -97,7 +94,7 @@ export async function saveProductAction(
     const widthCm = optionalNumber(formData.get("widthCm"));
     const depthCm = optionalNumber(formData.get("depthCm"));
     const diameterCm = optionalNumber(formData.get("diameterCm"));
-    const accessories = buildAccessoryCatalog(await getMaterials());
+    const accessories = buildMaterialCatalog(await getMaterials());
     const costQuote = finalizeCostQuote(
       parseCostQuoteJson(formData.get("costQuote")) ?? {},
       accessories,

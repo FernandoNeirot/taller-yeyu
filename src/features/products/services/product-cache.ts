@@ -34,6 +34,9 @@ function cloneProduct(product: Product): Product {
           accessories: product.costQuote.accessories
             ? product.costQuote.accessories.map((item) => ({ ...item }))
             : undefined,
+          lines: product.costQuote.lines
+            ? product.costQuote.lines.map((item) => ({ ...item }))
+            : undefined,
         }
       : undefined,
   };

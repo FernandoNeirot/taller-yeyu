@@ -76,6 +76,7 @@ export function FinanceMobileEntry({
   date,
   category,
   description,
+  amount,
   expanded,
   onToggle,
   children,
@@ -83,6 +84,7 @@ export function FinanceMobileEntry({
   date: string;
   category: string;
   description: string;
+  amount: string;
   expanded: boolean;
   onToggle: () => void;
   children: ReactNode;
@@ -91,7 +93,12 @@ export function FinanceMobileEntry({
     <li className="border-b border-outline-variant/10 py-3">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-xs text-on-surface-variant">{date}</p>
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-xs text-on-surface-variant">{date}</p>
+            <p className="shrink-0 text-sm font-semibold text-on-surface">
+              {amount}
+            </p>
+          </div>
           <p className="text-sm font-semibold text-on-surface">{category}</p>
           <p className="line-clamp-2 text-sm text-on-surface">{description}</p>
         </div>

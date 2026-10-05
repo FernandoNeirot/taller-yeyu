@@ -290,9 +290,13 @@ export function PriceCalculator({
 export function CalculatorButton({
   value,
   onApply,
+  prefix = "$ ",
+  applyLabel = "Usar precio",
 }: {
   value: string;
   onApply: (rawValue: string) => void;
+  prefix?: string;
+  applyLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -310,6 +314,8 @@ export function CalculatorButton({
       <PriceCalculator
         open={open}
         initialValue={value}
+        prefix={prefix}
+        applyLabel={applyLabel}
         onClose={() => setOpen(false)}
         onApply={onApply}
       />

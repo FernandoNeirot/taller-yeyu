@@ -1036,6 +1036,7 @@ export function VentureFinancePanel({
                         date={formatTableDate(entry.date)}
                         category={category}
                         description={entry.description}
+                        amount={formatFinanceAmount(entry.totalAmount)}
                         expanded={expandedIds.includes(entry.id)}
                         onToggle={() => toggleExpanded(entry.id)}
                       >

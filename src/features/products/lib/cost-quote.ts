@@ -1,4 +1,4 @@
-import type { MaterialRecord } from "@/features/finance/types";
+import type { MaterialRecord, MaterialSubcategory } from "@/features/finance/types";
 import type { MaterialCatalogItem } from "@/features/quotes/types";
 
 export const WOOD_SHEET_WIDTH_CM = 260;
@@ -30,7 +30,25 @@ export type ProductCostWood = {
   amount?: number;
 };
 
+export type ProductCostLineUnit = "unidad" | "minuto" | "cm" | "gramo" | "tabla";
+
+export type ProductCostLine = {
+  id: string;
+  kind: "wood" | "catalog" | "custom";
+  catalogType?: MaterialSubcategory;
+  materialId?: string;
+  description: string;
+  quantity: number;
+  unit: ProductCostLineUnit;
+  unitPrice: number;
+  amount: number;
+  widthCm?: number;
+  lengthCm?: number;
+  face?: WoodFaceType;
+};
+
 export type ProductCostQuote = {
+  lines?: ProductCostLine[];
   woods?: ProductCostWood[];
   woodQuantity?: number;
   woodWidthCm?: number;
@@ -147,6 +165,9 @@ function finalizeWood(
 }
 
 export function computeCostQuoteTotal(quote: ProductCostQuote) {
+  if (quote.lines?.length) {
+    return quote.lines.reduce((sum, line) => sum + (line.amount ?? 0), 0);
+  }
   const accessoriesTotal = (quote.accessories ?? []).reduce(
     (sum, item) => sum + (item.amount ?? 0),
     0,
@@ -168,10 +189,126 @@ function optionalPositive(value: unknown) {
   return parsed;
 }
 
+function finalizeLines(
+  lines: ProductCostLine[],
+  catalog: MaterialCatalogItem[],
+): ProductCostLine[] {
+  const catalogById = new Map(catalog.map((item) => [item.id, item]));
+
+  return lines.flatMap((line, index): ProductCostLine[] => {
+    const id = line.id || `line-${index + 1}`;
+    const description = String(line.description ?? "").trim();
+    const quantity = optionalPositive(line.quantity) ?? 0;
+    const storedPrice = optionalPositive(line.unitPrice) ?? 0;
+
+    if (line.kind === "wood") {
+      const face = isWoodFaceType(line.face) ? line.face : undefined;
+      const widthCm = optionalPositive(line.widthCm);
+      const lengthCm = optionalPositive(line.lengthCm);
+      const amount = computeWoodAmount({ quantity, widthCm, lengthCm, face });
+      if (!quantity && !widthCm && !lengthCm && !face) return [];
+      return [
+        {
+          id,
+          kind: "wood" as const,
+          description: description || "Madera",
+          quantity,
+          unit: "tabla" as const,
+          unitPrice: storedPrice,
+          amount,
+          widthCm,
+          lengthCm,
+          face,
+        },
+      ];
+    }
+
+    if (line.kind === "catalog") {
+      const material = line.materialId ? catalogById.get(line.materialId) : undefined;
+      const catalogType = material?.type ?? line.catalogType;
+      if (catalogType === "maderas") {
+        const widthCm = optionalPositive(line.widthCm);
+        const lengthCm = optionalPositive(line.lengthCm);
+        const pricePerCm2 = material?.pricePerCm2 ?? storedPrice;
+        const amount = (widthCm ?? 0) * (lengthCm ?? 0) * quantity * pricePerCm2;
+        return [
+          {
+            id,
+            kind: "catalog" as const,
+            catalogType: "maderas" as const,
+            materialId: material?.id ?? line.materialId,
+            description: material?.name ?? description,
+            quantity,
+            unit: "tabla" as const,
+            unitPrice: pricePerCm2,
+            amount,
+            widthCm,
+            lengthCm,
+          },
+        ];
+      }
+      if (catalogType === "pinturas") {
+        const pricePerGram = material?.pricePerGram ?? storedPrice;
+        return [
+          {
+            id,
+            kind: "catalog" as const,
+            catalogType: "pinturas" as const,
+            materialId: material?.id ?? line.materialId,
+            description: material?.name ?? description,
+            quantity,
+            unit: "gramo" as const,
+            unitPrice: pricePerGram,
+            amount: quantity * pricePerGram,
+          },
+        ];
+      }
+      const unitPrice = material?.unitPrice ?? storedPrice;
+      const unit: ProductCostLineUnit =
+        material?.measureType === "centimetro" || line.unit === "cm" ? "cm" : "unidad";
+      return [
+        {
+          id,
+          kind: "catalog" as const,
+          catalogType: "accesorios" as const,
+          materialId: material?.id ?? line.materialId,
+          description: material?.name ?? description,
+          quantity,
+          unit,
+          unitPrice,
+          amount: quantity * unitPrice,
+        },
+      ];
+    }
+
+    if (!description) return [];
+    const unit: ProductCostLineUnit = line.unit === "minuto" ? "minuto" : "unidad";
+    return [
+      {
+        id,
+        kind: "custom" as const,
+        description,
+        quantity,
+        unit,
+        unitPrice: storedPrice,
+        amount: quantity * storedPrice,
+      },
+    ];
+  });
+}
+
 export function finalizeCostQuote(
   input: ProductCostQuote,
   catalog: MaterialCatalogItem[],
 ): ProductCostQuote | undefined {
+  if (input.lines) {
+    const lines = finalizeLines(input.lines, catalog);
+    if (lines.length === 0) return undefined;
+    const quote: ProductCostQuote = { lines };
+    quote.totalAmount = computeCostQuoteTotal(quote) || undefined;
+    return quote;
+  }
+
   const catalogById = new Map(catalog.map((item) => [item.id, item]));
   const accessories = (input.accessories ?? [])
     .map((item): ProductCostAccessory | null => {
@@ -305,6 +442,9 @@ export function buildAccessoryCatalog(
 export function mapStoredCostQuote(value: unknown): ProductCostQuote | undefined {
   const parsed = parseCostQuoteJson(value);
   if (!parsed) return undefined;
+  if (parsed.lines?.length) {
+    return finalizeCostQuote({ lines: parsed.lines }, []);
+  }
 
   const accessories = (parsed.accessories ?? [])
     .map((item): ProductCostAccessory | null => {
