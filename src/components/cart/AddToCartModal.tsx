@@ -152,7 +152,7 @@ export function AddToCartModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="bg-neutral-900 text-white shadow-2xl"
+        className="bg-surface-container-lowest text-on-surface shadow-2xl shadow-stone-900/20"
         style={{
           position: "relative",
           width: "100%",
@@ -163,7 +163,7 @@ export function AddToCartModal({
           padding: 20,
         }}
       >
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20 md:hidden" />
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-outline-variant md:hidden" />
         <div className="flex items-start justify-between gap-3">
           <h2 id={titleId} className="text-lg font-semibold leading-tight">
             Agregar al carrito
@@ -172,7 +172,7 @@ export function AddToCartModal({
             type="button"
             aria-label="Cerrar"
             onClick={onClose}
-            className="inline-flex items-center justify-center rounded-full text-neutral-400 hover:bg-white/10 hover:text-white"
+            className="inline-flex items-center justify-center rounded-full text-on-surface-variant hover:bg-on-surface/10 hover:text-on-surface"
             style={{ minHeight: 40, minWidth: 40, flexShrink: 0 }}
           >
             <MaterialIcon name="close" />
@@ -181,7 +181,7 @@ export function AddToCartModal({
 
         <div className="mt-4 flex gap-3" style={{ minWidth: 0 }}>
           <div
-            className="relative overflow-hidden rounded-xl bg-neutral-800"
+            className="relative overflow-hidden rounded-xl bg-surface-container"
             style={{ width: 88, height: 88, flexShrink: 0 }}
           >
             <Image
@@ -195,7 +195,7 @@ export function AddToCartModal({
           <div style={{ minWidth: 0 }}>
             <p className="line-clamp-2 text-sm font-semibold">{product.title}</p>
             {formatProductDimensions(product) ? (
-              <p className="mt-1 text-xs text-neutral-400">
+              <p className="mt-1 text-xs text-on-surface-variant">
                 {formatProductDimensions(product)}
               </p>
             ) : null}
@@ -211,7 +211,7 @@ export function AddToCartModal({
                       : ""}
               </p>
             ) : (
-              <p className="mt-1 text-xs text-neutral-400">Precio a cotizar</p>
+              <p className="mt-1 text-xs text-on-surface-variant">Precio a cotizar</p>
             )}
           </div>
         </div>
@@ -233,11 +233,11 @@ export function AddToCartModal({
           />
         ) : (
           <div className="mt-5">
-            <p className="text-xs font-semibold tracking-widest text-neutral-400 uppercase">
+            <p className="text-xs font-semibold tracking-widest text-on-surface-variant uppercase">
               Cantidad
             </p>
             <div
-              className="mt-2 inline-flex items-center rounded-xl bg-zinc-800"
+              className="mt-2 inline-flex items-center rounded-xl bg-surface-container-high"
               style={{ height: 44 }}
             >
               <button
@@ -265,14 +265,14 @@ export function AddToCartModal({
 
         {product.specifications.customizable ? (
           <label className="mt-4 block">
-            <span className="text-xs font-semibold tracking-widest text-neutral-400 uppercase">
+            <span className="text-xs font-semibold tracking-widest text-on-surface-variant uppercase">
               Personalización
             </span>
             <textarea
               value={customNotes}
               onChange={(event) => setCustomNotes(event.target.value)}
               placeholder="Nombre, fecha, temática u otros detalles"
-              className="mt-2 rounded-xl border border-white/10 bg-zinc-800 px-3 py-2 text-sm text-white outline-none focus:border-orange-200"
+              className="mt-2 rounded-xl border border-outline-variant bg-surface-container-high px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
               style={{ width: "100%", minHeight: 88 }}
             />
           </label>
@@ -291,7 +291,7 @@ export function AddToCartModal({
           <button
             type="button"
             onClick={keepShopping}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-800 text-sm font-semibold text-white hover:bg-zinc-700"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-surface-container-high text-sm font-semibold text-on-surface hover:bg-surface-container-highest"
             style={{ minHeight: 48, width: "100%" }}
           >
             Seguir comprando

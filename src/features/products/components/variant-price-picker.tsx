@@ -19,7 +19,7 @@ export function VariantPricePicker({
       <p
         className={
           tone === "modal"
-            ? "text-xs font-semibold tracking-widest text-neutral-400 uppercase"
+            ? "text-xs font-semibold tracking-widest text-on-surface-variant uppercase"
             : "font-label-caps text-label-caps tracking-widest text-on-surface-variant uppercase"
         }
       >
@@ -38,7 +38,7 @@ export function VariantPricePicker({
                 tone === "modal"
                   ? selected
                     ? "flex items-center justify-between gap-3 rounded-xl bg-orange-200 px-4 text-left text-sm font-semibold text-orange-950"
-                    : "flex items-center justify-between gap-3 rounded-xl bg-zinc-800 px-4 text-left text-sm font-semibold text-white"
+                    : "flex items-center justify-between gap-3 rounded-xl bg-surface-container-high px-4 text-left text-sm font-semibold text-on-surface"
                   : selected
                     ? "flex items-center justify-between gap-3 rounded-xl bg-primary px-4 text-left text-sm font-semibold text-on-primary"
                     : "flex items-center justify-between gap-3 rounded-xl border border-outline-variant/40 bg-surface-container px-4 text-left text-sm font-semibold text-on-surface"

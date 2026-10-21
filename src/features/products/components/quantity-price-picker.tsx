@@ -18,7 +18,7 @@ export function QuantityPricePicker({
       <p
         className={
           variant === "modal"
-            ? "text-xs font-semibold tracking-widest text-neutral-400 uppercase"
+            ? "text-xs font-semibold tracking-widest text-on-surface-variant uppercase"
             : "font-label-caps text-label-caps tracking-widest text-on-surface-variant uppercase"
         }
       >
@@ -37,7 +37,7 @@ export function QuantityPricePicker({
                 variant === "modal"
                   ? selected
                     ? "rounded-xl bg-orange-200 px-4 text-sm font-semibold text-orange-950"
-                    : "rounded-xl bg-zinc-800 px-4 text-sm font-semibold text-white"
+                    : "rounded-xl bg-surface-container-high px-4 text-sm font-semibold text-on-surface"
                   : selected
                     ? "rounded-xl bg-primary px-4 text-sm font-semibold text-on-primary"
                     : "rounded-xl border border-outline-variant/40 bg-surface-container px-4 text-sm font-semibold text-on-surface"

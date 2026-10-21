@@ -63,8 +63,8 @@ export function ProductCard({
     <article
       className={
         isList
-          ? "overflow-hidden rounded-xl border border-white/5 bg-neutral-900 shadow-md shadow-black/40"
-          : "flex h-full flex-col overflow-hidden rounded-xl border border-white/5 bg-neutral-900 shadow-md shadow-black/40"
+          ? "overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-md shadow-stone-900/10"
+          : "flex h-full flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-md shadow-stone-900/10"
       }
       style={{ width: "100%", overflow: "hidden" }}
     >
@@ -100,21 +100,21 @@ export function ProductCard({
           >
             <Link href={href} className="min-w-0 text-left">
               {primaryCategory ? (
-                <span className="block truncate text-[10px] leading-tight text-neutral-400">
+                <span className="block truncate text-[10px] leading-tight text-on-surface-variant">
                   {categoryLabel(primaryCategory)}
                 </span>
               ) : null}
-              <h3 className="mt-0.5 line-clamp-2 text-xs font-bold leading-tight text-white sm:text-sm">
+              <h3 className="mt-0.5 line-clamp-2 text-xs font-bold leading-tight text-on-surface sm:text-sm">
                 {product.title}
               </h3>
               {product.specifications.customizable ? (
-                <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] text-white">
+                <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-surface-container-high px-2 py-0.5 text-[10px] text-on-surface">
                   <MaterialIcon name="draw" className="text-xs" />
                   Personalizable
                 </span>
               ) : null}
               {product.shortDescription ? (
-                <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-neutral-400">
+                <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-on-surface-variant">
                   {product.shortDescription}
                 </p>
               ) : null}
@@ -170,11 +170,11 @@ export function ProductCard({
               style={{ width: "100%", padding: 10, minWidth: 0 }}
             >
               {primaryCategory ? (
-                <span className="block truncate text-[10px] leading-tight text-neutral-400">
+                <span className="block truncate text-[10px] leading-tight text-on-surface-variant">
                   {categoryLabel(primaryCategory)}
                 </span>
               ) : null}
-              <h3 className="mt-1 line-clamp-2 text-xs font-bold leading-tight text-white">
+              <h3 className="mt-1 line-clamp-2 text-xs font-bold leading-tight text-on-surface">
                 {product.title}
               </h3>
               {priceLabel ? (

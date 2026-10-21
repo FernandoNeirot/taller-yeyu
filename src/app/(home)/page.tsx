@@ -75,7 +75,7 @@ export default function Home() {
           </picture>
           <div
             className="absolute inset-0 z-10"
-            style={{ background: "rgba(19, 19, 19, 0.88)", width: "100%", height: "100%" }}
+            style={{ background: "rgba(28, 25, 23, 0.82)", width: "100%", height: "100%" }}
           />
         </div>
         <div className="relative z-20 flex flex-col items-center text-center max-w-3xl mx-auto space-y-md">
@@ -86,11 +86,11 @@ export default function Home() {
               className="h-36 sm:h-44 md:h-52 w-auto object-contain drop-shadow-[0_16px_32px_rgba(0,0,0,0.55)]"
             />
           </h1>
-          <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">
+          <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-stone-50">
             Regalos con Alma.
             <br className="md:hidden" /> Momentos para Compartir.
           </h2>
-          <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mt-sm mb-lg">
+          <p className="font-body-lg text-body-lg text-stone-200 max-w-2xl mt-sm mb-lg">
             Somos un emprendimiento familiar dedicado a crear piezas únicas,
             kits para pintar y souvenirs personalizados que invitan a crear y
             compartir en familia.
@@ -131,7 +131,7 @@ export default function Home() {
             </div>
           </div>
           <div className="w-full md:w-1/2 flex flex-col justify-center space-y-md">
-            <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">
+            <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-stone-50">
               Arte y Personalización en cada Detalle
             </h2>
             <div className="w-12 h-1 bg-primary-container" />

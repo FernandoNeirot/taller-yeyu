@@ -8,7 +8,7 @@ export default function GlobalError({
 }) {
   return (
     <html lang="es">
-      <body className="min-h-screen bg-[#131313] text-[#e5e2e1]">
+      <body className="min-h-screen bg-stone-50 text-stone-900">
         <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
           <h1 className="text-2xl font-semibold">No se pudo cargar esta página</h1>
           <p className="max-w-md text-sm text-[#dac1b8]">
@@ -19,7 +19,7 @@ export default function GlobalError({
             <button
               type="button"
               onClick={() => reset()}
-              className="rounded-lg bg-[#a0522d] px-4 py-3 text-xs tracking-widest text-white uppercase"
+              className="rounded-lg bg-[#8c5a2b] px-4 py-3 text-xs tracking-widest text-white uppercase"
             >
               Reintentar
             </button>

@@ -3,53 +3,67 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-on-surface: #e5e2e1;
-  --color-inverse-surface: #e5e2e1;
-  --color-secondary-fixed: #ffdbc9;
-  --color-surface-bright: #393939;
-  --color-on-error-container: #ffdad6;
+  /* Superficies: piedra cálida (stone) como base, tipo MDF/papel craft */
+  --color-background: #fafaf9;
+  --color-surface: #fafaf9;
+  --color-surface-bright: #ffffff;
+  --color-surface-dim: #d6d3d1;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f5f5f4;
+  --color-surface-container: #efeeec;
+  --color-surface-container-high: #e7e5e4;
+  --color-surface-container-highest: #dedbd8;
+  --color-surface-variant: #e7e5e4;
+  --color-surface-tint: #7a4a22;
+
+  /* Texto: carbón / madera quemada */
+  --color-on-background: #1c1917;
+  --color-on-surface: #1c1917;
+  --color-on-surface-variant: #57534e;
+  --color-inverse-surface: #292524;
+  --color-inverse-on-surface: #f5f5f4;
+  --color-outline: #78716c;
+  --color-outline-variant: #d6d3d1;
+
+  /* Primario: bronce / madera de nogal */
+  --color-primary: #7a4a22;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #8c5a2b;
+  --color-on-primary-container: #fff4e8;
+  --color-primary-fixed: #f0dcc6;
+  --color-primary-fixed-dim: #d9b58a;
+  --color-on-primary-fixed: #2b1500;
+  --color-on-primary-fixed-variant: #5c3512;
+  --color-inverse-primary: #e3b98c;
+
+  /* Secundario: bronce oscuro (hover de acciones) */
+  --color-secondary: #78552c;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #6b4220;
+  --color-on-secondary-container: #fff4e8;
+  --color-secondary-fixed: #efdcc2;
+  --color-secondary-fixed-dim: #d4b68a;
+  --color-on-secondary-fixed: #2a1a05;
+  --color-on-secondary-fixed-variant: #5b3f1c;
+
+  /* Terciario: latón sutil */
+  --color-tertiary: #7a5c00;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #e6cf94;
+  --color-on-tertiary-container: #3a2a00;
+  --color-tertiary-fixed: #f1e0ad;
+  --color-tertiary-fixed-dim: #d6b958;
   --color-on-tertiary-fixed: #261a00;
-  --color-error: #ffb4ab;
-  --color-on-primary-container: #ffe1d6;
-  --color-outline-variant: #54433c;
-  --color-on-tertiary-container: #ffe4b3;
-  --color-on-background: #e5e2e1;
-  --color-secondary-fixed-dim: #ffb68d;
-  --color-on-primary-fixed: #360f00;
-  --color-tertiary-fixed: #ffdfa0;
-  --color-background: #131313;
-  --color-surface-container: #201f1f;
-  --color-tertiary-fixed-dim: #fbbc00;
-  --color-on-error: #690005;
-  --color-surface-container-lowest: #0e0e0e;
-  --color-outline: #a28c84;
   --color-on-tertiary-fixed-variant: #5c4300;
-  --color-primary-container: #a0522d;
-  --color-secondary-container: #b55302;
-  --color-on-primary: #581e00;
-  --color-on-surface-variant: #dac1b8;
-  --color-on-tertiary: #402d00;
-  --color-on-secondary: #532200;
-  --color-surface-tint: #ffb596;
-  --color-surface-variant: #353534;
-  --color-surface-container-low: #1c1b1b;
-  --color-error-container: #93000a;
-  --color-secondary: #ffb68d;
-  --color-on-secondary-fixed: #321200;
-  --color-on-secondary-fixed-variant: #763400;
-  --color-tertiary-container: #856200;
-  --color-tertiary: #fbbc00;
-  --color-on-primary-fixed-variant: #76320f;
-  --color-surface: #131313;
-  --color-surface-container-high: #2a2a2a;
-  --color-surface-container-highest: #353534;
-  --color-on-secondary-container: #fff2ec;
-  --color-surface-dim: #131313;
-  --color-primary-fixed: #ffdbcd;
-  --color-inverse-on-surface: #313030;
-  --color-primary-fixed-dim: #ffb596;
-  --color-inverse-primary: #944925;
-  --color-primary: #ffb596;
+
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #410002;
+
+  /* Acentos de material, por si se necesitan fuera del sistema semántico */
+  --color-wood: #b08a5a;
+  --color-bronze: #8c5a2b;
 
   --radius: 0.25rem;
   --radius-lg: 0.5rem;
@@ -98,19 +112,20 @@
 }
 
 @theme inline {
-  --font-headline-lg-mobile: var(--font-manrope);
-  --font-headline-lg: var(--font-manrope);
-  --font-headline-md: var(--font-manrope);
-  --font-label-caps: var(--font-manrope);
-  --font-headline-xl: var(--font-manrope);
-  --font-body-md: ui-sans-serif, system-ui, sans-serif;
-  --font-body-lg: ui-sans-serif, system-ui, sans-serif;
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-headline-lg-mobile: var(--font-playfair), ui-serif, Georgia, serif;
+  --font-headline-lg: var(--font-playfair), ui-serif, Georgia, serif;
+  --font-headline-md: var(--font-playfair), ui-serif, Georgia, serif;
+  --font-headline-xl: var(--font-playfair), ui-serif, Georgia, serif;
+  --font-label-caps: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-body-md: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-body-lg: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
 }
 
 html {
-  background-color: #131313;
-  color: #e5e2e1;
+  background-color: var(--color-background);
+  color: var(--color-on-background);
   scroll-padding-top: 6rem;
   scroll-behavior: smooth;
 }
@@ -122,8 +137,8 @@ html {
 }
 
 body {
-  background-color: #131313;
-  color: #e5e2e1;
+  background-color: var(--color-background);
+  color: var(--color-on-background);
 }
 
 .material-symbols-outlined {

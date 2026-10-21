@@ -13,8 +13,8 @@ export function Logo({
     <img
       src="/brand/logo-sm.webp"
       alt={alt}
-      width={240}
-      height={226}
+      width={480}
+      height={452}
       className={className}
       loading={loading}
       fetchPriority="low"

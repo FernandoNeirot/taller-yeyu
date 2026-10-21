@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import { DeferredMaterialSymbols } from "@/components/ui/deferred-material-symbols";
 import { JsonLd, getSiteJsonLd } from "@/lib/seo/json-ld";
 import { shareImages } from "@/lib/seo/metadata";
@@ -11,20 +11,23 @@ import {
 import "./globals.css";
 import { Providers } from "./providers";
 
-const manrope = Manrope({
+const playfair = Playfair_Display({
   subsets: ["latin"],
-  weight: "700",
-  variable: "--font-manrope",
+  variable: "--font-playfair",
   display: "swap",
-  preload: false,
-  adjustFontFallback: true,
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
 });
 
 const googleVerification = getGoogleVerification();
 
 export const viewport: Viewport = {
-  themeColor: "#131313",
-  colorScheme: "dark",
+  themeColor: "#fafaf9",
+  colorScheme: "light",
 };
 
 export const metadata: Metadata = {
@@ -75,7 +78,11 @@ export const metadata: Metadata = {
     capable: true,
   },
   icons: {
-    icon: [{ url: "/favicon.ico", sizes: "48x48", type: "image/x-icon" }],
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "48x48", type: "image/x-icon" },
+    ],
+    apple: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
     shortcut: "/favicon.ico",
   },
   ...(googleVerification ? { verification: { google: googleVerification } } : {}),
@@ -85,9 +92,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="es-AR"
-      className={`dark ${manrope.variable} h-full`}
+      className={`${playfair.variable} ${inter.variable} h-full`}
     >
-      <body className="min-h-full antialiased bg-background text-on-background">
+      <body className="min-h-full font-sans antialiased bg-background text-on-background">
         <DeferredMaterialSymbols />
         <JsonLd data={getSiteJsonLd()} />
         <Providers>

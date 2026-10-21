@@ -9,14 +9,14 @@ type ViewToggleProps = {
 
 export function ViewToggle({ viewMode, setViewMode }: ViewToggleProps) {
   return (
-    <div className="inline-flex items-center rounded-xl border border-zinc-800 bg-zinc-900 p-1">
+    <div className="inline-flex items-center rounded-xl border border-outline-variant bg-surface-container-low p-1">
       <button
         type="button"
         onClick={() => setViewMode("grid")}
         className={
           viewMode === "grid"
-            ? "rounded-lg bg-zinc-800 p-2 text-white shadow-sm"
-            : "rounded-lg p-2 text-zinc-400 hover:text-white"
+            ? "rounded-lg bg-surface-container-high p-2 text-on-surface shadow-sm"
+            : "rounded-lg p-2 text-on-surface-variant hover:text-on-surface"
         }
         aria-label="Vista en cuadrícula"
         aria-pressed={viewMode === "grid"}
@@ -31,8 +31,8 @@ export function ViewToggle({ viewMode, setViewMode }: ViewToggleProps) {
         onClick={() => setViewMode("list")}
         className={
           viewMode === "list"
-            ? "rounded-lg bg-zinc-800 p-2 text-white shadow-sm"
-            : "rounded-lg p-2 text-zinc-400 hover:text-white"
+            ? "rounded-lg bg-surface-container-high p-2 text-on-surface shadow-sm"
+            : "rounded-lg p-2 text-on-surface-variant hover:text-on-surface"
         }
         aria-label="Vista en lista"
         aria-pressed={viewMode === "list"}
