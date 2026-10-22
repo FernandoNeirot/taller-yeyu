@@ -16,10 +16,11 @@ import { getProductLogistics } from "@/features/products/lib/logistics";
 import { formatProductDimensions } from "@/features/products/lib/measures";
 import {
   adjacentQuantity,
-  normalizeQuantityPrices,
+  offerTiers,
   priceForQuantity,
   purchaseOptions,
 } from "@/features/products/lib/quantity-prices";
+import { hasPackOptions } from "@/features/products/lib/packs";
 import type { ProductVariant } from "@/features/products/lib/variants";
 import type { Product } from "@/types/product";
 
@@ -100,11 +101,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const variantDescription = options?.variant?.description.trim() ?? "";
       const key = cartItemKey(id, notes, variantDescription);
       const logistics = getProductLogistics(product);
-      const offers = normalizeQuantityPrices(product.quantityPrices) ?? [];
+      const isPack = hasPackOptions(product);
+      const offers = offerTiers(product);
       const requested = Math.max(1, Math.floor(quantity));
-      const selectedOffer = priceForQuantity(offers, requested);
+      // Un producto por packs no se puede llevar suelto: sin coincidencia exacta,
+      // se toma el pack más chico.
+      const selectedOffer =
+        priceForQuantity(offers, requested) ?? (isPack ? offers[0] : null) ?? null;
       const qty = selectedOffer?.quantity ?? requested;
-      const unitPrice = options?.variant?.price ?? product.price;
+      // En packs el precio sale del pack elegido, no de un precio unitario.
+      const unitPrice = isPack
+        ? undefined
+        : (options?.variant?.price ?? product.price);
+      const selectedPack =
+        isPack && selectedOffer
+          ? { quantity: selectedOffer.quantity, price: selectedOffer.price }
+          : undefined;
 
       setItems((current) => {
         const index = current.findIndex(
@@ -120,6 +132,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             price: unitPrice,
             quantityPrices: offers.length > 0 ? offers : undefined,
             variantDescription: variantDescription || undefined,
+            selectedPack,
             quantity: offers.length > 0 ? qty : previous.quantity + qty,
           };
           return next;
@@ -135,6 +148,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             price: unitPrice,
             quantityPrices: offers.length > 0 ? offers : undefined,
             variantDescription: variantDescription || undefined,
+            selectedPack,
             quantity: qty,
             customNotes: notes,
             customizable: product.specifications.customizable,
@@ -212,12 +226,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
               ) !== key,
           );
         }
-        return current.map((entry) =>
-          cartItemKey(entry.id, entry.customNotes, entry.variantDescription) ===
-          key
-            ? { ...entry, quantity: resolved }
-            : entry,
-        );
+        return current.map((entry) => {
+          if (
+            cartItemKey(entry.id, entry.customNotes, entry.variantDescription) !==
+            key
+          ) {
+            return entry;
+          }
+          const tier = entry.selectedPack
+            ? priceForQuantity(entry.quantityPrices ?? [], resolved)
+            : null;
+          return {
+            ...entry,
+            quantity: resolved,
+            selectedPack: tier
+              ? { quantity: tier.quantity, price: tier.price }
+              : entry.selectedPack,
+          };
+        });
       });
     },
     [],

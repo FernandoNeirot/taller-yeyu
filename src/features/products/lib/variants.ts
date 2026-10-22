@@ -1,7 +1,6 @@
-export type ProductVariant = {
-  description: string;
-  price: number;
-};
+import type { ProductVariant } from "@/types/product-pricing";
+
+export type { ProductVariant };
 
 function toPositiveNumber(value: unknown) {
   const parsed = typeof value === "number" ? value : Number(value);

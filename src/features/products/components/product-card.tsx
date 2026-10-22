@@ -7,12 +7,19 @@ import { MaterialIcon } from "@/components/ui/material-icon";
 import { categoryLabel } from "@/types/product";
 import type { Product } from "@/types/product";
 import { formatProductPrice } from "../lib/format-price";
+import { normalizePackOptions, packRangeLabel } from "../lib/packs";
 import { normalizeVariants } from "../lib/variants";
 import { productHref } from "../lib/product-url";
 import { ProductWhatsAppCTA } from "./product-whatsapp-cta";
 import type { GalleryViewMode } from "./view-toggle";
 
 function catalogPriceLabel(product: Product) {
+  const packs = normalizePackOptions(product.packOptions);
+  if (packs?.length) {
+    const lowest = Math.min(...packs.map((option) => option.price));
+    const from = packs.length > 1 ? "Desde " : "";
+    return `${from}${formatProductPrice(lowest)} · ${packRangeLabel(packs)}`;
+  }
   const amounts: number[] = [];
   if (product.price != null) amounts.push(product.price);
   for (const tier of product.quantityPrices ?? []) amounts.push(tier.price);
@@ -42,18 +49,7 @@ export function ProductCard({
   const isList = viewMode === "list";
 
   const actions = (
-    <div
-      className="mt-2 flex w-full items-center gap-1.5"
-      style={{
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        width: "100%",
-        minWidth: 0,
-        marginTop: 8,
-      }}
-    >
+    <div className="mt-2 flex w-full min-w-0 flex-row items-center gap-1.5">
       <AddToCartButton product={product} compact />
       <ProductWhatsAppCTA product={product} compact iconOnly={!isList} />
     </div>
@@ -63,25 +59,16 @@ export function ProductCard({
     <article
       className={
         isList
-          ? "overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-md shadow-stone-900/10"
-          : "flex h-full flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-md shadow-stone-900/10"
+          ? "w-full overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-md shadow-stone-900/10"
+          : "flex h-full w-full flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-md shadow-stone-900/10"
       }
-      style={{ width: "100%", overflow: "hidden" }}
     >
       {isList ? (
-        <div
-          className="flex flex-row items-stretch overflow-hidden p-2.5"
-          style={{ width: "100%", gap: 12, overflow: "hidden", padding: 10 }}
-        >
+        <div className="flex w-full flex-row items-stretch gap-3 overflow-hidden p-2.5">
           <Link
             href={href}
             aria-label={`Ver ${product.title}`}
-            className="relative shrink-0 overflow-hidden rounded-lg"
-            style={{
-              width: 112,
-              height: 112,
-              flexShrink: 0,
-            }}
+            className="relative size-28 shrink-0 overflow-hidden rounded-lg"
           >
             <Image
               alt=""
@@ -94,10 +81,7 @@ export function ProductCard({
             />
           </Link>
 
-          <div
-            className="flex min-w-0 flex-1 flex-col overflow-hidden"
-            style={{ minWidth: 0, overflow: "hidden" }}
-          >
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
             <Link href={href} className="min-w-0 text-left">
               {primaryCategory ? (
                 <span className="block truncate text-[10px] leading-tight text-on-surface-variant">
@@ -132,13 +116,9 @@ export function ProductCard({
           <Link
             href={href}
             aria-label={`Ver ${product.title}`}
-            className="flex flex-1 flex-col text-left"
-            style={{ width: "100%" }}
+            className="flex w-full flex-1 flex-col text-left"
           >
-            <div
-              className="relative shrink-0 overflow-hidden"
-              style={{ width: "100%", aspectRatio: "4 / 3" }}
-            >
+            <div className="relative aspect-4/3 w-full shrink-0 overflow-hidden">
               <Image
                 alt=""
                 src={product.featuredImage}
@@ -150,14 +130,7 @@ export function ProductCard({
               />
               {product.specifications.customizable ? (
                 <span
-                  className="inline-flex items-center justify-center rounded-full bg-black/70 text-white"
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    right: 8,
-                    width: 28,
-                    height: 28,
-                  }}
+                  className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/70 text-white"
                   title="Personalizable"
                 >
                   <MaterialIcon name="draw" className="text-sm" />
@@ -165,10 +138,7 @@ export function ProductCard({
               ) : null}
             </div>
 
-            <div
-              className="flex flex-1 flex-col p-2.5"
-              style={{ width: "100%", padding: 10, minWidth: 0 }}
-            >
+            <div className="flex w-full min-w-0 flex-1 flex-col p-2.5">
               {primaryCategory ? (
                 <span className="block truncate text-[10px] leading-tight text-on-surface-variant">
                   {categoryLabel(primaryCategory)}
@@ -184,7 +154,7 @@ export function ProductCard({
               ) : null}
             </div>
           </Link>
-          <div style={{ width: "100%", padding: "0 10px 10px", minWidth: 0 }}>
+          <div className="w-full min-w-0 px-2.5 pb-2.5">
             {actions}
           </div>
         </>

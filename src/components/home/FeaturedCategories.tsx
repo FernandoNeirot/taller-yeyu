@@ -21,31 +21,23 @@ const eventTopics = [
 export async function FeaturedCategories() {
   const catalog = await getCatalogProducts();
   const infantilProducts = bySlug(catalog, [
-    "cartel-redondo-de-pared-bienvenida-iniciales",
-    "medidor-infantil-de-altura-con-riel",
-    "reloj-didactico-infantil-aprende-la-hora",
-    "kit-creativo-de-figuras-para-pintar",
+    "cartel-de-recien-nacido",
+    "letra-plana-14x14",
+    "memotest",
+    "rompecabezas-28x20",
   ]);
   const hogarProducts = bySlug(catalog, [
-    "cuadro-wall-art-geometrico",
-    "velador-tematico-led",
-    "set-portallaves-de-pared-con-llaveros-encajables",
-    "adorno-mural-bicapa-profundidad",
-    "cuadro-calado-artistico",
-    "frase-decorativa-en-mdf-troquelado",
+    "velador-stitch-28x28",
+    "letra-3d-con-luz",
+    "arbol-de-la-vida-30x30",
   ]);
   const eventosProducts = bySlug(catalog, [
-    "centro-de-mesa-tematico",
-    "cake-topper-personalizado-nombre-edad",
-    "caja-calada-multiuso-lapicero-souvenir",
-    "numeros-decorativos-para-cumpleanos-de-decadas",
+    "tateti-tematico",
+    "llavero-personalizado",
   ]);
   const organizadoresProducts = bySlug(catalog, [
-    "organizador-multiuso-de-escritorio",
-    "caja-organizadora-porta-te-con-tapa",
-    "sistema-de-separadores-de-cajon-modulares",
-    "porta-servilletas-decorativo",
-    "porta-llaves-ganchera-rustica-de-cocina",
+    "portallaveros-de-5-ganchos",
+    "arbol-de-la-vida-30x30",
   ]);
 
   return (

@@ -1,5 +1,22 @@
-import type { MaterialRecord, MaterialSubcategory } from "@/features/finance/types";
+import type { MaterialRecord } from "@/features/finance/types";
 import type { MaterialCatalogItem } from "@/features/quotes/types";
+import type {
+  ProductCostAccessory,
+  ProductCostLine,
+  ProductCostLineUnit,
+  ProductCostQuote,
+  ProductCostWood,
+  WoodFaceType,
+} from "@/types/product-pricing";
+
+export type {
+  ProductCostAccessory,
+  ProductCostLine,
+  ProductCostLineUnit,
+  ProductCostQuote,
+  ProductCostWood,
+  WoodFaceType,
+};
 
 export const WOOD_SHEET_WIDTH_CM = 260;
 export const WOOD_SHEET_LENGTH_CM = 183;
@@ -8,64 +25,6 @@ export const WOOD_NATURAL_SHEET_PRICE = 28000;
 export const WOOD_WHITE_FACE_SHEET_PRICE = 40000;
 export const DEFAULT_MACHINE_HOURLY_RATE = 6000;
 export const DEFAULT_LABOR_HOURLY_RATE = 4000;
-
-export type WoodFaceType = "natural" | "white";
-
-export type ProductCostAccessory = {
-  id: string;
-  materialId: string;
-  materialName: string;
-  quantity: number;
-  unitPrice: number;
-  measureType?: "unidad" | "centimetro";
-  amount: number;
-};
-
-export type ProductCostWood = {
-  id: string;
-  quantity?: number;
-  widthCm?: number;
-  lengthCm?: number;
-  face?: WoodFaceType;
-  amount?: number;
-};
-
-export type ProductCostLineUnit = "unidad" | "minuto" | "cm" | "gramo" | "tabla";
-
-export type ProductCostLine = {
-  id: string;
-  kind: "wood" | "catalog" | "custom";
-  catalogType?: MaterialSubcategory;
-  materialId?: string;
-  description: string;
-  quantity: number;
-  unit: ProductCostLineUnit;
-  unitPrice: number;
-  amount: number;
-  widthCm?: number;
-  lengthCm?: number;
-  face?: WoodFaceType;
-};
-
-export type ProductCostQuote = {
-  lines?: ProductCostLine[];
-  woods?: ProductCostWood[];
-  woodQuantity?: number;
-  woodWidthCm?: number;
-  woodLengthCm?: number;
-  woodFace?: WoodFaceType;
-  woodAmount?: number;
-  machineMinutes?: number;
-  machineHourlyRate?: number;
-  machineAmount?: number;
-  laborMinutes?: number;
-  laborHourlyRate?: number;
-  laborAmount?: number;
-  accessories?: ProductCostAccessory[];
-  usesPaint?: boolean;
-  paintAmount?: number;
-  totalAmount?: number;
-};
 
 export function isWoodFaceType(value: unknown): value is WoodFaceType {
   return value === "natural" || value === "white";

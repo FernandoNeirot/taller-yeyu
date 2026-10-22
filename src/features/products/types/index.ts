@@ -1,6 +1,10 @@
-import type { ProductCostQuote } from "../lib/cost-quote";
-import type { ProductQuantityPrice } from "../lib/quantity-prices";
-import type { ProductVariant } from "../lib/variants";
+import type {
+  ProductCostQuote,
+  ProductPackOption,
+  ProductQuantityPrice,
+  ProductVariant,
+} from "@/types/product-pricing";
+import type { PowerSource } from "@/types/product";
 
 export type { Product } from "@/types/product";
 
@@ -16,8 +20,12 @@ export type ProductInput = {
   depthCm: number | null;
   diameterCm: number | null;
   finish: string;
+  thickness: string;
+  hasLighting: boolean;
+  powerSource: PowerSource;
   customizable: boolean;
   price: number | null;
+  packOptions?: ProductPackOption[];
   quantityPrices?: ProductQuantityPrice[];
   variants?: ProductVariant[];
   isActive: boolean;

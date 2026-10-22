@@ -1,6 +1,24 @@
-import type { ProductCostQuote } from "@/features/products/lib/cost-quote";
-import type { ProductQuantityPrice } from "@/features/products/lib/quantity-prices";
-import type { ProductVariant } from "@/features/products/lib/variants";
+import type {
+  ProductCostQuote,
+  ProductPackOption,
+  ProductQuantityPrice,
+  ProductVariant,
+} from "./product-pricing";
+
+export const powerSources = ["pila", "220v", "ninguno"] as const;
+export type PowerSource = (typeof powerSources)[number];
+
+export const powerSourceLabels: Record<PowerSource, string> = {
+  pila: "A pila",
+  "220v": "220V",
+  ninguno: "Sin electricidad",
+};
+
+export function isPowerSource(value: unknown): value is PowerSource {
+  return (
+    typeof value === "string" && (powerSources as readonly string[]).includes(value)
+  );
+}
 
 export interface Product {
   id?: string;
@@ -14,6 +32,10 @@ export interface Product {
   specifications: {
     material: string;
     dimensions: string;
+    /** Espesor del material, ej: "1.5cm". */
+    thickness: string;
+    hasLighting: boolean;
+    powerSource: PowerSource;
     heightCm?: number;
     widthCm?: number;
     depthCm?: number;
@@ -24,6 +46,11 @@ export interface Product {
   featuredImage: string;
   galleryImages: string[];
   price?: number;
+  /**
+   * Formatos de venta por pack (ej: x10, x20, x30), cada uno con su precio final.
+   * Si tiene elementos, el producto se vende solo por packs.
+   */
+  packOptions?: ProductPackOption[];
   quantityPrices?: ProductQuantityPrice[];
   variants?: ProductVariant[];
   isActive: boolean;
@@ -38,22 +65,22 @@ export interface Product {
 
 export const galleryCategories = [
   { id: "todos", label: "Todos los Productos" },
-  { id: "decoracion-hogar", label: "Decoración y Hogar" },
-  { id: "infantil-ninos", label: "Infantil, Juegos y Maternidad" },
-  { id: "eventos-souvenirs", label: "Eventos, Fiestas y Souvenirs" },
-  { id: "organizadores-utilitarios", label: "Organizadores y Utilitarios" },
-  { id: "regalos-especiales", label: "Regalos y Frases Personalizadas" },
+  { id: "souvenirs-y-eventos", label: "Souvenirs y Eventos" },
+  { id: "juegos-didacticos", label: "Juegos Didácticos" },
+  { id: "iluminacion-y-deco", label: "Iluminación y Deco" },
+  { id: "cuadros-y-organizadores", label: "Cuadros y Organizadores" },
+  { id: "infantil-y-bebes", label: "Infantil y Bebés" },
 ] as const;
 
 export type GalleryCategoryId = (typeof galleryCategories)[number]["id"];
 
 export const galleryCategoryLabels: Record<Exclude<GalleryCategoryId, "todos">, string> =
   {
-    "decoracion-hogar": "Decoración y Hogar",
-    "infantil-ninos": "Infantil y Maternidad",
-    "eventos-souvenirs": "Eventos y Souvenirs",
-    "organizadores-utilitarios": "Organizadores",
-    "regalos-especiales": "Regalos",
+    "souvenirs-y-eventos": "Souvenirs y Eventos",
+    "juegos-didacticos": "Juegos Didácticos",
+    "iluminacion-y-deco": "Iluminación y Deco",
+    "cuadros-y-organizadores": "Cuadros y Organizadores",
+    "infantil-y-bebes": "Infantil y Bebés",
   };
 
 export type CatalogCategoryId = Exclude<GalleryCategoryId, "todos">;

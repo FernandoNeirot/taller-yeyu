@@ -11,9 +11,16 @@ import { QuantityPricePicker } from "@/features/products/components/quantity-pri
 import { VariantPricePicker } from "@/features/products/components/variant-price-picker";
 import {
   hasQuantityOffers,
+  offerTiers,
   priceForQuantity,
   purchaseOptions,
 } from "@/features/products/lib/quantity-prices";
+import {
+  hasPackOptions,
+  packOptionLabel,
+  packPricing,
+  packSavingsText,
+} from "@/features/products/lib/packs";
 import { hasVariants, normalizeVariants } from "@/features/products/lib/variants";
 import type { Product } from "@/types/product";
 
@@ -94,10 +101,14 @@ export function AddToCartModal({
     variants.find((option) => option.description === variantDescription) ??
     variants[0] ??
     null;
-  const quantityTier = (selected.quantityPrices ?? []).find(
+  const quantityTier = offerTiers(selected).find(
     (tier) => tier.quantity === (selectedOffer?.quantity ?? quantity),
   );
   const chosenQuantity = selectedOffer?.quantity ?? quantity;
+  const isPack = hasPackOptions(selected);
+  const packInfo = isPack
+    ? packPricing(options).find((option) => option.quantity === chosenQuantity)
+    : undefined;
   const shownPrice = quantityTier
     ? quantityTier.price
     : selectedVariant
@@ -199,20 +210,32 @@ export function AddToCartModal({
                 {formatProductDimensions(product)}
               </p>
             ) : null}
+            {isPack ? (
+              <p className="mt-1 text-xs font-semibold text-on-surface">
+                Formato: {packOptionLabel(chosenQuantity)}
+              </p>
+            ) : null}
             {shownPrice != null ? (
               <p className="mt-1 text-sm font-semibold text-orange-200">
                 {formatProductPrice(shownPrice)}
-                {quantityTier && quantityTier.quantity > 1
-                  ? ` por ${quantityTier.quantity}`
-                  : selectedVariant
-                    ? ` · ${selectedVariant.description}`
-                    : chosenQuantity > 1
-                      ? ` por ${chosenQuantity}`
-                      : ""}
+                {isPack
+                  ? ""
+                  : quantityTier && quantityTier.quantity > 1
+                    ? ` por ${quantityTier.quantity}`
+                    : selectedVariant
+                      ? ` · ${selectedVariant.description}`
+                      : chosenQuantity > 1
+                        ? ` por ${chosenQuantity}`
+                        : ""}
               </p>
             ) : (
               <p className="mt-1 text-xs text-on-surface-variant">Precio a cotizar</p>
             )}
+            {packInfo ? (
+              <p className="mt-0.5 text-xs font-semibold text-primary">
+                {packSavingsText(packInfo)}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -230,6 +253,7 @@ export function AddToCartModal({
             quantity={selectedOffer?.quantity ?? quantity}
             onChange={setQuantity}
             variant="modal"
+            packs={isPack}
           />
         ) : (
           <div className="mt-5">

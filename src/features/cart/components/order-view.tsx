@@ -16,6 +16,7 @@ import {
   orderDiscountAmount,
 } from "@/features/cart/order-quote";
 import { formatProductPrice } from "@/features/products/lib/format-price";
+import { packOptionLabel } from "@/features/products/lib/packs";
 import type { ProductQuantityPrice } from "@/features/products/lib/quantity-prices";
 
 export type OrderViewLine = {
@@ -30,6 +31,8 @@ export type OrderViewLine = {
   offer: number | null;
   unitPrice: number | null;
   quantityPrices: ProductQuantityPrice[];
+  /** El producto se vende solo por packs: `quantity` es la cantidad del pack. */
+  isPack?: boolean;
   missing: boolean;
 };
 
@@ -131,7 +134,10 @@ export function OrderView({
         const price = row.total != null ? formatProductPrice(row.total) : "a cotizar";
         const variant = row.variant ? ` (${row.variant})` : "";
         const notes = row.notes ? `\n   Notas: ${row.notes}` : "";
-        return `• ${row.title}${variant} x${row.quantity} — ${price}${notes}`;
+        const quantity = row.isPack
+          ? packOptionLabel(row.quantity)
+          : `x${row.quantity}`;
+        return `• ${row.title}${variant} ${quantity} — ${price}${notes}`;
       })
       .join("\n");
 
@@ -215,7 +221,29 @@ export function OrderView({
                 <p className="font-semibold text-on-surface">{row.title}</p>
               )}
 
-              {canEdit ? (
+              {canEdit && row.isPack ? (
+                <label className="mt-3 block text-sm text-on-surface-variant">
+                  Formato
+                  <select
+                    value={quantities[index]}
+                    onChange={(event) => {
+                      const next = Number(event.target.value);
+                      setQuantities((current) =>
+                        current.map((quantity, quantityIndex) =>
+                          quantityIndex === index ? next : quantity,
+                        ),
+                      );
+                    }}
+                    className="mt-1 w-40 rounded-lg border border-outline-variant/40 bg-surface px-3 py-2 text-on-surface outline-none focus:border-primary"
+                  >
+                    {row.quantityPrices.map((option) => (
+                      <option key={option.quantity} value={option.quantity}>
+                        {packOptionLabel(option.quantity)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : canEdit ? (
                 <label className="mt-3 block text-sm text-on-surface-variant">
                   Cantidad
                   <input
@@ -236,7 +264,11 @@ export function OrderView({
                   />
                 </label>
               ) : (
-                <p className="mt-1 text-sm text-on-surface-variant">Cantidad: {row.quantity}</p>
+                <p className="mt-1 text-sm text-on-surface-variant">
+                  {row.isPack
+                    ? `Formato: ${packOptionLabel(row.quantity)}`
+                    : `Cantidad: ${row.quantity}`}
+                </p>
               )}
 
               {row.variant ? <p className="mt-1 text-sm text-secondary">{row.variant}</p> : null}

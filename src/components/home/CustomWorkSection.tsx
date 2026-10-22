@@ -14,7 +14,7 @@ export function CustomWorkSection() {
       >
         <MaterialIcon
           name="architecture"
-          className="text-4xl text-primary mb-xs"
+          className="text-4xl! text-primary mb-xs"
         />
         <h2 className="font-headline-md md:font-headline-lg text-headline-md md:text-headline-lg text-on-surface">
           Contanos tu ocasión

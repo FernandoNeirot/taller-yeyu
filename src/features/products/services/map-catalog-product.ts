@@ -1,6 +1,7 @@
 import { type DocumentData } from "firebase-admin/firestore";
-import type { Product } from "@/types/product";
+import { isPowerSource, type Product } from "@/types/product";
 import { mapStoredCostQuote } from "../lib/cost-quote";
+import { normalizePackOptions } from "../lib/packs";
 import { normalizeQuantityPrices } from "../lib/quantity-prices";
 import { normalizeVariants } from "../lib/variants";
 
@@ -33,7 +34,11 @@ export function mapCatalogDoc(
     data.featuredImage ?? data.image ?? "/principal.png",
   );
   const galleryImages = toStringArray(data.galleryImages ?? data.images);
-  const createdAt = data.createdAt?.toDate?.() ?? data.createdAt ?? "";
+  // ISO string: el resultado pasa por la caché de Next, que serializa a JSON.
+  const createdAtDate = data.createdAt?.toDate?.();
+  const createdAt: string = createdAtDate
+    ? createdAtDate.toISOString()
+    : String(data.createdAt ?? "");
   const weightGrams = toPrice(data.weightGrams);
   const packageSize =
     data.dimensions && typeof data.dimensions === "object"
@@ -54,6 +59,11 @@ export function mapCatalogDoc(
     specifications: {
       material: String(specs.material ?? data.material ?? ""),
       dimensions: String(specs.dimensions ?? ""),
+      thickness: String(specs.thickness ?? ""),
+      hasLighting: Boolean(specs.hasLighting),
+      powerSource: isPowerSource(specs.powerSource)
+        ? specs.powerSource
+        : "ninguno",
       heightCm: toPrice(specs.heightCm),
       widthCm: toPrice(specs.widthCm),
       depthCm: toPrice(specs.depthCm),
@@ -64,6 +74,7 @@ export function mapCatalogDoc(
     featuredImage,
     galleryImages: galleryImages.length > 0 ? galleryImages : [featuredImage],
     price: toPrice(data.price),
+    packOptions: normalizePackOptions(data.packOptions),
     quantityPrices: normalizeQuantityPrices(data.quantityPrices),
     variants: normalizeVariants(data.variants),
     costQuote: mapStoredCostQuote(data.costQuote),

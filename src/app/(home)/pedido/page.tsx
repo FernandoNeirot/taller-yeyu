@@ -1,3 +1,5 @@
+import { hasPackOptions } from "@/features/products/lib/packs";
+import { offerTiers } from "@/features/products/lib/quantity-prices";
 import type { Metadata } from "next";
 import { getSession } from "@/features/admin/services/auth";
 import { OrderView, type OrderViewLine } from "@/features/cart/components/order-view";
@@ -26,8 +28,10 @@ function lineFromProduct(product: Product, quantity: number, variant: string, no
     slug: product.slug,
     title: product.title,
     featuredImage: product.featuredImage,
-    price: matchedVariant?.price ?? product.price,
-    quantityPrices: product.quantityPrices,
+    price: hasPackOptions(product)
+      ? undefined
+      : (matchedVariant?.price ?? product.price),
+    quantityPrices: offerTiers(product),
     variantDescription: variant || undefined,
     quantity,
     customNotes: notes,
@@ -66,6 +70,7 @@ export default async function PedidoPage({ searchParams }: PedidoPageProps) {
       offer: line.offer,
       unitPrice: cartItem?.price ?? null,
       quantityPrices: cartItem?.quantityPrices ?? [],
+      isPack: product ? hasPackOptions(product) : false,
       missing: product == null,
     };
   });

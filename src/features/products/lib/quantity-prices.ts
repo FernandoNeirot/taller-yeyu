@@ -1,7 +1,6 @@
-export type ProductQuantityPrice = {
-  quantity: number;
-  price: number;
-};
+import type { ProductQuantityPrice } from "@/types/product-pricing";
+
+export type { ProductQuantityPrice };
 
 function toPositiveNumber(value: unknown) {
   const parsed = typeof value === "number" ? value : Number(value);
@@ -31,10 +30,24 @@ export function normalizeQuantityPrices(
     .sort((a, b) => a.quantity - b.quantity);
 }
 
-export function purchaseOptions(product: {
+type OfferSource = {
   price?: number;
   quantityPrices?: ProductQuantityPrice[];
-}) {
+  packOptions?: ProductQuantityPrice[];
+};
+
+/** Tramos de precio por cantidad: los packs si el producto se vende en packs. */
+export function offerTiers(product: OfferSource): ProductQuantityPrice[] {
+  const packs = normalizeQuantityPrices(product.packOptions);
+  if (packs?.length) return packs;
+  return normalizeQuantityPrices(product.quantityPrices) ?? [];
+}
+
+export function purchaseOptions(product: OfferSource) {
+  // Venta solo por packs: no existe la opción "1 unidad".
+  const packs = normalizeQuantityPrices(product.packOptions);
+  if (packs?.length) return packs;
+
   const tiers = normalizeQuantityPrices(product.quantityPrices) ?? [];
   const options = [...tiers];
   if (
@@ -47,10 +60,8 @@ export function purchaseOptions(product: {
   return options.sort((a, b) => a.quantity - b.quantity);
 }
 
-export function hasQuantityOffers(product: {
-  quantityPrices?: ProductQuantityPrice[];
-}) {
-  return (normalizeQuantityPrices(product.quantityPrices)?.length ?? 0) > 0;
+export function hasQuantityOffers(product: OfferSource) {
+  return offerTiers(product).length > 0;
 }
 
 export function priceForQuantity(

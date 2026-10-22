@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { AddToCartModal } from "@/components/cart/AddToCartModal";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { useCart } from "@/context/CartContext";
+import { hasPackOptions } from "@/features/products/lib/packs";
 import { hasQuantityOffers } from "@/features/products/lib/quantity-prices";
 import { hasVariants } from "@/features/products/lib/variants";
 import type { Product } from "@/types/product";
@@ -26,6 +27,7 @@ export function AddToCartButton({
   const lines = items.filter((item) => item.id === productId);
   const quantity = lines.reduce((sum, item) => sum + item.quantity, 0);
   const usesChoices = hasQuantityOffers(product) || hasVariants(product);
+  const unitWord = hasPackOptions(product) ? "un pack" : "una unidad";
 
   function addOne(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();
@@ -63,7 +65,7 @@ export function AddToCartButton({
         <button
           type="button"
           aria-label={
-            quantity === 1 ? "Quitar del carrito" : "Quitar una unidad"
+            quantity === 1 ? "Quitar del carrito" : `Quitar ${unitWord}`
           }
           onClick={removeOne}
           className="inline-flex items-center justify-center"
@@ -85,7 +87,7 @@ export function AddToCartButton({
         </span>
         <button
           type="button"
-          aria-label="Agregar una unidad"
+          aria-label={`Agregar ${unitWord}`}
           onClick={addOne}
           className="inline-flex items-center justify-center"
           style={{ minWidth: compact ? 32 : 44, minHeight: compact ? 36 : 44 }}

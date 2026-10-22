@@ -13,7 +13,7 @@ type FeaturedCategoryBannerCarouselProps = {
 export function FeaturedCategoryBannerCarousel({
   products,
 }: FeaturedCategoryBannerCarouselProps) {
-  const categoryHref = galleryHref({ categoria: "decoracion-hogar" });
+  const categoryHref = galleryHref({ categoria: "iluminacion-y-deco" });
 
   return (
     <section className="overflow-hidden rounded-3xl border border-outline-variant/30 bg-surface-container-lowest">

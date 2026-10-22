@@ -11,7 +11,7 @@ type FeaturedCategorySlimProps = {
 
 export function FeaturedCategorySlim({ products }: FeaturedCategorySlimProps) {
   const categoryHref = galleryHref({
-    categoria: "organizadores-utilitarios",
+    categoria: "cuadros-y-organizadores",
   });
 
   return (

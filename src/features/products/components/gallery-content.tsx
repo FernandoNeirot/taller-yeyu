@@ -73,7 +73,6 @@ export function GalleryContent({ products }: GalleryContentProps) {
       }),
     [products, selectedCategory, selectedProduct, selectedTopic],
   );
-
   function handleCategoryChange(category: GalleryCategoryId) {
     router.replace(galleryHref({ categoria: category }), { scroll: false });
   }

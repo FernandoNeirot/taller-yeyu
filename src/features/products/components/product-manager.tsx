@@ -1,199 +1,19 @@
 "use client";
 
-import {
-  useActionState,
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from "react";
-import Image from "next/image";
-import { createPortal } from "react-dom";
+import { useActionState, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
-import { MoneyInput, moneyToNumber } from "@/components/ui/money-input";
-import {
-  catalogCategories,
-  topicLabel,
-  type Product,
-} from "@/types/product";
+import type { MaterialCatalogItem } from "@/features/quotes/types";
+import type { Product } from "@/types/product";
 import { deleteProductAction } from "../actions/delete-product";
 import { saveProductAction } from "../actions/save-product";
 import { toggleProductVisibilityAction } from "../actions/toggle-product-visibility";
-import {
-  MAX_PRODUCT_IMAGES,
-  compressImageToWebp,
-  fileToBase64,
-} from "../utils/compress-image";
+import { useProductForm } from "../hooks/use-product-form";
 import { formatProductPrice } from "../lib/format-price";
-import { normalizeQuantityPrices } from "../lib/quantity-prices";
-import { normalizeVariants } from "../lib/variants";
-import { parseProductCreateJson } from "../lib/product-create-json";
+import { normalizeSearch, productId } from "../lib/product-form-state";
 import { ProductDetailModal } from "./product-detail-modal";
-import {
-  CopyProductJsonExampleButton,
-  ProductJsonImport,
-} from "./product-json-import";
-import {
-  ProductCostQuoteFields,
-  costQuoteFormTotal,
-  costQuoteMinutes,
-  costQuoteToForm,
-  emptyCostQuoteForm,
-  type CostQuoteFormState,
-} from "./product-cost-quote";
-import type { MaterialCatalogItem } from "@/features/quotes/types";
-
-type VariantFormRow = {
-  id: string;
-  description: string;
-  price: string;
-};
-
-type QuantityPriceFormRow = {
-  id: string;
-  quantity: string;
-  price: string;
-};
-
-type FormState = {
-  title: string;
-  shortDescription: string;
-  fullDescription: string;
-  categories: string[];
-  topics: string;
-  dimensions: string;
-  heightCm: string;
-  widthCm: string;
-  depthCm: string;
-  diameterCm: string;
-  finish: string;
-  customizable: boolean;
-  hidden: boolean;
-  price: string;
-  quantityPrices: QuantityPriceFormRow[];
-  variants: VariantFormRow[];
-};
-
-function quantityPriceSummary(form: FormState) {
-  return form.quantityPrices
-    .filter((row) => Number(row.quantity) > 0 && moneyToNumber(row.price) > 0)
-    .map(
-      (row) =>
-        `${Number(row.quantity)} a ${formatProductPrice(moneyToNumber(row.price))}`,
-    )
-    .join(" · ");
-}
-
-function newQuantityRow(): QuantityPriceFormRow {
-  const id =
-    typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `qty-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  return { id, quantity: "", price: "" };
-}
-
-function newVariantRow(): VariantFormRow {
-  return {
-    id: newQuantityRow().id,
-    description: "",
-    price: "",
-  };
-}
-
-function variantSummary(form: FormState) {
-  return form.variants
-    .filter((row) => row.description.trim() && moneyToNumber(row.price) > 0)
-    .map(
-      (row) =>
-        `${row.description.trim()} ${formatProductPrice(moneyToNumber(row.price))}`,
-    )
-    .join(" · ");
-}
-
-const emptyForm: FormState = {
-  title: "",
-  shortDescription: "",
-  fullDescription: "",
-  categories: [],
-  topics: "",
-  dimensions: "",
-  heightCm: "",
-  widthCm: "",
-  depthCm: "",
-  diameterCm: "",
-  finish: "",
-  customizable: true,
-  hidden: false,
-  price: "",
-  quantityPrices: [],
-  variants: [],
-};
-
-type FormSectionId =
-  | "basic"
-  | "classify"
-  | "measures"
-  | "price"
-  | "quote"
-  | "photos";
-
-const defaultOpenSections: Record<FormSectionId, boolean> = {
-  basic: true,
-  classify: false,
-  measures: false,
-  price: false,
-  quote: false,
-  photos: false,
-};
-
-function FormSection({
-  id,
-  title,
-  summary,
-  open,
-  onToggle,
-  children,
-}: {
-  id: string;
-  title: string;
-  summary?: string;
-  open: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <section className="rounded-xl border border-outline-variant/30 bg-surface-container-low/40">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={id}
-        onClick={onToggle}
-        className="flex w-full items-center justify-between gap-sm px-4 py-3 text-left"
-      >
-        <span className="min-w-0">
-          <span className="block font-semibold text-on-surface">{title}</span>
-          {!open && summary ? (
-            <span className="mt-0.5 block text-xs text-on-surface-variant">
-              {summary}
-            </span>
-          ) : null}
-        </span>
-        <MaterialIcon name={open ? "expand_less" : "expand_more"} />
-      </button>
-      <div
-        id={id}
-        hidden={!open}
-        className={open ? "flex flex-col gap-sm px-4 pb-4" : undefined}
-      >
-        {children}
-      </div>
-    </section>
-  );
-}
+import { fieldClassName } from "./product-form-ui";
+import { ProductForm } from "./product-form";
+import { CopyProductJsonExampleButton } from "./product-json-import";
 
 type VisibilityFilter = "all" | "visible" | "hidden";
 
@@ -202,62 +22,6 @@ const visibilityFilters: { id: VisibilityFilter; label: string }[] = [
   { id: "visible", label: "Visibles" },
   { id: "hidden", label: "Ocultos" },
 ];
-
-const fieldClassName =
-  "w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary";
-
-function productId(product: Product) {
-  return product.id ?? product.slug;
-}
-
-function normalizeSearch(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .trim();
-}
-
-function productToForm(product: Product): FormState {
-  return {
-    title: product.title,
-    shortDescription: product.shortDescription,
-    fullDescription: product.fullDescription,
-    categories: product.categories,
-    topics: product.topics.map(topicLabel).join(", "),
-    dimensions: product.specifications.dimensions,
-    heightCm:
-      product.specifications.heightCm != null
-        ? String(product.specifications.heightCm)
-        : "",
-    widthCm:
-      product.specifications.widthCm != null
-        ? String(product.specifications.widthCm)
-        : "",
-    depthCm:
-      product.specifications.depthCm != null
-        ? String(product.specifications.depthCm)
-        : "",
-    diameterCm:
-      product.specifications.diameterCm != null
-        ? String(product.specifications.diameterCm)
-        : "",
-    finish: product.specifications.finish,
-    customizable: product.specifications.customizable,
-    hidden: !product.isActive,
-    price: product.price == null ? "" : String(product.price),
-    quantityPrices: (product.quantityPrices ?? []).map((tier) => ({
-      id: newQuantityRow().id,
-      quantity: String(tier.quantity),
-      price: String(tier.price),
-    })),
-    variants: (product.variants ?? []).map((option) => ({
-      id: newQuantityRow().id,
-      description: option.description,
-      price: String(option.price),
-    })),
-  };
-}
 
 export function ProductManager({
   products: initialList,
@@ -270,25 +34,8 @@ export function ProductManager({
   const [query, setQuery] = useState("");
   const [visibilityFilter, setVisibilityFilter] =
     useState<VisibilityFilter>("all");
-  const [formOpen, setFormOpen] = useState(false);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [costQuote, setCostQuote] =
-    useState<CostQuoteFormState>(emptyCostQuoteForm);
-  const [openSections, setOpenSections] = useState(defaultOpenSections);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [existingImages, setExistingImages] = useState<string[]>([]);
-  const [newFiles, setNewFiles] = useState<{ preview: string; base64: string }[]>(
-    [],
-  );
-  const [imageError, setImageError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const formTitleId = useId();
-  const isClient = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
+  const form = useProductForm({ accessories });
   const [state, action, pending] = useActionState(saveProductAction, null);
   const [deleteState, deleteAction, deletePending] = useActionState(
     deleteProductAction,
@@ -301,10 +48,6 @@ export function ProductManager({
   const [prevState, setPrevState] = useState(state);
   const [prevDeleteState, setPrevDeleteState] = useState(deleteState);
   const [prevVisibilityState, setPrevVisibilityState] = useState(visibilityState);
-
-  const remainingSlots = MAX_PRODUCT_IMAGES - existingImages.length - newFiles.length;
-  const quoteTotal = costQuoteFormTotal(costQuote, accessories);
-  const quoteMinutes = costQuoteMinutes(costQuote);
 
   const visibilityCounts = useMemo(() => {
     const hidden = products.filter((product) => !product.isActive).length;
@@ -328,6 +71,7 @@ export function ProductManager({
     );
   }, [products, query, visibilityFilter]);
 
+  // Reacciona a los resultados de los server actions (patrón "state derivado del render").
   if (state !== prevState) {
     setPrevState(state);
     const saved = state?.product;
@@ -340,16 +84,7 @@ export function ProductManager({
           : [...prev, saved];
         return [...next].sort((a, b) => a.title.localeCompare(b.title, "es"));
       });
-      setForm(emptyForm);
-      setCostQuote(emptyCostQuoteForm);
-      setEditingId(null);
-      setExistingImages([]);
-      setNewFiles((current) => {
-        current.forEach((file) => URL.revokeObjectURL(file.preview));
-        return [];
-      });
-      setImageError("");
-      setFormOpen(false);
+      form.close();
     }
   }
 
@@ -358,18 +93,7 @@ export function ProductManager({
     const deletedId = deleteState?.deletedId;
     if (deletedId) {
       setProducts((prev) => prev.filter((item) => productId(item) !== deletedId));
-      if (editingId === deletedId) {
-        setForm(emptyForm);
-        setCostQuote(emptyCostQuoteForm);
-        setEditingId(null);
-        setExistingImages([]);
-        setNewFiles((current) => {
-          current.forEach((file) => URL.revokeObjectURL(file.preview));
-          return [];
-        });
-        setImageError("");
-        setFormOpen(false);
-      }
+      if (form.editingId === deletedId) form.close();
       if (previewProduct && productId(previewProduct) === deletedId) {
         setPreviewProduct(null);
       }
@@ -385,898 +109,12 @@ export function ProductManager({
           productId(item) === productId(updated) ? updated : item,
         ),
       );
-      if (editingId === productId(updated)) {
-        setForm(productToForm(updated));
-      }
+      form.syncEditedProduct(updated);
       if (previewProduct && productId(previewProduct) === productId(updated)) {
         setPreviewProduct(updated);
       }
     }
   }
-
-  const resetFormFields = useCallback(() => {
-    setForm(emptyForm);
-    setCostQuote(emptyCostQuoteForm);
-    setOpenSections(defaultOpenSections);
-    setEditingId(null);
-    setExistingImages([]);
-    setNewFiles((current) => {
-      current.forEach((file) => URL.revokeObjectURL(file.preview));
-      return [];
-    });
-    setImageError("");
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }, []);
-
-  const resetForm = useCallback(() => {
-    resetFormFields();
-    setFormOpen(false);
-  }, [resetFormFields]);
-
-  useEffect(() => {
-    return () => {
-      newFiles.forEach((file) => URL.revokeObjectURL(file.preview));
-    };
-  }, [newFiles]);
-
-  useEffect(() => {
-    if (!formOpen) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [formOpen]);
-
-  useEffect(() => {
-    if (!formOpen) return;
-    function onKey(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      if (document.querySelector("[data-price-calculator]")) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      resetForm();
-    }
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [formOpen, resetForm]);
-
-  function startCreate() {
-    resetFormFields();
-    setPreviewProduct(null);
-    setFormOpen(true);
-  }
-
-  function applyProductJson(raw: string) {
-    const { product, warnings } = parseProductCreateJson(raw);
-    const quoteWarnings = [...warnings];
-    const quote = product.costQuote;
-    const nextQuote = quote
-      ? costQuoteToForm({
-          woods: quote.woods.flatMap((wood) => {
-            const quantity = Number(wood.quantity);
-            const widthCm = Number(wood.widthCm);
-            const lengthCm = Number(wood.lengthCm);
-            if (!wood.face && !quantity && !widthCm && !lengthCm) return [];
-            return [
-              {
-                id: newQuantityRow().id,
-                quantity: quantity || undefined,
-                widthCm: widthCm || undefined,
-                lengthCm: lengthCm || undefined,
-                face: wood.face || undefined,
-              },
-            ];
-          }),
-          machineMinutes: Number(quote.machineMinutes) || undefined,
-          machineHourlyRate: Number(quote.machineHourlyRate) || undefined,
-          laborMinutes: Number(quote.laborMinutes) || undefined,
-          laborHourlyRate: Number(quote.laborHourlyRate) || undefined,
-          accessories: quote.accessories.flatMap((row) => {
-            const material = accessories.find((item) => {
-              if (row.materialId && item.id === row.materialId) return true;
-              const name = normalizeSearch(row.materialName);
-              return Boolean(name) && normalizeSearch(item.name) === name;
-            });
-            if (!material) {
-              const label = row.materialName || row.materialId;
-              quoteWarnings.push(`No encontré el accesorio "${label}".`);
-              return [];
-            }
-            const quantity = Number(row.quantity) || 0;
-            return [
-              {
-                id: newQuantityRow().id,
-                materialId: material.id,
-                materialName: material.name,
-                quantity,
-                unitPrice: material.unitPrice ?? 0,
-                measureType: material.measureType,
-                amount: quantity * (material.unitPrice ?? 0),
-              },
-            ];
-          }),
-          usesPaint: quote.usesPaint,
-          paintAmount: Number(quote.paintAmount) || undefined,
-        })
-      : emptyCostQuoteForm;
-
-    setForm({
-      title: product.title,
-      shortDescription: product.shortDescription,
-      fullDescription: product.fullDescription,
-      categories: product.categories,
-      topics: product.topics,
-      dimensions: product.dimensions,
-      heightCm: product.heightCm,
-      widthCm: product.widthCm,
-      depthCm: product.depthCm,
-      diameterCm: product.diameterCm,
-      finish: product.finish,
-      customizable: product.customizable,
-      hidden: product.hidden,
-      price: product.price,
-      quantityPrices: product.quantityPrices.map((row) => ({
-        id: newQuantityRow().id,
-        quantity: row.quantity,
-        price: row.price,
-      })),
-      variants: product.variants.map((row) => ({
-        id: newQuantityRow().id,
-        description: row.description,
-        price: row.price,
-      })),
-    });
-    setCostQuote(nextQuote);
-    setOpenSections({
-      basic: true,
-      classify: true,
-      measures: true,
-      price: true,
-      quote: quote != null,
-      photos: true,
-    });
-    return quoteWarnings;
-  }
-
-  function toggleSection(id: FormSectionId) {
-    setOpenSections((current) => ({
-      ...current,
-      [id]: !current[id],
-    }));
-  }
-
-  function startEdit(product: Product) {
-    setForm(productToForm(product));
-    setCostQuote(costQuoteToForm(product.costQuote));
-    setOpenSections({
-      ...defaultOpenSections,
-      price: Boolean(product.quantityPrices?.length || product.variants?.length),
-      quote: Boolean(product.costQuote),
-    });
-    setEditingId(productId(product));
-    setExistingImages(product.galleryImages.slice(0, MAX_PRODUCT_IMAGES));
-    setNewFiles((current) => {
-      current.forEach((file) => URL.revokeObjectURL(file.preview));
-      return [];
-    });
-    setImageError("");
-    setPreviewProduct(null);
-    setFormOpen(true);
-  }
-
-  function toggleCategory(categoryId: string) {
-    setForm((current) => ({
-      ...current,
-      categories: current.categories.includes(categoryId)
-        ? current.categories.filter((item) => item !== categoryId)
-        : [...current.categories, categoryId],
-    }));
-  }
-
-  async function onSelectImages(files: FileList | null) {
-    if (!files?.length) return;
-
-    const incoming = Array.from(files).slice(0, remainingSlots);
-    try {
-      const compressed = await Promise.all(incoming.map(compressImageToWebp));
-      const next = await Promise.all(
-        compressed.map(async (file) => ({
-          preview: URL.createObjectURL(file),
-          base64: await fileToBase64(file),
-        })),
-      );
-      setNewFiles((prev) => [...prev, ...next]);
-      setImageError("");
-    } catch (error) {
-      setImageError(
-        error instanceof Error
-          ? error.message
-          : "No se pudieron optimizar las imágenes.",
-      );
-    }
-
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }
-
-  function removeExisting(index: number) {
-    setExistingImages((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function removeNew(index: number) {
-    setNewFiles((prev) => {
-      URL.revokeObjectURL(prev[index].preview);
-      return prev.filter((_, i) => i !== index);
-    });
-  }
-
-  const formModal =
-    formOpen && isClient
-      ? createPortal(
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              width: "100vw",
-              height: "100dvh",
-              zIndex: 2147483646,
-              background: "rgba(0, 0, 0, 0.8)",
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "center",
-              padding: "24px 16px",
-              overflowY: "auto",
-            }}
-          >
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby={formTitleId}
-              className="rounded-2xl border border-outline-variant/30 bg-surface-container"
-              style={{
-                width: "100%",
-                maxWidth: "40rem",
-                marginTop: "auto",
-                marginBottom: "auto",
-                boxSizing: "border-box",
-                padding: 24,
-              }}
-            >
-              <div className="mb-md flex items-start justify-between gap-sm">
-                <h2
-                  id={formTitleId}
-                  className="font-headline-md text-headline-md text-on-surface"
-                >
-                  {editingId ? "Editar producto" : "Crear producto"}
-                </h2>
-                <button
-                  type="button"
-                  aria-label="Cerrar"
-                  onClick={resetForm}
-                  className="touch-target inline-flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface"
-                  style={{ minHeight: 44, minWidth: 44, flexShrink: 0 }}
-                >
-                  <MaterialIcon name="close" />
-                </button>
-              </div>
-
-              <form action={action} className="flex flex-col gap-sm">
-                {state?.error ? (
-                  <div className="rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
-                    {state.error}
-                  </div>
-                ) : null}
-                {imageError ? (
-                  <div className="rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
-                    {imageError}
-                  </div>
-                ) : null}
-                {editingId ? null : (
-                  <ProductJsonImport onApply={applyProductJson} />
-                )}
-
-                {editingId ? (
-                  <input type="hidden" name="id" value={editingId} />
-                ) : null}
-                {existingImages.map((url) => (
-                  <input
-                    key={url}
-                    type="hidden"
-                    name="existingImages"
-                    value={url}
-                  />
-                ))}
-                {form.categories.map((category) => (
-                  <input
-                    key={category}
-                    type="hidden"
-                    name="categories"
-                    value={category}
-                  />
-                ))}
-
-                <FormSection
-                  id="product-section-basic"
-                  title="Datos básicos"
-                  summary={form.title.trim() || "Título y descripciones"}
-                  open={openSections.basic}
-                  onToggle={() => toggleSection("basic")}
-                >
-                  <label className="flex flex-col gap-xs">
-                    <span className="text-sm text-on-surface-variant">Título</span>
-                    <input
-                      name="title"
-                      required
-                      value={form.title}
-                      onChange={(event) =>
-                        setForm({ ...form, title: event.target.value })
-                      }
-                      className={fieldClassName}
-                      style={{ width: "100%" }}
-                    />
-                  </label>
-                  <label className="flex flex-col gap-xs">
-                    <span className="text-sm text-on-surface-variant">
-                      Descripción corta
-                    </span>
-                    <textarea
-                      name="shortDescription"
-                      rows={2}
-                      value={form.shortDescription}
-                      onChange={(event) =>
-                        setForm({ ...form, shortDescription: event.target.value })
-                      }
-                      className={fieldClassName}
-                      style={{ width: "100%" }}
-                    />
-                  </label>
-                  <label className="flex flex-col gap-xs">
-                    <span className="text-sm text-on-surface-variant">
-                      Descripción
-                    </span>
-                    <textarea
-                      name="fullDescription"
-                      required
-                      rows={4}
-                      value={form.fullDescription}
-                      onChange={(event) =>
-                        setForm({ ...form, fullDescription: event.target.value })
-                      }
-                      className={fieldClassName}
-                      style={{ width: "100%" }}
-                    />
-                  </label>
-                </FormSection>
-
-                <FormSection
-                  id="product-section-classify"
-                  title="Clasificación"
-                  summary={
-                    [
-                      form.categories.length
-                        ? `${form.categories.length} ${
-                            form.categories.length === 1
-                              ? "categoría"
-                              : "categorías"
-                          }`
-                        : "Sin categorías",
-                      form.topics.trim() || null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")
-                  }
-                  open={openSections.classify}
-                  onToggle={() => toggleSection("classify")}
-                >
-                  <fieldset className="flex flex-col gap-xs">
-                    <legend className="text-sm text-on-surface-variant">
-                      Categorías
-                    </legend>
-                    <div className="flex flex-col gap-xs">
-                      {catalogCategories.map((category) => (
-                        <label
-                          key={category.id}
-                          className="inline-flex items-center gap-xs"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={form.categories.includes(category.id)}
-                            onChange={() => toggleCategory(category.id)}
-                          />
-                          <span className="text-on-surface">{category.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-                  <label className="flex flex-col gap-xs">
-                    <span className="text-sm text-on-surface-variant">
-                      Temáticas (separadas por coma)
-                    </span>
-                    <input
-                      name="topics"
-                      value={form.topics}
-                      placeholder="infantil, personajes, iluminacion"
-                      onChange={(event) =>
-                        setForm({ ...form, topics: event.target.value })
-                      }
-                      className={fieldClassName}
-                      style={{ width: "100%" }}
-                    />
-                  </label>
-                </FormSection>
-
-                <input type="hidden" name="dimensions" value={form.dimensions} />
-                <FormSection
-                  id="product-section-measures"
-                  title="Medidas y acabado"
-                  summary={
-                    [
-                      form.heightCm && `Alto ${form.heightCm}`,
-                      form.widthCm && `Ancho ${form.widthCm}`,
-                      form.depthCm && `Prof. ${form.depthCm}`,
-                      form.diameterCm && `Diám. ${form.diameterCm}`,
-                      form.finish.trim() || null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ") || "Sin medidas"
-                  }
-                  open={openSections.measures}
-                  onToggle={() => toggleSection("measures")}
-                >
-                  <fieldset className="flex flex-col gap-xs">
-                    <legend className="text-sm text-on-surface-variant">
-                      Medidas (cm)
-                    </legend>
-                    <div className="grid grid-cols-2 gap-sm">
-                      <label className="flex flex-col gap-xs">
-                        <span className="text-sm text-on-surface-variant">
-                          Alto
-                        </span>
-                        <input
-                          name="heightCm"
-                          inputMode="decimal"
-                          value={form.heightCm}
-                          placeholder="Opcional"
-                          onChange={(event) =>
-                            setForm({ ...form, heightCm: event.target.value })
-                          }
-                          className={fieldClassName}
-                          style={{ width: "100%" }}
-                        />
-                      </label>
-                      <label className="flex flex-col gap-xs">
-                        <span className="text-sm text-on-surface-variant">
-                          Ancho
-                        </span>
-                        <input
-                          name="widthCm"
-                          inputMode="decimal"
-                          value={form.widthCm}
-                          placeholder="Opcional"
-                          onChange={(event) =>
-                            setForm({ ...form, widthCm: event.target.value })
-                          }
-                          className={fieldClassName}
-                          style={{ width: "100%" }}
-                        />
-                      </label>
-                      <label className="flex flex-col gap-xs">
-                        <span className="text-sm text-on-surface-variant">
-                          Profundo
-                        </span>
-                        <input
-                          name="depthCm"
-                          inputMode="decimal"
-                          value={form.depthCm}
-                          placeholder="Opcional"
-                          onChange={(event) =>
-                            setForm({ ...form, depthCm: event.target.value })
-                          }
-                          className={fieldClassName}
-                          style={{ width: "100%" }}
-                        />
-                      </label>
-                      <label className="flex flex-col gap-xs">
-                        <span className="text-sm text-on-surface-variant">
-                          Diámetro
-                        </span>
-                        <input
-                          name="diameterCm"
-                          inputMode="decimal"
-                          value={form.diameterCm}
-                          placeholder="Opcional"
-                          onChange={(event) =>
-                            setForm({ ...form, diameterCm: event.target.value })
-                          }
-                          className={fieldClassName}
-                          style={{ width: "100%" }}
-                        />
-                      </label>
-                    </div>
-                  </fieldset>
-                  <label className="flex flex-col gap-xs">
-                    <span className="text-sm text-on-surface-variant">
-                      Acabado
-                    </span>
-                    <input
-                      name="finish"
-                      value={form.finish}
-                      onChange={(event) =>
-                        setForm({ ...form, finish: event.target.value })
-                      }
-                      className={fieldClassName}
-                      style={{ width: "100%" }}
-                    />
-                  </label>
-                </FormSection>
-
-                <FormSection
-                  id="product-section-price"
-                  title="Precio y publicación"
-                  summary={
-                    [
-                      variantSummary(form) ||
-                        quantityPriceSummary(form) ||
-                        (form.price
-                          ? formatProductPrice(Number(form.price) || 0)
-                          : "Sin precio"),
-                      form.hidden ? "Oculto" : "Visible",
-                    ].join(" · ")
-                  }
-                  open={openSections.price}
-                  onToggle={() => toggleSection("price")}
-                >
-                  <label className="flex flex-col gap-xs">
-                    <span className="text-sm text-on-surface-variant">Precio</span>
-                    <MoneyInput
-                      name="price"
-                      value={form.price}
-                      onChange={(value) => setForm({ ...form, price: value })}
-                    />
-                  </label>
-                  <div className="flex flex-col gap-sm">
-                    <div>
-                      <p className="text-sm text-on-surface">Precios por cantidad</p>
-                      <p className="text-xs text-on-surface-variant">
-                        El precio es el total de esa cantidad. Por ejemplo, 4 a
-                        $8.000, 8 a $14.000 y 12 a $18.000.
-                      </p>
-                    </div>
-                    {form.quantityPrices.map((row) => (
-                      <div
-                        key={row.id}
-                        className="grid gap-sm sm:grid-cols-[7rem_1fr_auto]"
-                      >
-                        <label className="flex flex-col gap-xs">
-                          <span className="text-sm text-on-surface-variant">
-                            Cantidad
-                          </span>
-                          <input
-                            inputMode="numeric"
-                            value={row.quantity}
-                            onChange={(event) => {
-                              const quantity = event.target.value.replace(
-                                /\D/g,
-                                "",
-                              );
-                              setForm({
-                                ...form,
-                                quantityPrices: form.quantityPrices.map((item) =>
-                                  item.id === row.id ? { ...item, quantity } : item,
-                                ),
-                              });
-                            }}
-                            className={fieldClassName}
-                          />
-                        </label>
-                        <label className="flex flex-col gap-xs">
-                          <span className="text-sm text-on-surface-variant">
-                            Precio
-                          </span>
-                          <MoneyInput
-                            value={row.price}
-                            onChange={(value) =>
-                              setForm({
-                                ...form,
-                                quantityPrices: form.quantityPrices.map((item) =>
-                                  item.id === row.id ? { ...item, price: value } : item,
-                                ),
-                              })
-                            }
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          aria-label="Quitar cantidad"
-                          onClick={() =>
-                            setForm({
-                              ...form,
-                              quantityPrices: form.quantityPrices.filter(
-                                (item) => item.id !== row.id,
-                              ),
-                            })
-                          }
-                          className="inline-flex h-11 items-center justify-center self-end rounded-lg px-3 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-                        >
-                          <MaterialIcon name="delete" />
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setForm({
-                          ...form,
-                          quantityPrices: [...form.quantityPrices, newQuantityRow()],
-                        })
-                      }
-                      className="inline-flex w-fit items-center gap-1 rounded-lg px-2 py-2 text-sm text-primary hover:bg-primary/10"
-                    >
-                      <MaterialIcon name="add" className="text-base" />
-                      Agregar cantidad
-                    </button>
-                    <input
-                      type="hidden"
-                      name="quantityPrices"
-                      value={JSON.stringify(
-                        normalizeQuantityPrices(
-                          form.quantityPrices.map((row) => ({
-                            quantity: Number(row.quantity),
-                            price: moneyToNumber(row.price),
-                          })),
-                        ) ?? [],
-                      )}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-sm">
-                    <div>
-                      <p className="text-sm text-on-surface">Variantes</p>
-                      <p className="text-xs text-on-surface-variant">
-                        Cada opción lleva una descripción y su precio. Por
-                        ejemplo, Pintado y Sin pintar. Si también hay un precio
-                        por cantidad, al elegir esa cantidad se usa ese total.
-                      </p>
-                    </div>
-                    {form.variants.map((row) => (
-                      <div
-                        key={row.id}
-                        className="grid gap-sm sm:grid-cols-[1fr_11rem_auto]"
-                      >
-                        <label className="flex flex-col gap-xs">
-                          <span className="text-sm text-on-surface-variant">
-                            Descripción
-                          </span>
-                          <input
-                            value={row.description}
-                            onChange={(event) =>
-                              setForm({
-                                ...form,
-                                variants: form.variants.map((item) =>
-                                  item.id === row.id
-                                    ? { ...item, description: event.target.value }
-                                    : item,
-                                ),
-                              })
-                            }
-                            className={fieldClassName}
-                          />
-                        </label>
-                        <label className="flex flex-col gap-xs">
-                          <span className="text-sm text-on-surface-variant">
-                            Precio
-                          </span>
-                          <MoneyInput
-                            value={row.price}
-                            onChange={(value) =>
-                              setForm({
-                                ...form,
-                                variants: form.variants.map((item) =>
-                                  item.id === row.id ? { ...item, price: value } : item,
-                                ),
-                              })
-                            }
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          aria-label="Quitar variante"
-                          onClick={() =>
-                            setForm({
-                              ...form,
-                              variants: form.variants.filter(
-                                (item) => item.id !== row.id,
-                              ),
-                            })
-                          }
-                          className="inline-flex h-11 items-center justify-center self-end rounded-lg px-3 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-                        >
-                          <MaterialIcon name="delete" />
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setForm({
-                          ...form,
-                          variants: [...form.variants, newVariantRow()],
-                        })
-                      }
-                      className="inline-flex w-fit items-center gap-1 rounded-lg px-2 py-2 text-sm text-primary hover:bg-primary/10"
-                    >
-                      <MaterialIcon name="add" className="text-base" />
-                      Agregar variante
-                    </button>
-                    <input
-                      type="hidden"
-                      name="variants"
-                      value={JSON.stringify(
-                        normalizeVariants(
-                          form.variants.map((row) => ({
-                            description: row.description,
-                            price: moneyToNumber(row.price),
-                          })),
-                        ) ?? [],
-                      )}
-                    />
-                  </div>
-                  <div className="flex flex-wrap gap-md">
-                    <label className="inline-flex items-center gap-xs">
-                      <input
-                        name="customizable"
-                        type="checkbox"
-                        checked={form.customizable}
-                        onChange={(event) =>
-                          setForm({ ...form, customizable: event.target.checked })
-                        }
-                      />
-                      <span className="text-on-surface">Personalizable</span>
-                    </label>
-                    <label className="inline-flex items-center gap-xs">
-                      <input
-                        name="hidden"
-                        type="checkbox"
-                        checked={form.hidden}
-                        onChange={(event) =>
-                          setForm({ ...form, hidden: event.target.checked })
-                        }
-                      />
-                      <span className="text-on-surface">
-                        Ocultar de la galería
-                      </span>
-                    </label>
-                  </div>
-                </FormSection>
-
-                <FormSection
-                  id="product-section-quote"
-                  title="Cotizador"
-                  summary={
-                    [
-                      quoteTotal > 0 ? formatProductPrice(quoteTotal) : null,
-                      quoteMinutes > 0 ? `${quoteMinutes} min` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ") || "Sin costo"
-                  }
-                  open={openSections.quote}
-                  onToggle={() => toggleSection("quote")}
-                >
-                  <ProductCostQuoteFields
-                    value={costQuote}
-                    onChange={setCostQuote}
-                    materials={accessories}
-                  />
-                </FormSection>
-
-                <FormSection
-                  id="product-section-photos"
-                  title="Fotos"
-                  summary={`${existingImages.length + newFiles.length}/${MAX_PRODUCT_IMAGES} fotos`}
-                  open={openSections.photos}
-                  onToggle={() => toggleSection("photos")}
-                >
-                  <div className="grid grid-cols-3 gap-sm">
-                    {existingImages.map((url, index) => (
-                      <div
-                        key={url}
-                        className="relative aspect-square overflow-hidden rounded-lg bg-surface-container-low"
-                      >
-                        <Image
-                          src={url}
-                          alt=""
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeExisting(index)}
-                          className="absolute top-1 right-1 h-7 w-7 rounded-full bg-black/70 text-white"
-                          aria-label="Quitar imagen"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                    {newFiles.map((file) => (
-                      <div
-                        key={file.preview}
-                        className="relative aspect-square overflow-hidden rounded-lg bg-surface-container-low"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={file.preview}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            removeNew(
-                              newFiles.findIndex(
-                                (item) => item.preview === file.preview,
-                              ),
-                            )
-                          }
-                          className="absolute top-1 right-1 h-7 w-7 rounded-full bg-black/70 text-white"
-                          aria-label="Quitar imagen"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  {remainingSlots > 0 ? (
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={(event) => onSelectImages(event.target.files)}
-                      className={fieldClassName}
-                      style={{ width: "100%" }}
-                    />
-                  ) : null}
-                  {newFiles.map((file) => (
-                    <input
-                      key={file.preview}
-                      type="hidden"
-                      name="imageBase64"
-                      value={file.base64}
-                    />
-                  ))}
-                </FormSection>
-
-                <div className="flex gap-sm mt-sm">
-                  <button
-                    type="submit"
-                    disabled={pending}
-                    className="flex-1 rounded-lg bg-primary-container px-6 py-3 text-white font-label-caps text-label-caps tracking-widest uppercase hover:bg-secondary-container transition-colors disabled:opacity-50"
-                  >
-                    {pending
-                      ? "Guardando..."
-                      : editingId
-                        ? "Guardar cambios"
-                        : "Crear producto"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="rounded-lg border border-outline-variant/40 px-4 py-3 text-on-surface-variant font-label-caps text-label-caps tracking-widest uppercase"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>,
-          document.body,
-        )
-      : null;
 
   return (
     <section>
@@ -1289,7 +127,10 @@ export function ProductManager({
             <CopyProductJsonExampleButton />
             <button
               type="button"
-              onClick={startCreate}
+              onClick={() => {
+                setPreviewProduct(null);
+                form.startCreate();
+              }}
               className="inline-flex items-center justify-center gap-1 rounded-lg bg-primary-container px-4 py-3 text-white font-label-caps text-label-caps tracking-widest uppercase hover:bg-secondary-container transition-colors"
             >
               <MaterialIcon
@@ -1403,7 +244,7 @@ export function ProductManager({
                 <div
                   key={id}
                   className={
-                    id === editingId && formOpen
+                    id === form.editingId && form.isOpen
                       ? "rounded-xl border border-primary/40 bg-primary/10 p-sm"
                       : "rounded-xl border border-outline-variant/20 bg-surface-container-low p-sm"
                   }
@@ -1432,6 +273,16 @@ export function ProductManager({
                           .map(
                             (option) =>
                               `${option.description} ${formatProductPrice(option.price)}`,
+                          )
+                          .join(" · ")}
+                      </p>
+                    ) : null}
+                    {product.packOptions?.length ? (
+                      <p className="mt-1 text-sm text-on-surface-variant">
+                        {product.packOptions
+                          .map(
+                            (option) =>
+                              `Pack x${option.quantity} ${formatProductPrice(option.price)}`,
                           )
                           .join(" · ")}
                       </p>
@@ -1501,7 +352,10 @@ export function ProductManager({
                     </form>
                     <button
                       type="button"
-                      onClick={() => startEdit(product)}
+                      onClick={() => {
+                        setPreviewProduct(null);
+                        form.startEdit(product);
+                      }}
                       className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10"
                       aria-label={`Editar ${product.title}`}
                       title="Editar"
@@ -1539,7 +393,13 @@ export function ProductManager({
         )}
       </article>
 
-      {formModal}
+      <ProductForm
+        controller={form}
+        accessories={accessories}
+        action={action}
+        pending={pending}
+        serverError={state?.error}
+      />
 
       {previewProduct ? (
         <ProductDetailModal

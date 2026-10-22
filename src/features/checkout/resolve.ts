@@ -7,10 +7,11 @@ import {
 } from "@/features/products/lib/logistics";
 import { formatProductDimensions } from "@/features/products/lib/measures";
 import {
-  hasQuantityOffers,
-  normalizeQuantityPrices,
+  offerTiers,
+  priceForQuantity,
 } from "@/features/products/lib/quantity-prices";
 import { normalizeVariants } from "@/features/products/lib/variants";
+import { hasPackOptions } from "@/features/products/lib/packs";
 import { getProducts } from "@/features/products/services/get-products";
 import type {
   CheckoutItemInput,
@@ -61,16 +62,22 @@ export async function resolveCheckoutItems(
       (option) => option.description === String(raw.variantDescription ?? "").trim(),
     );
 
+    // Packs: la cantidad tiene que ser exactamente uno de los formatos publicados.
+    const tiers = offerTiers(product);
+    const pack = hasPackOptions(product) ? priceForQuantity(tiers, quantity) : null;
+    if (hasPackOptions(product) && !pack) {
+      throw new Error(`El pack elegido de "${product.title}" ya no está disponible.`);
+    }
+
     items.push({
       id: product.id ?? product.slug,
       slug: product.slug,
       title: product.title,
       featuredImage: product.featuredImage,
-      price: variant?.price ?? product.price,
-      quantityPrices: hasQuantityOffers(product)
-        ? normalizeQuantityPrices(product.quantityPrices)
-        : undefined,
+      price: pack ? undefined : (variant?.price ?? product.price),
+      quantityPrices: tiers.length > 0 ? tiers : undefined,
       variantDescription: variant?.description,
+      selectedPack: pack ? { quantity: pack.quantity, price: pack.price } : undefined,
       quantity,
       customNotes: notes,
       customizable: product.specifications.customizable,

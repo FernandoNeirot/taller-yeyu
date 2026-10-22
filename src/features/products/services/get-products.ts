@@ -3,7 +3,7 @@ import {
   type CollectionReference,
   type QuerySnapshot,
 } from "firebase-admin/firestore";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache, updateTag } from "next/cache";
 import { initialProducts } from "@/data/initialProducts";
 import {
   PRODUCTS_COLLECTION,
@@ -11,16 +11,8 @@ import {
 } from "@/lib/firebase-admin";
 import { catalogCategories, type Product } from "@/types/product";
 import type { ProductInput } from "../types";
+import { normalizePackOptions } from "../lib/packs";
 import { mapCatalogDoc } from "./map-catalog-product";
-import {
-  getCachedProducts,
-  getStaleCachedProducts,
-  isProductCacheFresh,
-  peekCachedProduct,
-  removeCachedProduct,
-  replaceProductCache,
-  upsertCachedProduct,
-} from "./product-cache";
 import { deleteProductImages } from "./upload-product-images";
 
 const catalogCategoryIds = new Set<string>(
@@ -51,7 +43,18 @@ export function isCatalogCategory(value: unknown): value is string {
   return typeof value === "string" && catalogCategoryIds.has(value);
 }
 
+/** Etiqueta de la caché de Next que comparten todas las lecturas del catálogo. */
+export const PRODUCTS_CACHE_TAG = "products";
+
+/** Red de seguridad por si Firestore se edita por fuera de la app. */
+const PRODUCTS_CACHE_REVALIDATE_SECONDS = 60 * 60;
+
+/**
+ * Invalida la caché del catálogo y las páginas que lo muestran.
+ * Solo se llama desde Server Actions, tras una mutación exitosa.
+ */
 function revalidateCatalog() {
+  updateTag(PRODUCTS_CACHE_TAG);
   revalidatePath("/", "layout");
   revalidatePath("/galeria");
   revalidatePath("/producto", "layout");
@@ -64,6 +67,8 @@ function toFirestorePayload(input: ProductInput, images: string[]) {
   const shortDescription = input.shortDescription.trim() || fullDescription;
   const galleryImages = images.filter(Boolean);
   const categories = input.categories.filter(isCatalogCategory);
+  const packOptions = normalizePackOptions(input.packOptions) ?? [];
+  const hasPacks = packOptions.length > 0;
   const measures = {
     ...(input.heightCm != null ? { heightCm: input.heightCm } : {}),
     ...(input.widthCm != null ? { widthCm: input.widthCm } : {}),
@@ -94,13 +99,20 @@ function toFirestorePayload(input: ProductInput, images: string[]) {
       dimensions: input.dimensions.trim(),
       ...measures,
       finish: input.finish.trim(),
+      thickness: input.thickness.trim(),
+      hasLighting: input.hasLighting,
+      powerSource: input.powerSource,
       customizable: input.customizable,
     },
     featuredImage: galleryImages[0] ?? "/principal.png",
     galleryImages,
-    price: input.price,
-    quantityPrices: input.quantityPrices?.length ? input.quantityPrices : null,
-    variants: input.variants?.length ? input.variants : null,
+    // Con packs, el precio base es el del pack más chico y no hay precios
+    // por cantidad ni variantes: los packs son la única forma de compra.
+    price: hasPacks ? packOptions[0].price : input.price,
+    packOptions: hasPacks ? packOptions : null,
+    quantityPrices:
+      !hasPacks && input.quantityPrices?.length ? input.quantityPrices : null,
+    variants: !hasPacks && input.variants?.length ? input.variants : null,
     costQuote: input.costQuote
       ? (JSON.parse(JSON.stringify(input.costQuote)) as typeof input.costQuote)
       : null,
@@ -117,7 +129,7 @@ function mapSnapshotProducts(snapshot: QuerySnapshot): Product[] {
     .sort((a, b) => a.title.localeCompare(b.title, "es"));
 }
 
-function toSeedDoc(product: Product) {
+export function toSeedDoc(product: Product) {
   return {
     slug: product.slug,
     title: product.title,
@@ -125,10 +137,16 @@ function toSeedDoc(product: Product) {
     fullDescription: product.fullDescription,
     categories: product.categories,
     topics: product.topics,
-    specifications: product.specifications,
+    specifications: JSON.parse(JSON.stringify(product.specifications)),
     featuredImage: product.featuredImage,
     galleryImages: product.galleryImages,
     price: product.price ?? null,
+    packOptions: product.packOptions ?? null,
+    quantityPrices: product.quantityPrices ?? null,
+    variants: product.variants ?? null,
+    costQuote: product.costQuote
+      ? (JSON.parse(JSON.stringify(product.costQuote)) as typeof product.costQuote)
+      : null,
     isActive: product.isActive,
     available: product.isActive,
     weightGrams: product.weightGrams ?? null,
@@ -180,34 +198,32 @@ async function loadProductsFromFirebase(): Promise<Product[]> {
     await markCatalogInitialized(collection);
   }
 
-  replaceProductCache(mapSnapshotProducts(snapshot));
-  return getCachedProducts() ?? [];
+  return mapSnapshotProducts(snapshot);
 }
 
-let inflightProducts: Promise<Product[]> | null = null;
+/**
+ * Lectura cacheada con la Data Cache de Next (compartida entre instancias, a
+ * diferencia de una variable de módulo). Se invalida con `revalidateCatalog()`.
+ */
+const getCachedProducts = unstable_cache(
+  loadProductsFromFirebase,
+  ["catalog-products"],
+  {
+    tags: [PRODUCTS_CACHE_TAG],
+    revalidate: PRODUCTS_CACHE_REVALIDATE_SECONDS,
+  },
+);
 
 export async function getProducts(): Promise<Product[]> {
-  const cached = getCachedProducts();
-  if (cached) return cached;
-
-  if (!inflightProducts) {
-    inflightProducts = loadProductsFromFirebase()
-      .catch((error) => {
-        console.error("No se pudieron leer los productos de Firestore.", error);
-        return getStaleCachedProducts() ?? [];
-      })
-      .finally(() => {
-        inflightProducts = null;
-      });
+  try {
+    return await getCachedProducts();
+  } catch (error) {
+    console.error("No se pudieron leer los productos de Firestore.", error);
+    return [];
   }
-
-  return inflightProducts;
 }
 
 async function getProductForMutation(id: string) {
-  const cached = peekCachedProduct(id);
-  if (cached) return cached;
-
   const existing = await getAdminFirestore()
     .collection(PRODUCTS_COLLECTION)
     .doc(id)
@@ -223,17 +239,10 @@ export async function createProduct(input: ProductInput, images: string[]) {
     throw new Error("El título no es válido.");
   }
 
-  if (peekCachedProduct(payload.slug)) {
-    throw new Error("Ya existe un producto con ese título.");
-  }
-
   const collection = getAdminFirestore().collection(PRODUCTS_COLLECTION);
-
-  if (!isProductCacheFresh()) {
-    const existing = await collection.doc(payload.slug).get();
-    if (existing.exists) {
-      throw new Error("Ya existe un producto con ese título.");
-    }
+  const existing = await collection.doc(payload.slug).get();
+  if (existing.exists) {
+    throw new Error("Ya existe un producto con ese título.");
   }
 
   await collection.doc(payload.slug).set({
@@ -246,6 +255,7 @@ export async function createProduct(input: ProductInput, images: string[]) {
     id: payload.slug,
     ...payload,
     price: payload.price ?? undefined,
+    packOptions: payload.packOptions ?? undefined,
     quantityPrices: payload.quantityPrices ?? undefined,
     variants: payload.variants ?? undefined,
     costQuote: payload.costQuote ?? undefined,
@@ -253,7 +263,6 @@ export async function createProduct(input: ProductInput, images: string[]) {
     createdAt: new Date().toISOString(),
   } satisfies Product;
 
-  upsertCachedProduct(product);
   revalidateCatalog();
   return product;
 }
@@ -270,6 +279,9 @@ export async function updateProduct(
     throw new Error("El producto no existe.");
   }
 
+  // El formulario no edita el material: conservar el que ya tenía el producto.
+  payload.specifications.material = current.specifications.material;
+
   await getAdminFirestore().collection(PRODUCTS_COLLECTION).doc(id).update({
     ...payload,
     updatedAt: FieldValue.serverTimestamp(),
@@ -279,6 +291,7 @@ export async function updateProduct(
     id,
     ...payload,
     price: payload.price ?? undefined,
+    packOptions: payload.packOptions ?? undefined,
     quantityPrices: payload.quantityPrices ?? undefined,
     variants: payload.variants ?? undefined,
     costQuote: payload.costQuote ?? undefined,
@@ -286,7 +299,6 @@ export async function updateProduct(
     createdAt: current.createdAt,
   } satisfies Product;
 
-  upsertCachedProduct(product);
   revalidateCatalog();
   return product;
 }
@@ -304,7 +316,6 @@ export async function setProductActive(id: string, isActive: boolean) {
   });
 
   const product = { ...current, isActive };
-  upsertCachedProduct(product);
   revalidateCatalog();
   return product;
 }
@@ -323,7 +334,6 @@ export async function deleteProduct(id: string) {
     throw new Error("No se pudo eliminar el producto de Firebase.");
   }
 
-  removeCachedProduct(id);
   revalidateCatalog();
 
   return id;

@@ -1,7 +1,15 @@
 import { cartLineTotal } from "@/features/cart/totals";
 import { buildOrderSelection, buildOrderUrl } from "@/features/cart/order-link";
 import { formatProductPrice } from "@/features/products/lib/format-price";
+import { packOptionLabel } from "@/features/products/lib/packs";
 import type { CartItem, ShippingOption } from "@/features/cart/types";
+
+/** "x2" para piezas sueltas; "Pack x20" para productos por pack. */
+function quantityText(item: CartItem) {
+  return item.selectedPack
+    ? packOptionLabel(item.selectedPack.quantity)
+    : `x${item.quantity}`;
+}
 
 export function buildCartWhatsAppMessage(input: {
   items: CartItem[];
@@ -20,7 +28,7 @@ export function buildCartWhatsAppMessage(input: {
       : item.customizable
         ? "\n   Notas: requiere cotización especial de diseño"
         : "";
-    return `• ${item.title}${item.variantDescription ? ` (${item.variantDescription})` : ""} x${item.quantity} (${item.specificationsDimensions || "medidas a confirmar"}) — ${price}${notes}`;
+    return `• ${item.title}${item.variantDescription ? ` (${item.variantDescription})` : ""} ${quantityText(item)} (${item.specificationsDimensions || "medidas a confirmar"}) — ${price}${notes}`;
   });
 
   const shippingLine = input.shipping

@@ -15,7 +15,7 @@ export function FeaturedCategoryGrid({
   products,
   topics,
 }: FeaturedCategoryGridProps) {
-  const categoryHref = galleryHref({ categoria: "eventos-souvenirs" });
+  const categoryHref = galleryHref({ categoria: "souvenirs-y-eventos" });
 
   return (
     <section className="rounded-3xl border border-tertiary/30 bg-surface-container p-3 md:p-lg">
@@ -37,7 +37,7 @@ export function FeaturedCategoryGrid({
           <Link
             key={topic.id}
             href={galleryHref({
-              categoria: "eventos-souvenirs",
+              categoria: "souvenirs-y-eventos",
               topic: topic.id,
             })}
             className="touch-target inline-flex items-center justify-center rounded-full border border-tertiary/50 px-4 font-label-caps text-label-caps tracking-widest text-tertiary hover:bg-tertiary/10"

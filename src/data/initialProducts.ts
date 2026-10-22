@@ -1,6 +1,16 @@
+import {
+  DEFAULT_LABOR_HOURLY_RATE,
+  DEFAULT_MACHINE_HOURLY_RATE,
+  computeAccessoryAmount,
+  computeCostQuoteTotal,
+  computeMachineAmount,
+  computeWoodAmount,
+  type ProductCostQuote,
+  type WoodFaceType,
+} from "@/features/products/lib/cost-quote";
 import type { Product } from "@/types/product";
 
-const PLACEHOLDER_IMAGE = "/principal.png";
+const PLACEHOLDER_IMAGE = "https://via.placeholder.com/500";
 const CREATED_AT = "2026-09-14";
 
 type SeedProduct = Omit<
@@ -18,501 +28,492 @@ function createProduct(product: SeedProduct): Product {
     ...product,
     id: product.slug,
     featuredImage: image,
-    galleryImages: product.galleryImages ?? [image],
+    galleryImages: product.galleryImages ?? [image, image],
     isActive: true,
     createdAt: CREATED_AT,
   };
 }
 
+type SeedCostQuote = {
+  wood: { widthCm: number; lengthCm: number; quantity?: number; face: WoodFaceType };
+  machineMinutes: number;
+  laborMinutes: number;
+  accessories?: { name: string; quantity: number; unitPrice: number }[];
+  paintAmount?: number;
+};
+
+/** Arma un costQuote con los importes calculados igual que el cotizador. */
+function createCostQuote(input: SeedCostQuote): ProductCostQuote {
+  const woodAmount = computeWoodAmount({
+    quantity: input.wood.quantity ?? 1,
+    widthCm: input.wood.widthCm,
+    lengthCm: input.wood.lengthCm,
+    face: input.wood.face,
+  });
+  const machineAmount = computeMachineAmount({
+    minutes: input.machineMinutes,
+    hourlyRate: DEFAULT_MACHINE_HOURLY_RATE,
+  });
+  const laborAmount = computeMachineAmount({
+    minutes: input.laborMinutes,
+    hourlyRate: DEFAULT_LABOR_HOURLY_RATE,
+  });
+  const quote: ProductCostQuote = {
+    woods: [
+      {
+        id: "wood-1",
+        quantity: input.wood.quantity ?? 1,
+        widthCm: input.wood.widthCm,
+        lengthCm: input.wood.lengthCm,
+        face: input.wood.face,
+        amount: woodAmount,
+      },
+    ],
+    woodAmount,
+    machineMinutes: input.machineMinutes,
+    machineHourlyRate: DEFAULT_MACHINE_HOURLY_RATE,
+    machineAmount,
+    laborMinutes: input.laborMinutes,
+    laborHourlyRate: DEFAULT_LABOR_HOURLY_RATE,
+    laborAmount,
+    accessories: (input.accessories ?? []).map((item, index) => ({
+      id: `accessory-${index + 1}`,
+      materialId: `seed-${index + 1}`,
+      materialName: item.name,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      measureType: "unidad" as const,
+      amount: computeAccessoryAmount(item.quantity, item.unitPrice),
+    })),
+    usesPaint: Boolean(input.paintAmount),
+    paintAmount: input.paintAmount,
+  };
+  quote.totalAmount = computeCostQuoteTotal(quote);
+  return quote;
+}
+
 export const initialProducts: Product[] = [
+  // ── Souvenirs y Eventos ──────────────────────────────────────────────
   createProduct({
-    title: "Velador Temático LED",
-    slug: "velador-tematico-led",
+    title: "Tateti Temático",
+    slug: "tateti-tematico",
     shortDescription:
-      "Velador calado con silueta de personaje o figura a elección e iluminación LED interior.",
+      "Tateti de MDF con fichas temáticas a elección, ideal como souvenir o regalo.",
     fullDescription:
-      "Velador calado con silueta de personaje o figura a elección. Diseñado en espesor de 2 cm para albergar tiras o luces LED interiores, creando una iluminación ambiental cálida y mágica.",
-    categories: ["decoracion-hogar", "infantil-ninos", "regalos-especiales"],
-    topics: ["infantil", "personajes", "iluminacion"],
-    specifications: {
-      material: "MDF 18/20mm + calado MDF 3mm",
-      dimensions: "20x20 cm aprox.",
-      finish: "Barnizado / Pintado",
-      customizable: true,
-    },
-    galleryImages: ["/principal.png", "/og.png"],
-    price: 22500,
-  }),
-  createProduct({
-    title: "Kit Creativo de Figuras para Pintar",
-    slug: "kit-creativo-de-figuras-para-pintar",
-    shortDescription:
-      "Set didáctico con figuras de MDF listas para colorear e incluir paleta o fibras.",
-    fullDescription:
-      "Set didáctico e interactivo que incluye varias figuras en MDF de diferentes tamaños listas para colorear. Incluye paleta de acuarelas o fibras para estimular la creatividad.",
-    categories: ["infantil-ninos", "regalos-especiales"],
-    topics: ["actividades-infantiles", "arte", "cumpleanos"],
+      "Tablero de tateti calado en MDF con fichas temáticas a elección (personajes, deportes, animales). Se entrega pintado y listo para jugar. Ideal como souvenir de cumpleaños o regalo de egreso.",
+    categories: ["souvenirs-y-eventos"],
+    topics: ["souvenirs", "cumpleanos", "juegos"],
     specifications: {
       material: "MDF 3mm",
-      dimensions: "Figuras de 5 a 15 cm",
-      finish: "MDF Crudo blanco de lijado fino",
-      customizable: false,
+      dimensions: "15x15 cm",
+      thickness: "3mm",
+      hasLighting: false,
+      powerSource: "ninguno",
+      heightCm: 15,
+      widthCm: 15,
+      finish: "Pintado a mano",
+      customizable: true,
     },
+    price: 32000,
+    packOptions: [
+      { quantity: 10, price: 32000 },
+      { quantity: 20, price: 60000 },
+      { quantity: 30, price: 84000 },
+    ],
+    weightGrams: 180,
+    dimensions: { heightCm: 15, widthCm: 15, lengthCm: 1 },
+    costQuote: createCostQuote({
+      wood: { widthCm: 15, lengthCm: 15, face: "natural" },
+      machineMinutes: 6,
+      laborMinutes: 10,
+      accessories: [{ name: "Bolsita de presentación", quantity: 1, unitPrice: 150 }],
+      paintAmount: 400,
+    }),
   }),
   createProduct({
-    title: "Llaveros Personalizados",
-    slug: "llaveros-personalizados",
+    title: "Llavero Personalizado",
+    slug: "llavero-personalizado",
     shortDescription:
-      "Llaveros calados o grabados con nombres, formas o logos para recuerdos y merchandising.",
+      "Llaveros calados o grabados con nombre, forma o logo, en packs de 10, 20 o 30.",
     fullDescription:
-      "Llaveros calados o grabados con nombres, formas o logos. Ideal para recuerdos masivos o regalos corporativos.",
-    categories: ["eventos-souvenirs", "regalos-especiales"],
+      "Llaveros en MDF calados o grabados con nombres, formas o logos. Se venden en packs de 10, 20 o 30 unidades, con mejor precio por unidad a mayor cantidad. Incluyen argolla metálica. Ideal para souvenirs masivos, regalos corporativos o merchandising.",
+    categories: ["souvenirs-y-eventos"],
     topics: ["souvenirs", "merchandising", "personalizado"],
     specifications: {
-      material: "MDF 3mm o Acrílico",
-      dimensions: "5x5 cm aprox.",
+      material: "MDF 3mm",
+      dimensions: "5x5 cm c/u",
+      thickness: "3mm",
+      hasLighting: false,
+      powerSource: "ninguno",
+      heightCm: 5,
+      widthCm: 5,
       finish: "Grabado láser",
       customizable: true,
     },
-  }),
-  createProduct({
-    title: "Set Portallaves de Pared con Llaveros Encajables",
-    slug: "set-portallaves-de-pared-con-llaveros-encajables",
-    shortDescription:
-      "Placa de pared para colgar llaves con llaveros individuales de formas encajables.",
-    fullDescription:
-      "Placa decorativa de pared para colgar llaves que incluye llaveros individuales con formas encajables (pareja, familia o formas geométricas).",
-    categories: ["decoracion-hogar", "organizadores-utilitarios"],
-    topics: ["hogar", "organización", "familia"],
-    specifications: {
-      material: "MDF 6mm (base) + 3mm (llaveros)",
-      dimensions: "20x15 cm",
-      finish: "Encastre de precisión",
-      customizable: true,
-    },
-  }),
-  createProduct({
-    title: "Caja Multiuso con Frases Emotivas",
-    slug: "caja-multiuso-con-frases-emotivas",
-    shortDescription:
-      "Caja calada con tapa grabada con mensajes emotivos o frase personalizada.",
-    fullDescription:
-      "Caja calada con tapas grabadas con mensajes como 'Feliz Cumpleaños', 'Te Amo', 'Juntos a la Par' o frase personalizada a elección.",
-    categories: ["regalos-especiales", "eventos-souvenirs"],
-    topics: ["amor", "cumpleanos", "frases"],
-    specifications: {
-      material: "MDF 3mm",
-      dimensions: "15x15x10 cm",
-      finish: "Cierre de encastre perfecto",
-      customizable: true,
-    },
-  }),
-  createProduct({
-    title: "Caja Calada Multiuso (Lapicero / Souvenir)",
-    slug: "caja-calada-multiuso-lapicero-souvenir",
-    shortDescription:
-      "Cajita versátil con frente calado, disponible en tamaño souvenir o lapicero.",
-    fullDescription:
-      "Cajita versátil con la cara frontal calada según el evento o uso. Disponible en dos tamaños (Chico para souvenir / Grande para lapicero de escritorio).",
-    categories: [
-      "eventos-souvenirs",
-      "organizadores-utilitarios",
-      "infantil-ninos",
+    price: 18000,
+    packOptions: [
+      { quantity: 10, price: 18000 },
+      { quantity: 20, price: 33000 },
+      { quantity: 30, price: 45000 },
     ],
-    topics: ["souvenirs", "escritorio", "candy-bar"],
+    weightGrams: 120,
+    dimensions: { heightCm: 6, widthCm: 12, lengthCm: 6 },
+    costQuote: createCostQuote({
+      wood: { widthCm: 25, lengthCm: 20, face: "natural" },
+      machineMinutes: 20,
+      laborMinutes: 15,
+      accessories: [{ name: "Argolla para llavero", quantity: 10, unitPrice: 120 }],
+    }),
+  }),
+
+  createProduct({
+    title: "Portaretrato Souvenir para Foto 6x6",
+    slug: "portaretrato-souvenir-6x6",
+    shortDescription:
+      "Portaretrato de MDF para foto de 6x6 cm, ideal como souvenir de eventos.",
+    fullDescription:
+      "Portaretrato calado en MDF para foto de 6x6 cm, con apoyo trasero para que se sostenga solo. Se personaliza con el nombre, la fecha o una frase del evento. Ideal como souvenir de cumpleaños, bautismos, comuniones y casamientos; se vende en packs de 10, 20 o 50 unidades con descuento por cantidad.",
+    categories: ["souvenirs-y-eventos"],
+    topics: ["portaretrato", "souvenirs", "fotos", "personalizado"],
     specifications: {
       material: "MDF 3mm",
-      dimensions: "Chico (7x7x7 cm) / Grande (10x10x12 cm)",
-      finish: "Encastrable",
+      dimensions: "10x10 cm (foto de 6x6 cm)",
+      thickness: "3mm",
+      hasLighting: false,
+      powerSource: "ninguno",
+      heightCm: 10,
+      widthCm: 10,
+      finish: "Pintado / Grabado láser",
       customizable: true,
     },
+    price: 25000,
+    packOptions: [
+      { quantity: 10, price: 25000 },
+      { quantity: 20, price: 47000 },
+      { quantity: 50, price: 110000 },
+    ],
+    weightGrams: 60,
+    dimensions: { heightCm: 10, widthCm: 10, lengthCm: 3 },
+    costQuote: createCostQuote({
+      wood: { widthCm: 10, lengthCm: 20, face: "natural" },
+      machineMinutes: 5,
+      laborMinutes: 8,
+      accessories: [
+        { name: "Vidrio / acetato 6x6", quantity: 1, unitPrice: 150 },
+        { name: "Bolsita de presentación", quantity: 1, unitPrice: 150 },
+      ],
+      paintAmount: 250,
+    }),
+  }),
+
+  // ── Juegos Didácticos ────────────────────────────────────────────────
+  createProduct({
+    title: "Rompecabezas 28x20",
+    slug: "rompecabezas-28x20",
+    shortDescription:
+      "Rompecabezas de MDF con la imagen o nombre que elijas, 28x20 cm.",
+    fullDescription:
+      "Rompecabezas de MDF impreso con la imagen, foto o nombre que elijas. Piezas troqueladas con terminación suave, pensado para estimular la motricidad y la concentración. Se entrega en bolsa de tela.",
+    categories: ["juegos-didacticos"],
+    topics: ["didactico", "infantil", "personalizado"],
+    specifications: {
+      material: "MDF 3mm",
+      dimensions: "28x20 cm",
+      thickness: "3mm",
+      hasLighting: false,
+      powerSource: "ninguno",
+      heightCm: 20,
+      widthCm: 28,
+      finish: "Impresión full color + barniz",
+      customizable: true,
+    },
+    price: 9500,
+    weightGrams: 250,
+    dimensions: { heightCm: 20, widthCm: 28, lengthCm: 1 },
+    costQuote: createCostQuote({
+      wood: { widthCm: 28, lengthCm: 20, face: "white" },
+      machineMinutes: 15,
+      laborMinutes: 20,
+      accessories: [
+        { name: "Impresión adhesiva", quantity: 1, unitPrice: 900 },
+        { name: "Bolsa de tela", quantity: 1, unitPrice: 600 },
+      ],
+    }),
   }),
   createProduct({
-    title: "Cuadro Calado Artístico",
-    slug: "cuadro-calado-artistico",
+    title: "Memotest",
+    slug: "memotest",
     shortDescription:
-      "Cuadro de diseño moderno calado en alta precisión para paredes de living o dormitorio.",
+      "Juego de memoria de MDF con fichas ilustradas y caja contenedora.",
     fullDescription:
-      "Cuadro de diseño moderno calado en alta precisión. Perfecto para dar vida y estilo a paredes de livings, dormitorios o pasillos.",
-    categories: ["decoracion-hogar"],
-    topics: ["arte", "living", "minimalista"],
+      "Memotest de 24 fichas de MDF ilustradas con la temática que prefieras (animales, personajes, letras o números). Incluye caja calada para guardarlo. Ayuda a trabajar memoria y atención.",
+    categories: ["juegos-didacticos"],
+    topics: ["didactico", "infantil", "memoria"],
     specifications: {
-      material: "MDF 3mm / 6mm",
-      dimensions: "30x40 cm",
-      finish: "Pintura negra mate / madera natural",
+      material: "MDF 3mm",
+      dimensions: "Fichas de 5x5 cm (24 u.)",
+      thickness: "3mm",
+      hasLighting: false,
+      powerSource: "ninguno",
+      heightCm: 5,
+      widthCm: 5,
+      finish: "Impresión full color + barniz",
+      customizable: true,
+    },
+    price: 11000,
+    weightGrams: 320,
+    dimensions: { heightCm: 6, widthCm: 22, lengthCm: 16 },
+    costQuote: createCostQuote({
+      wood: { widthCm: 40, lengthCm: 30, face: "white" },
+      machineMinutes: 25,
+      laborMinutes: 25,
+      accessories: [{ name: "Impresión adhesiva", quantity: 1, unitPrice: 1200 }],
+    }),
+  }),
+
+  // ── Iluminación y Deco ───────────────────────────────────────────────
+  createProduct({
+    title: "Velador Stitch 28x28",
+    slug: "velador-stitch-28x28",
+    shortDescription:
+      "Velador calado con la silueta de Stitch e iluminación LED interior.",
+    fullDescription:
+      "Velador calado con la silueta de Stitch en capas de MDF, con luz LED cálida interior que crea una iluminación ambiental suave. Funciona con transformador a 220V y cable de 1,5 m con interruptor.",
+    categories: ["iluminacion-y-deco"],
+    topics: ["iluminacion", "personajes", "infantil"],
+    specifications: {
+      material: "MDF 3mm + base MDF 18mm",
+      dimensions: "28x28 cm",
+      thickness: "2cm",
+      hasLighting: true,
+      powerSource: "220v",
+      heightCm: 28,
+      widthCm: 28,
+      depthCm: 2,
+      finish: "Pintado a mano",
       customizable: false,
     },
+    price: 24500,
+    weightGrams: 600,
+    dimensions: { heightCm: 28, widthCm: 28, lengthCm: 5 },
+    costQuote: createCostQuote({
+      wood: { widthCm: 60, lengthCm: 40, face: "natural" },
+      machineMinutes: 35,
+      laborMinutes: 60,
+      accessories: [
+        { name: "Tira LED cálida", quantity: 1, unitPrice: 2200 },
+        { name: "Transformador 12V + cable", quantity: 1, unitPrice: 3800 },
+      ],
+      paintAmount: 1500,
+    }),
   }),
   createProduct({
-    title: "Portarretrato Calado para Fotos",
-    slug: "portarretrato-calado-para-fotos",
+    title: "Letra 3D con Luz",
+    slug: "letra-3d-con-luz",
     shortDescription:
-      "Portarretrato de sobremesa o pared para fotos familiares o de mascotas.",
+      "Letra 3D de MDF con luz LED interior a pila, para escritorio o cuarto.",
     fullDescription:
-      "Portarretrato de sobremesa o pared diseñado para fotos familiares o con temática de mascotas (huellitas, nombres calados).",
-    categories: ["decoracion-hogar", "regalos-especiales"],
-    topics: ["familia", "mascotas", "recuerdos"],
+      "Letra 3D en MDF con luz LED cálida en su interior, a elección (inicial de nombre o símbolo). Funciona a pila, sin cables, y se apoya sobre cualquier superficie. Ideal para cuartos infantiles, escritorios o regalos.",
+    categories: ["iluminacion-y-deco"],
+    topics: ["iluminacion", "letras", "personalizado"],
     specifications: {
-      material: "MDF 3mm superpuesto",
-      dimensions: "Para fotos 10x15 cm o 13x18 cm",
-      finish: "Ensamblado bicapa",
+      material: "MDF 3mm + 18mm",
+      dimensions: "20x14x5 cm aprox.",
+      thickness: "5cm",
+      hasLighting: true,
+      powerSource: "pila",
+      heightCm: 20,
+      widthCm: 14,
+      depthCm: 5,
+      finish: "Pintado / Barnizado",
       customizable: true,
     },
-  }),
-  createProduct({
-    title: "Frase Decorativa en MDF Troquelado",
-    slug: "frase-decorativa-en-mdf-troquelado",
-    shortDescription:
-      "Palabras o frases caladas en tipografías cursivas o modernas para pared o repisa.",
-    fullDescription:
-      "Palabras o frases caladas en tipografías cursivas o modernas para pegar en la pared o apoyar en repisas.",
-    categories: ["decoracion-hogar"],
-    topics: ["frases", "tipografia", "hogar"],
-    specifications: {
-      material: "MDF 5mm o 6mm",
-      dimensions: "Ancho de 40 cm a 80 cm",
-      finish: "Pintado o crudo",
-      customizable: true,
-    },
-  }),
-  createProduct({
-    title: "Cartel Redondo de Pared (Bienvenida / Iniciales)",
-    slug: "cartel-redondo-de-pared-bienvenida-iniciales",
-    shortDescription:
-      "Círculo calado con nombre, inicial o 'Bienvenidos' y temática personalizada.",
-    fullDescription:
-      "Círculo calado con nombre, inicial o la palabra 'Bienvenidos' con temática personalizada (animales, botánico, estrellas).",
-    categories: [
-      "infantil-ninos",
-      "decoracion-hogar",
-      "eventos-souvenirs",
+    price: 14500,
+    variants: [
+      { description: "Luz cálida", price: 14500 },
+      { description: "Luz RGB con control", price: 17500 },
     ],
-    topics: ["maternidad", "bebes", "bienvenida"],
-    specifications: {
-      material: "MDF 3mm / 6mm",
-      dimensions: "28 x 28 cm",
-      finish: "Superposición de capas",
-      customizable: true,
-    },
+    weightGrams: 350,
+    dimensions: { heightCm: 20, widthCm: 14, lengthCm: 5 },
+    costQuote: createCostQuote({
+      wood: { widthCm: 40, lengthCm: 30, face: "natural" },
+      machineMinutes: 25,
+      laborMinutes: 40,
+      accessories: [
+        { name: "Tira LED a pila", quantity: 1, unitPrice: 1800 },
+        { name: "Portapilas con interruptor", quantity: 1, unitPrice: 900 },
+      ],
+      paintAmount: 800,
+    }),
   }),
+
+  // ── Cuadros y Organizadores ──────────────────────────────────────────
   createProduct({
-    title: "Centro de Mesa Temático",
-    slug: "centro-de-mesa-tematico",
+    title: "Árbol de la Vida 30x30",
+    slug: "arbol-de-la-vida-30x30",
     shortDescription:
-      "Estructura auto-portante para comuniones, bodas, 15 años o cumpleaños infantiles.",
+      "Cuadro calado de un árbol de la vida en capas de MDF, 30x30 cm.",
     fullDescription:
-      "Estructura auto-portante para encastrar con bases estables. Diseños adaptados para comuniones, bodas, 15 años o cumpleaños infantiles.",
-    categories: ["eventos-souvenirs"],
-    topics: ["comunion", "cumpleanos", "casamientos", "fiestas"],
+      "Cuadro decorativo calado con diseño de árbol de la vida, armado en capas de MDF para generar profundidad. Se cuelga con ojal trasero. Combina con cualquier ambiente y es un regalo clásico.",
+    categories: ["cuadros-y-organizadores"],
+    topics: ["cuadros", "hogar", "regalos"],
     specifications: {
-      material: "MDF 3mm",
-      dimensions: "20 a 25 cm de alto",
-      finish: "Desmontable para fácil transporte",
-      customizable: true,
-    },
-  }),
-  createProduct({
-    title: "Cuadro Wall Art Geométrico",
-    slug: "cuadro-wall-art-geometrico",
-    shortDescription:
-      "Paneles calados con patrones geométricos y abstractos para paredes principales.",
-    fullDescription:
-      "Paneles calados con patrones geométricos y abstractos, ideales para aportar textura y sombras a paredes principales.",
-    categories: ["decoracion-hogar"],
-    topics: ["geometrico", "moderno", "living"],
-    specifications: {
-      material: "MDF 6mm",
-      dimensions: "40x60 cm",
-      finish: "Negro mate o satinado",
-      customizable: false,
-    },
-  }),
-  createProduct({
-    title: "Cuadro 3D con Panel Frontal y Relieve",
-    slug: "cuadro-3d-con-panel-frontal-y-relieve",
-    shortDescription:
-      "Obra en relieve con fondo, panel frontal calado y separadores internos.",
-    fullDescription:
-      "Obra en relieve compuesta por fondo, panel frontal calado y separadores internos que generan un efecto tridimensional.",
-    categories: ["decoracion-hogar"],
-    topics: ["arte-3d", "capas", "profundidad"],
-    specifications: {
-      material: "MDF 3mm multidensa",
+      material: "MDF 3mm (2 capas) + fondo 5mm",
       dimensions: "30x30 cm",
-      finish: "Armado multicapa",
+      thickness: "1.5cm",
+      hasLighting: false,
+      powerSource: "ninguno",
+      heightCm: 30,
+      widthCm: 30,
+      depthCm: 1.5,
+      finish: "Pintado / Madera natural",
       customizable: false,
     },
+    price: 13500,
+    weightGrams: 400,
+    dimensions: { heightCm: 30, widthCm: 30, lengthCm: 2 },
+    costQuote: createCostQuote({
+      wood: { widthCm: 30, lengthCm: 60, face: "natural" },
+      machineMinutes: 30,
+      laborMinutes: 30,
+      accessories: [{ name: "Ojal para colgar", quantity: 1, unitPrice: 100 }],
+      paintAmount: 700,
+    }),
   }),
   createProduct({
-    title: "Caja Organizadora Porta Té con Tapa",
-    slug: "caja-organizadora-porta-te-con-tapa",
+    title: "Portallaveros de 5 Ganchos",
+    slug: "portallaveros-de-5-ganchos",
     shortDescription:
-      "Caja con compartimentos internos y tapa calada para saquitos de té.",
+      "Portallaveros de pared de MDF con 5 ganchos metálicos.",
     fullDescription:
-      "Caja organizadora con compartimentos internos y tapa calada decorativa para guardar saquitos de té ordenadamente.",
-    categories: ["organizadores-utilitarios", "decoracion-hogar"],
-    topics: ["cocina", "organización", "te"],
+      "Portallaveros de pared en MDF calado con 5 ganchos metálicos. Se fija con tarugos o cinta de doble contacto. Mantiene llaves, correas y accesorios ordenados en la entrada de casa.",
+    categories: ["cuadros-y-organizadores"],
+    topics: ["organizadores", "hogar", "utilitarios"],
+    specifications: {
+      material: "MDF 9mm",
+      dimensions: "30x10 cm",
+      thickness: "9mm",
+      hasLighting: false,
+      powerSource: "ninguno",
+      heightCm: 10,
+      widthCm: 30,
+      depthCm: 0.9,
+      finish: "Barnizado / Pintado",
+      customizable: true,
+    },
+    price: 8500,
+    weightGrams: 300,
+    dimensions: { heightCm: 10, widthCm: 30, lengthCm: 4 },
+    costQuote: createCostQuote({
+      wood: { widthCm: 30, lengthCm: 10, face: "natural" },
+      machineMinutes: 10,
+      laborMinutes: 15,
+      accessories: [{ name: "Gancho metálico", quantity: 5, unitPrice: 250 }],
+      paintAmount: 300,
+    }),
+  }),
+
+  createProduct({
+    title: "Portaretrato Decorativo para Foto 10x15",
+    slug: "portaretrato-decorativo-10x15",
+    shortDescription:
+      "Portaretrato de MDF para foto de 10x15 cm, para apoyar o colgar.",
+    fullDescription:
+      "Portaretrato decorativo en MDF para foto de 10x15 cm, con marco calado, vidrio frontal y soporte trasero para apoyar en mesa o estante (también se puede colgar). Se personaliza con nombre, frase o diseño temático. Un regalo clásico para el hogar.",
+    categories: ["cuadros-y-organizadores"],
+    topics: ["portaretrato", "decoracion", "fotos", "hogar"],
+    specifications: {
+      material: "MDF 3mm + base 9mm",
+      dimensions: "18x23 cm (foto de 10x15 cm)",
+      thickness: "1.2cm",
+      hasLighting: false,
+      powerSource: "ninguno",
+      heightCm: 23,
+      widthCm: 18,
+      depthCm: 1.2,
+      finish: "Pintado / Barnizado",
+      customizable: true,
+    },
+    price: 9800,
+    weightGrams: 280,
+    dimensions: { heightCm: 23, widthCm: 18, lengthCm: 4 },
+    costQuote: createCostQuote({
+      wood: { widthCm: 30, lengthCm: 25, face: "natural" },
+      machineMinutes: 18,
+      laborMinutes: 25,
+      accessories: [
+        { name: "Vidrio 10x15", quantity: 1, unitPrice: 900 },
+        { name: "Ojal para colgar", quantity: 1, unitPrice: 100 },
+      ],
+      paintAmount: 600,
+    }),
+  }),
+
+  // ── Infantil y Bebés ─────────────────────────────────────────────────
+  createProduct({
+    title: "Cartel de Recién Nacido",
+    slug: "cartel-de-recien-nacido",
+    shortDescription:
+      "Cartel calado con el nombre del bebé para la puerta del cuarto o la clínica.",
+    fullDescription:
+      "Cartel calado con el nombre del bebé, pensado para la puerta de la habitación o la clínica. Personalizable con colores y detalles (estrellas, nubes, animalitos). Se cuelga con cinta de raso.",
+    categories: ["infantil-y-bebes"],
+    topics: ["maternidad", "bebes", "personalizado"],
     specifications: {
       material: "MDF 3mm",
-      dimensions: "22x16x9 cm",
-      finish: "Tapa con bisagra de encastre",
+      dimensions: "35x25 cm",
+      thickness: "3mm",
+      hasLighting: false,
+      powerSource: "ninguno",
+      heightCm: 25,
+      widthCm: 35,
+      finish: "Pintado a mano",
       customizable: true,
     },
+    price: 12500,
+    weightGrams: 220,
+    dimensions: { heightCm: 25, widthCm: 35, lengthCm: 1 },
+    costQuote: createCostQuote({
+      wood: { widthCm: 35, lengthCm: 25, face: "white" },
+      machineMinutes: 15,
+      laborMinutes: 25,
+      accessories: [{ name: "Cinta de raso", quantity: 1, unitPrice: 300 }],
+      paintAmount: 600,
+    }),
   }),
   createProduct({
-    title: "Adorno Mural Bicapa Profundidad",
-    slug: "adorno-mural-bicapa-profundidad",
+    title: "Letra Plana 14x14",
+    slug: "letra-plana-14x14",
     shortDescription:
-      "Pieza de pared en dos capas contrapuestas para contraste visual y profundidad.",
+      "Letra plana de MDF de 14x14 cm para decorar el cuarto del bebé.",
     fullDescription:
-      "Pieza decorativa de pared compuesta por dos capas contrapuestas de colores o tonos de madera distintos para lograr contraste visual.",
-    categories: ["decoracion-hogar"],
-    topics: ["naturaleza", "paisajes", "capas"],
+      "Letra plana en MDF de 14x14 cm, a elección, para decorar el cuarto o armar el nombre del bebé. Se vende por unidad y se puede pintar del color que elijas. Se apoya o se cuelga.",
+    categories: ["infantil-y-bebes"],
+    topics: ["letras", "bebes", "decoracion"],
     specifications: {
-      material: "MDF 3mm (doble capa = 6mm)",
-      dimensions: "35 cm de diámetro",
-      finish: "Combinación de tonos",
-      customizable: false,
-    },
-  }),
-  createProduct({
-    title: "Organizador Multiuso de Escritorio",
-    slug: "organizador-multiuso-de-escritorio",
-    shortDescription:
-      "Módulo con divisiones para lápices, notas, celular y útiles de oficina.",
-    fullDescription:
-      "Módulo con divisiones para lápices, notas, teléfono celular y útiles de oficina. Mantiene tu espacio de trabajo despejado.",
-    categories: ["organizadores-utilitarios"],
-    topics: ["oficina", "escritorio", "estudio"],
-    specifications: {
-      material: "MDF 3mm reforzado",
-      dimensions: "25x15x12 cm",
-      finish: "Encastrable auto-armable",
+      material: "MDF 9mm",
+      dimensions: "14x14 cm",
+      thickness: "9mm",
+      hasLighting: false,
+      powerSource: "ninguno",
+      heightCm: 14,
+      widthCm: 14,
+      depthCm: 0.9,
+      finish: "Pintado / Madera natural",
       customizable: true,
     },
-  }),
-  createProduct({
-    title: "Sistema de Separadores de Cajón Modulares",
-    slug: "sistema-de-separadores-de-cajon-modulares",
-    shortDescription:
-      "Tiras ranuradas de MDF que se encastran para adaptar cualquier cajón.",
-    fullDescription:
-      "Tiras ranuradas de MDF que se encastran entre sí para adaptar los espacios de cualquier cajón según tus necesidades.",
-    categories: ["organizadores-utilitarios"],
-    topics: ["cocina", "placard", "organización"],
-    specifications: {
-      material: "MDF 3mm duradero",
-      dimensions: "Tiras de 40 cm ajustables",
-      finish: "Ranuras de acople rápido",
-      customizable: false,
-    },
-  }),
-  createProduct({
-    title: "Porta Servilletas Decorativo",
-    slug: "porta-servilletas-decorativo",
-    shortDescription:
-      "Servilletero vertical u horizontal con cortes estilizados para la mesa.",
-    fullDescription:
-      "Servilletero vertical u horizontal con cortes estilizados que combinan funcionalidad y estética en tu mesa.",
-    categories: ["organizadores-utilitarios", "decoracion-hogar"],
-    topics: ["cocina", "mesa", "gastronomia"],
-    specifications: {
-      material: "MDF 3mm",
-      dimensions: "14x12x5 cm",
-      finish: "Encastre estable",
-      customizable: true,
-    },
-  }),
-  createProduct({
-    title: "Porta Llaves / Ganchera Rustica de Cocina",
-    slug: "porta-llaves-ganchera-rustica-de-cocina",
-    shortDescription:
-      "Ganchera de pared para cocina u hogar, con ganchos para llaves o utensilios.",
-    fullDescription:
-      "Ganchera de pared con diseño para cocina u hogar, equipada con ganchos resistentes para llaves, repasas o utensilios.",
-    categories: ["organizadores-utilitarios", "decoracion-hogar"],
-    topics: ["cocina", "ganchos", "utilitario"],
-    specifications: {
-      material: "MDF 6mm",
-      dimensions: "25x12 cm",
-      finish: "Con ganchos metálicos o en MDF",
-      customizable: true,
-    },
-  }),
-  createProduct({
-    title: "Rompecabezas Infantil de Encastre (12 Piezas)",
-    slug: "rompecabezas-infantil-de-encastre-12-piezas",
-    shortDescription:
-      "Juego de encastre con marco y bordes suaves, ideal para primera infancia.",
-    fullDescription:
-      "Juego de encastre con marco y bordes suaves pulidos, ideal para primera infancia y desarrollo de motricidad fina.",
-    categories: ["infantil-ninos"],
-    topics: ["juegos", "didactico", "infantil"],
-    specifications: {
-      material: "MDF 3mm en base rígida",
-      dimensions: "20x15 cm",
-      finish: "Piezas lijadas anti-astillas",
-      customizable: true,
-    },
-  }),
-  createProduct({
-    title: "Rompecabezas de Siluetas (6 Formas Grandes)",
-    slug: "rompecabezas-de-siluetas-6-formas-grandes",
-    shortDescription:
-      "Rompecabezas estilo Montessori con 6 figuras de animales de gran tamaño.",
-    fullDescription:
-      "Rompecabezas estilo Montessori con 6 figuras de animales de gran tamaño que se encastran en su tablero correspondiente.",
-    categories: ["infantil-ninos"],
-    topics: ["animales", "didactico", "montessori"],
-    specifications: {
-      material: "MDF 6mm",
-      dimensions: "30x20 cm",
-      finish: "Bordes redondeados",
-      customizable: false,
-    },
-  }),
-  createProduct({
-    title: "Medidor Infantil de Altura con Riel (5 a 140 cm)",
-    slug: "medidor-infantil-de-altura-con-riel",
-    shortDescription:
-      "Regla medidora de pared ensamblada por tramos para marcar el crecimiento.",
-    fullDescription:
-      "Regla medidora para pared que se ensambla por tramos mediante riel/encastre superior. Permite marcar la altura del bebé mientras crece.",
-    categories: ["infantil-ninos", "decoracion-hogar"],
-    topics: ["maternidad", "crecimiento", "dormitorio-infantil"],
-    specifications: {
-      material: "MDF 3mm / 6mm",
-      dimensions: "Tramos armables hasta 140 cm",
-      finish: "Escala grabada",
-      customizable: true,
-    },
-  }),
-  createProduct({
-    title: "Alcancía Temática con Puerta Secreta",
-    slug: "alcancia-tematica-con-puerta-secreta",
-    shortDescription:
-      "Alcancía calada con frente temático y tapa inferior extraíble.",
-    fullDescription:
-      "Alcancía calada con visil o frente temático. Cuenta con una puerta o tapa inferior de fácil extracción sin romper la pieza.",
-    categories: ["infantil-ninos", "regalos-especiales"],
-    topics: ["ahorro", "personajes", "regalos"],
-    specifications: {
-      material: "MDF 3mm + Acrílico cristal",
-      dimensions: "15x15x15 cm",
-      finish: "Armado rígido",
-      customizable: true,
-    },
-  }),
-  createProduct({
-    title: "Reloj Didáctico Infantil (Aprendé la Hora)",
-    slug: "reloj-didactico-infantil-aprende-la-hora",
-    shortDescription:
-      "Reloj de madera con números grandes y manecillas móviles para aprender la hora.",
-    fullDescription:
-      "Reloj de madera con números grandes y manecillas móviles de giro manual para que los niños aprendan la hora jugando.",
-    categories: ["infantil-ninos"],
-    topics: ["educativo", "escuela", "juegos"],
-    specifications: {
-      material: "MDF 3mm bicapa",
-      dimensions: "22 cm de diámetro",
-      finish: "Manecillas sujetas con remache movible",
-      customizable: false,
-    },
-  }),
-  createProduct({
-    title: "Cake Topper Personalizado (Nombre + Edad)",
-    slug: "cake-topper-personalizado-nombre-edad",
-    shortDescription:
-      "Adorno con pinche para tortas, con el nombre del agasajado y la edad.",
-    fullDescription:
-      "Adorno con pinche para colocar sobre tortas. Diseñado con el nombre del agasajado y el número de años.",
-    categories: ["eventos-souvenirs"],
-    topics: ["cumpleanos", "reposteria", "fiestas"],
-    specifications: {
-      material: "MDF 3mm o Acrílico espejado",
-      dimensions: "15 a 20 cm de ancho",
-      finish: "Corte fino con pinche integrado",
-      customizable: true,
-    },
-  }),
-  createProduct({
-    title: "Números Decorativos para Cumpleaños de Décadas",
-    slug: "numeros-decorativos-para-cumpleanos-de-decadas",
-    shortDescription:
-      "Números corpóreos huecos o calados en gran tamaño para mesas de festejo.",
-    fullDescription:
-      "Números corpóreos huecos o calados en gran tamaño (30, 40, 50, 60), ideales para mesas principales de festejos.",
-    categories: ["eventos-souvenirs", "decoracion-hogar"],
-    topics: ["cumpleanos", "eventos", "decadas"],
-    specifications: {
-      material: "MDF 3mm / 6mm con base",
-      dimensions: "30 cm de altura",
-      finish: "Auto-portante",
-      customizable: true,
-    },
-  }),
-  createProduct({
-    title: "Set Placa 'Recuerdos' + Souvenir Imantado",
-    slug: "set-placa-recuerdos-souvenir-imantado",
-    shortDescription:
-      "Placa exhibidora 'Recuerdos' junto con souvenir imantado para heladera.",
-    fullDescription:
-      "Cajita o placa exhibidora decorativa 'Recuerdos' junto con souvenir imantado para heladera con calado conmemorativo.",
-    categories: ["eventos-souvenirs", "regalos-especiales"],
-    topics: ["souvenirs", "imanes", "recuerdos"],
-    specifications: {
-      material: "MDF 3mm + Imán flexible en dorso",
-      dimensions: "Imán 6x6 cm / Placa 15x10 cm",
-      finish: "Grabado alta definición",
-      customizable: true,
-    },
-  }),
-  createProduct({
-    title: "Calendario Perpetuo de Escritorio / Pared",
-    slug: "calendario-perpetuo-20x20",
-    shortDescription:
-      "Calendario interactivo perpetuo calado en MDF. Una pieza atemporal, ecológica y elegante para organizar tus días año tras año.",
-    fullDescription:
-      "Calendario perpetuo reutilizable de 20x20 cm fabricado con corte láser de alta precisión. Su diseño con aros, pestañas o piezas deslizables te permite ajustar el día, la fecha y el mes manualmente sin necesidad de reemplazarlo jamás. Ideal para decorar escritorios, oficinas, mostradores comerciales o como regalo institucional/empresarial.",
-    categories: [
-      "organizadores-utilitarios",
-      "decoracion-hogar",
-      "regalos-especiales",
+    price: 2800,
+    quantityPrices: [
+      { quantity: 5, price: 12500 },
+      { quantity: 10, price: 24000 },
     ],
-    topics: [
-      "escritorio",
-      "oficina",
-      "hogar",
-      "utilitario",
-      "regalos-corporativos",
-    ],
-    specifications: {
-      material: "MDF 3mm / 6mm",
-      dimensions: "20 x 20 cm",
-      finish: "Encastre de precisión / Bisagra móvil suave",
-      customizable: true,
-    },
-  }),
-  createProduct({
-    title: "Cuadro / Cartel Deportivo Personalizado (Camiseta)",
-    slug: "cartel-deportivo-camiseta-28x28",
-    shortDescription:
-      "Cuadro calado en MDF con silueta de camiseta deportiva (fútbol, básquet, etc.), personalizado con nombre y número a elección.",
-    fullDescription:
-      "Cartel decorativo redondo de 28x28 cm calado en alta precisión con temática deportiva. Diseñado en capas superpuestas para generar un efecto 3D que resalta la camiseta de tu equipo o deporte preferido. Incluye la personalización con el nombre del agasajado y su número favorito. Perfecto para decorar dormitorios infantiles, espacios de juego o para regalar a fanáticos del deporte.",
-    categories: ["decoracion-hogar", "infantil-ninos", "regalos-especiales"],
-    topics: [
-      "deportes",
-      "futbol",
-      "cuadros",
-      "dormitorio-infantil",
-      "personalizado",
-    ],
-    specifications: {
-      material: "MDF 3mm (Bicapa 3D) / 6mm",
-      dimensions: "28 x 28 cm",
-      finish: "Superposición de capas caladas / Opción pintar",
-      customizable: true,
-    },
+    weightGrams: 90,
+    dimensions: { heightCm: 14, widthCm: 14, lengthCm: 1 },
+    costQuote: createCostQuote({
+      wood: { widthCm: 14, lengthCm: 14, face: "natural" },
+      machineMinutes: 4,
+      laborMinutes: 5,
+      paintAmount: 200,
+    }),
   }),
 ];

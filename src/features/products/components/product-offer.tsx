@@ -5,7 +5,14 @@ import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import type { Product } from "@/types/product";
 import { formatProductPrice } from "../lib/format-price";
 import {
+  hasPackOptions,
+  packOptionLabel,
+  packPricing,
+  packSavingsText,
+} from "../lib/packs";
+import {
   hasQuantityOffers,
+  offerTiers,
   priceForQuantity,
   purchaseOptions,
 } from "../lib/quantity-prices";
@@ -35,9 +42,15 @@ export function ProductOffer({
     variants.find((option) => option.description === variantDescription) ??
     variants[0] ??
     null;
-  const quantityTier = (product.quantityPrices ?? []).find(
+  const quantityTier = offerTiers(product).find(
     (tier) => tier.quantity === (selectedQuantity?.quantity ?? quantity),
   );
+  const isPack = hasPackOptions(product);
+  const pack = isPack
+    ? packPricing(options).find(
+        (option) => option.quantity === (selectedQuantity?.quantity ?? quantity),
+      )
+    : undefined;
   const shownPrice = quantityTier
     ? quantityTier.price
     : selectedVariant
@@ -51,7 +64,16 @@ export function ProductOffer({
           <p className="font-headline-md text-headline-md text-primary">
             {formatProductPrice(shownPrice)}
           </p>
-          {quantityTier && quantityTier.quantity > 1 ? (
+          {pack ? (
+            <>
+              <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
+                {packOptionLabel(pack.quantity)}
+              </p>
+              <p className="mt-0.5 font-body-md text-body-md font-semibold text-primary">
+                {packSavingsText(pack)}
+              </p>
+            </>
+          ) : quantityTier && quantityTier.quantity > 1 ? (
             <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
               {selectedVariant ? `${selectedVariant.description} · ` : ""}
               por {quantityTier.quantity} unidades
@@ -82,6 +104,7 @@ export function ProductOffer({
           options={options}
           quantity={selectedQuantity?.quantity ?? quantity}
           onChange={setQuantity}
+          packs={isPack}
         />
       ) : null}
 

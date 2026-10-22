@@ -11,6 +11,7 @@ import type { ShippingOption } from "@/features/cart/types";
 import { CHECKOUT_PAYMENTS_ENABLED } from "@/features/checkout/flags";
 import { exceedsStandardMail } from "@/features/products/lib/logistics";
 import { formatProductPrice } from "@/features/products/lib/format-price";
+import { packOptionLabel } from "@/features/products/lib/packs";
 import { adjacentQuantity, purchaseOptions } from "@/features/products/lib/quantity-prices";
 import {
   buildWhatsAppLink,
@@ -309,6 +310,11 @@ export function CartDrawer() {
                         {" · "}
                         {item.weightGrams} g
                       </p>
+                      {item.selectedPack ? (
+                        <p className="mt-1 text-xs font-semibold text-on-surface">
+                          Formato: {packOptionLabel(item.selectedPack.quantity)}
+                        </p>
+                      ) : null}
                       {item.variantDescription ? (
                         <p className="mt-1 text-[11px] text-secondary">
                           {item.variantDescription}
@@ -334,9 +340,11 @@ export function CartDrawer() {
                       <button
                         type="button"
                         aria-label={
-                          item.quantityPrices?.length
-                            ? "Elegir menos unidades"
-                            : "Quitar una unidad"
+                          item.selectedPack
+                            ? "Elegir un pack más chico"
+                            : item.quantityPrices?.length
+                              ? "Elegir menos unidades"
+                              : "Quitar una unidad"
                         }
                         onClick={() =>
                           updateQuantity(
@@ -360,14 +368,16 @@ export function CartDrawer() {
                         <MaterialIcon name="remove" className="text-sm" />
                       </button>
                       <span className="min-w-8 text-center text-sm">
-                        {item.quantity}
+                        {item.selectedPack ? `x${item.quantity}` : item.quantity}
                       </span>
                       <button
                         type="button"
                         aria-label={
-                          item.quantityPrices?.length
-                            ? "Elegir más unidades"
-                            : "Agregar una unidad"
+                          item.selectedPack
+                            ? "Elegir un pack más grande"
+                            : item.quantityPrices?.length
+                              ? "Elegir más unidades"
+                              : "Agregar una unidad"
                         }
                         disabled={
                           item.quantityPrices?.length

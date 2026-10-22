@@ -1,4 +1,4 @@
-import { catalogCategories } from "@/types/product";
+import { catalogCategories, isPowerSource, type PowerSource } from "@/types/product";
 import {
   DEFAULT_LABOR_HOURLY_RATE,
   DEFAULT_MACHINE_HOURLY_RATE,
@@ -10,16 +10,20 @@ export const PRODUCT_CREATE_JSON_EXAMPLE = `{
   "title": "Cartel de bienvenida",
   "shortDescription": "Cartel calado para la entrada del evento.",
   "fullDescription": "Cartel de madera cortado a láser, pensado para apoyar o colgar. Se personaliza con el nombre y la fecha.",
-  "categories": ["eventos-souvenirs"],
+  "categories": ["souvenirs-y-eventos"],
   "topics": ["cumpleaños", "bienvenida"],
   "heightCm": 40,
   "widthCm": 30,
   "depthCm": 0.3,
   "diameterCm": null,
   "finish": "Madera natural",
+  "thickness": "3mm",
+  "hasLighting": false,
+  "powerSource": "ninguno",
   "customizable": true,
   "hidden": false,
   "price": 15000,
+  "packOptions": [],
   "quantityPrices": [
     { "quantity": 5, "price": 65000 }
   ],
@@ -52,9 +56,13 @@ export type ParsedProductCreateJson = {
   depthCm: string;
   diameterCm: string;
   finish: string;
+  thickness: string;
+  hasLighting: boolean;
+  powerSource: PowerSource;
   customizable: boolean;
   hidden: boolean;
   price: string;
+  packOptions: { quantity: string; price: string }[];
   quantityPrices: { quantity: string; price: string }[];
   variants: { description: string; price: string }[];
   costQuote: {
@@ -158,6 +166,17 @@ function categoriesFrom(value: unknown) {
   return { categories, unknown };
 }
 
+function readQuantityRows(value: unknown, label: string) {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    const row = asRecord(entry, label);
+    const quantity = optionalNumber(row.quantity, "La cantidad");
+    const price = positivePrice(row.price, "El precio");
+    if (!quantity || Number(quantity) <= 0 || !price) return [];
+    return [{ quantity: String(Math.floor(Number(quantity))), price }];
+  });
+}
+
 export function parseProductCreateJson(raw: string): {
   product: ParsedProductCreateJson;
   warnings: string[];
@@ -180,15 +199,10 @@ export function parseProductCreateJson(raw: string): {
     (category) => `Se ignoró la categoría "${category}".`,
   );
 
-  const quantityPrices = Array.isArray(data.quantityPrices)
-    ? data.quantityPrices.flatMap((entry) => {
-        const row = asRecord(entry, "Un precio por cantidad");
-        const quantity = optionalNumber(row.quantity, "La cantidad");
-        const price = positivePrice(row.price, "El precio por cantidad");
-        if (!quantity || Number(quantity) <= 0 || !price) return [];
-        return [{ quantity: String(Math.floor(Number(quantity))), price }];
-      })
-    : [];
+  const quantityPrices = readQuantityRows(
+    data.quantityPrices,
+    "Un precio por cantidad",
+  );
 
   const variants = Array.isArray(data.variants)
     ? data.variants.flatMap((entry) => {
@@ -221,9 +235,13 @@ export function parseProductCreateJson(raw: string): {
       depthCm: optionalNumber(data.depthCm, "La profundidad"),
       diameterCm: optionalNumber(data.diameterCm, "El diámetro"),
       finish: text(data.finish),
+      thickness: text(data.thickness),
+      hasLighting: data.hasLighting === true,
+      powerSource: isPowerSource(data.powerSource) ? data.powerSource : "ninguno",
       customizable: data.customizable !== false,
       hidden,
       price: positivePrice(data.price, "El precio"),
+      packOptions: readQuantityRows(data.packOptions, "Un pack"),
       quantityPrices,
       variants,
       costQuote: parseCostQuote(data.costQuote),

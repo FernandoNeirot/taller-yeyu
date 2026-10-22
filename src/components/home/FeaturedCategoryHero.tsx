@@ -11,7 +11,7 @@ type FeaturedCategoryHeroProps = {
 };
 
 export function FeaturedCategoryHero({ products }: FeaturedCategoryHeroProps) {
-  const categoryHref = galleryHref({ categoria: "infantil-ninos" });
+  const categoryHref = galleryHref({ categoria: "infantil-y-bebes" });
 
   return (
     <section

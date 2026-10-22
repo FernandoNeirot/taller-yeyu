@@ -380,6 +380,15 @@ export function ProductDetailModal({
                 ))}
               </ul>
             ) : null}
+            {product.packOptions?.length ? (
+              <ul className="mt-2 space-y-1 font-body-md text-body-md text-on-surface">
+                {product.packOptions.map((option) => (
+                  <li key={option.quantity}>
+                    Pack x{option.quantity} {formatProductPrice(option.price)}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             {product.quantityPrices?.length ? (
               <ul className="mt-2 space-y-1 font-body-md text-body-md text-on-surface">
                 {product.quantityPrices.map((tier) => (

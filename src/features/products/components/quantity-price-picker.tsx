@@ -1,3 +1,4 @@
+import { packOptionLabel } from "../lib/packs";
 import type { ProductQuantityPrice } from "../lib/quantity-prices";
 
 export function QuantityPricePicker({
@@ -5,11 +6,14 @@ export function QuantityPricePicker({
   quantity,
   onChange,
   variant = "page",
+  packs = false,
 }: {
   options: ProductQuantityPrice[];
   quantity: number;
   onChange: (quantity: number) => void;
   variant?: "page" | "modal";
+  /** Producto de venta por packs: las opciones se muestran como "Pack x10". */
+  packs?: boolean;
 }) {
   if (options.length === 0) return null;
 
@@ -22,7 +26,7 @@ export function QuantityPricePicker({
             : "font-label-caps text-label-caps tracking-widest text-on-surface-variant uppercase"
         }
       >
-        Cantidad
+        {packs ? "Formato" : "Cantidad"}
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         {options.map((option) => {
@@ -44,7 +48,7 @@ export function QuantityPricePicker({
               }
               style={{ minHeight: 44 }}
             >
-              {option.quantity}
+              {packs ? packOptionLabel(option.quantity) : option.quantity}
             </button>
           );
         })}

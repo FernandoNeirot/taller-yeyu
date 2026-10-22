@@ -113,7 +113,7 @@ export default function Home() {
         className="w-full px-container-margin py-xl bg-surface-container-lowest border-y border-outline-variant/20"
         id="proceso"
       >
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-xl">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-md md:gap-xl">
           <div className="w-full md:w-1/2 relative aspect-square md:aspect-auto md:min-h-125">
             <Image
               alt=""
@@ -131,7 +131,7 @@ export default function Home() {
             </div>
           </div>
           <div className="w-full md:w-1/2 flex flex-col justify-center space-y-md">
-            <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-stone-50">
+            <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">
               Arte y Personalización en cada Detalle
             </h2>
             <div className="w-12 h-1 bg-primary-container" />
