@@ -28,6 +28,7 @@ type AddToCartModalProps = {
   product: Product | null;
   initialQuantity?: number;
   initialVariantDescription?: string;
+  initialCustomNotes?: string;
   onClose: () => void;
 };
 
@@ -45,16 +46,17 @@ export function AddToCartModal({
   product,
   initialQuantity = 1,
   initialVariantDescription,
+  initialCustomNotes = "",
   onClose,
 }: AddToCartModalProps) {
   const titleId = useId();
   const { addToCart, openCart, showToast } = useCart();
   const [quantity, setQuantity] = useState(initialQuantity);
-  const [customNotes, setCustomNotes] = useState("");
+  const [customNotes, setCustomNotes] = useState(initialCustomNotes);
   const [variantDescription, setVariantDescription] = useState(
     initialVariantDescription ?? "",
   );
-  const selectionKey = `${product?.slug ?? ""}:${initialQuantity}:${initialVariantDescription ?? ""}`;
+  const selectionKey = `${product?.slug ?? ""}:${initialQuantity}:${initialVariantDescription ?? ""}:${initialCustomNotes}`;
   const [formKey, setFormKey] = useState(selectionKey);
   const mounted = useSyncExternalStore(subscribeToNothing, () => true, () => false);
   const isDesktop = useSyncExternalStore(
@@ -67,7 +69,7 @@ export function AddToCartModal({
     setFormKey(selectionKey);
     setQuantity(initialQuantity);
     setVariantDescription(initialVariantDescription ?? "");
-    setCustomNotes("");
+    setCustomNotes(initialCustomNotes);
   }
 
   useEffect(() => {

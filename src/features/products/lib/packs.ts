@@ -3,6 +3,13 @@ import { normalizeQuantityPrices } from "./quantity-prices";
 
 export type { ProductPackOption };
 
+/** Cantidades de unidades que se pueden ofrecer como pack. */
+export const PACK_QUANTITY_CHOICES = [10, 15, 20, 25, 30] as const;
+
+export function isPackQuantityChoice(quantity: number) {
+  return (PACK_QUANTITY_CHOICES as readonly number[]).includes(quantity);
+}
+
 /** Limpia y ordena las opciones por cantidad (descarta filas inválidas y repetidas). */
 export function normalizePackOptions(
   value: unknown,
@@ -86,6 +93,10 @@ export function packSavingsText(option: PackPricing) {
 export function validatePackOptions(
   options: ProductPackOption[],
 ): string | undefined {
+  const invalid = options.find((option) => !isPackQuantityChoice(option.quantity));
+  if (invalid) {
+    return `El pack x${invalid.quantity} no es válido. Elegí entre ${PACK_QUANTITY_CHOICES.map((q) => `x${q}`).join(", ")}.`;
+  }
   for (let index = 1; index < options.length; index += 1) {
     if (options[index].price <= options[index - 1].price) {
       return "Un pack más grande tiene que costar más que uno más chico.";

@@ -3,9 +3,11 @@
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { MoneyInput, moneyToNumber } from "@/components/ui/money-input";
 import {
+  PACK_QUANTITY_CHOICES,
   formatDiscount,
   formatUnitPrice,
   normalizePackOptions,
+  packOptionLabel,
   packPricing,
 } from "../lib/packs";
 import {
@@ -51,6 +53,16 @@ export function ProductPackFields({ form, onChange, error }: PackFieldsProps) {
       </div>
       {rows.map((row) => {
         const info = pricing.get(Number(row.quantity));
+        // Cada cantidad se puede usar una sola vez; la actual siempre se conserva.
+        const taken = new Set(
+          rows.filter((item) => item.id !== row.id).map((item) => item.quantity),
+        );
+        const choices: number[] = PACK_QUANTITY_CHOICES.filter(
+          (quantity) => !taken.has(String(quantity)),
+        );
+        const current = Number(row.quantity);
+        if (current > 0 && !choices.includes(current)) choices.push(current);
+        choices.sort((a, b) => a - b);
         return (
           <div
             key={row.id}
@@ -59,12 +71,10 @@ export function ProductPackFields({ form, onChange, error }: PackFieldsProps) {
             <div className="grid gap-sm sm:grid-cols-[7rem_1fr_auto]">
               <label className="flex flex-col gap-xs">
                 <span className="text-sm text-on-surface-variant">Cantidad</span>
-                <input
-                  inputMode="numeric"
+                <select
                   value={row.quantity}
-                  placeholder="10"
                   onChange={(event) => {
-                    const quantity = event.target.value.replace(/\D/g, "");
+                    const quantity = event.target.value;
                     onChange({
                       packOptions: rows.map((item) =>
                         item.id === row.id ? { ...item, quantity } : item,
@@ -72,7 +82,14 @@ export function ProductPackFields({ form, onChange, error }: PackFieldsProps) {
                     });
                   }}
                   className={fieldClassName}
-                />
+                >
+                  <option value="">Elegí…</option>
+                  {choices.map((quantity) => (
+                    <option key={quantity} value={quantity}>
+                      {packOptionLabel(quantity)}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="flex flex-col gap-xs">
                 <span className="text-sm text-on-surface-variant">
@@ -127,8 +144,9 @@ export function ProductPackFields({ form, onChange, error }: PackFieldsProps) {
       <FieldError message={error} />
       <button
         type="button"
+        disabled={rows.length >= PACK_QUANTITY_CHOICES.length}
         onClick={() => onChange({ packOptions: [...rows, newQuantityRow()] })}
-        className="inline-flex w-fit items-center gap-1 rounded-lg px-2 py-2 text-sm text-primary hover:bg-primary/10"
+        className="inline-flex w-fit items-center gap-1 rounded-lg px-2 py-2 text-sm text-primary hover:bg-primary/10 disabled:opacity-40"
       >
         <MaterialIcon name="add" className="text-base" />
         Agregar pack

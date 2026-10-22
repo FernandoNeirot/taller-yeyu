@@ -89,7 +89,23 @@ export const catalogCategories = galleryCategories.filter(
   (category) => category.id !== "todos",
 ) as { id: CatalogCategoryId; label: string }[];
 
+/**
+ * Las temáticas se guardan como slug sin acentos ("cumpleanos"); acá van los
+ * nombres con ortografía correcta para mostrarlas.
+ */
+const topicLabels: Record<string, string> = {
+  bebes: "Bebés",
+  cumpleanos: "Cumpleaños",
+  decoracion: "Decoración",
+  didactico: "Didáctico",
+  futbol: "Fútbol",
+  iluminacion: "Iluminación",
+};
+
 export function topicLabel(topic: string) {
+  const known = topicLabels[topic];
+  if (known) return known;
+
   return topic
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))

@@ -172,7 +172,7 @@ export const initialProducts: Product[] = [
     shortDescription:
       "Portaretrato de MDF para foto de 6x6 cm, ideal como souvenir de eventos.",
     fullDescription:
-      "Portaretrato calado en MDF para foto de 6x6 cm, con apoyo trasero para que se sostenga solo. Se personaliza con el nombre, la fecha o una frase del evento. Ideal como souvenir de cumpleaños, bautismos, comuniones y casamientos; se vende en packs de 10, 20 o 50 unidades con descuento por cantidad.",
+      "Portaretrato calado en MDF para foto de 6x6 cm, con apoyo trasero para que se sostenga solo. Se personaliza con el nombre, la fecha o una frase del evento. Ideal como souvenir de cumpleaños, bautismos, comuniones y casamientos; se vende en packs de 10, 20 o 30 unidades con descuento por cantidad.",
     categories: ["souvenirs-y-eventos"],
     topics: ["portaretrato", "souvenirs", "fotos", "personalizado"],
     specifications: {
@@ -190,7 +190,7 @@ export const initialProducts: Product[] = [
     packOptions: [
       { quantity: 10, price: 25000 },
       { quantity: 20, price: 47000 },
-      { quantity: 50, price: 110000 },
+      { quantity: 30, price: 66000 },
     ],
     weightGrams: 60,
     dimensions: { heightCm: 10, widthCm: 10, lengthCm: 3 },
@@ -446,6 +446,71 @@ export const initialProducts: Product[] = [
         { name: "Ojal para colgar", quantity: 1, unitPrice: 100 },
       ],
       paintAmount: 600,
+    }),
+  }),
+
+  createProduct({
+    title: "Medallero Deportivo Personalizado",
+    slug: "medallero-deportivo",
+    shortDescription:
+      "Medallero de MDF con nombre y deporte a elección para colgar las medallas.",
+    fullDescription:
+      "Medallero de pared en MDF calado, personalizado con el nombre del deportista y la disciplina (fútbol, hockey, natación, running y más). Tiene ganchos para colgar las medallas y se fija a la pared con tarugos o cinta de doble contacto. Un regalo ideal para quienes juntan trofeos y medallas.",
+    categories: ["cuadros-y-organizadores"],
+    topics: ["deportes"],
+    specifications: {
+      material: "MDF 9mm + calado MDF 3mm",
+      dimensions: "30x20 cm",
+      thickness: "1.2cm",
+      hasLighting: false,
+      powerSource: "ninguno",
+      heightCm: 20,
+      widthCm: 30,
+      depthCm: 1.2,
+      finish: "Pintado a mano / Barnizado",
+      customizable: true,
+    },
+    price: 16500,
+    weightGrams: 450,
+    dimensions: { heightCm: 20, widthCm: 30, lengthCm: 3 },
+    costQuote: createCostQuote({
+      wood: { widthCm: 40, lengthCm: 30, face: "natural" },
+      machineMinutes: 20,
+      laborMinutes: 30,
+      accessories: [{ name: "Gancho metálico", quantity: 6, unitPrice: 250 }],
+      paintAmount: 700,
+    }),
+  }),
+  createProduct({
+    title: "Cuadro Camiseta con Nombre y Número",
+    slug: "cuadro-camiseta",
+    shortDescription:
+      "Cuadro con la silueta de una camiseta, personalizado con nombre y número.",
+    fullDescription:
+      "Cuadro de MDF calado con la silueta de una camiseta de fútbol (u otro deporte), personalizado con el nombre y el número del jugador y los colores de su equipo. Se arma en capas para dar relieve y se cuelga con ojal trasero. Un regalo ideal para hinchas y deportistas.",
+    categories: ["cuadros-y-organizadores"],
+    topics: ["deportes", "futbol"],
+    specifications: {
+      material: "MDF 3mm (capas) + fondo 5mm",
+      dimensions: "30x30 cm",
+      thickness: "1.5cm",
+      hasLighting: false,
+      powerSource: "ninguno",
+      heightCm: 30,
+      widthCm: 30,
+      depthCm: 1.5,
+      finish: "Pintado a mano / Barnizado",
+      customizable: true,
+    },
+    price: 14800,
+    weightGrams: 380,
+    dimensions: { heightCm: 30, widthCm: 30, lengthCm: 2 },
+    costQuote: createCostQuote({
+      wood: { widthCm: 30, lengthCm: 60, face: "natural" },
+      machineMinutes: 28,
+      laborMinutes: 35,
+      accessories: [{ name: "Ojal para colgar", quantity: 1, unitPrice: 100 }],
+      paintAmount: 900,
     }),
   }),
 

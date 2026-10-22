@@ -15,11 +15,14 @@ export function AddToCartButton({
   compact = false,
   initialQuantity = 1,
   initialVariantDescription,
+  initialCustomNotes,
 }: {
   product: Product;
   compact?: boolean;
   initialQuantity?: number;
   initialVariantDescription?: string;
+  /** Texto de personalización ya escrito en la ficha; se puede editar en el modal. */
+  initialCustomNotes?: string;
 }) {
   const [open, setOpen] = useState(false);
   const { items, addToCart, updateQuantity } = useCart();
@@ -138,6 +141,7 @@ export function AddToCartButton({
         product={open ? product : null}
         initialQuantity={initialQuantity}
         initialVariantDescription={initialVariantDescription}
+        initialCustomNotes={initialCustomNotes}
         onClose={() => setOpen(false)}
       />
     </>

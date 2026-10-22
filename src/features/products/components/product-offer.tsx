@@ -33,6 +33,7 @@ export function ProductOffer({
   const variants = normalizeVariants(product.variants) ?? [];
   const showVariants = hasVariants(product);
   const [quantity, setQuantity] = useState(options[0]?.quantity ?? 1);
+  const [customizationText, setCustomizationText] = useState("");
   const [variantDescription, setVariantDescription] = useState(
     variants[0]?.description ?? "",
   );
@@ -110,9 +111,27 @@ export function ProductOffer({
 
       {children}
 
+      {product.specifications.customizable ? (
+        <label className="mt-6 block">
+          <span className="font-label-caps text-label-caps tracking-widest text-on-surface-variant uppercase">
+            Dejanos el nombre, número o detalle para personalizar
+          </span>
+          <input
+            type="text"
+            value={customizationText}
+            maxLength={120}
+            autoComplete="off"
+            placeholder="Ej: Mateo, número 10"
+            onChange={(event) => setCustomizationText(event.target.value)}
+            className="mt-2 w-full rounded-xl border border-outline-variant/40 bg-surface-container px-4 py-3 text-on-surface outline-none focus:border-primary"
+          />
+        </label>
+      ) : null}
+
       <div className="mt-6 flex flex-col gap-2">
         <AddToCartButton
           product={product}
+          initialCustomNotes={customizationText.trim()}
           initialQuantity={selectedQuantity?.quantity ?? 1}
           initialVariantDescription={selectedVariant?.description}
         />

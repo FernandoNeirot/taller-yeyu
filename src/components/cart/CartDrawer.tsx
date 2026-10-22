@@ -304,6 +304,11 @@ export function CartDrawer() {
                       <p className="font-semibold text-sm text-on-surface">
                         {item.title}
                       </p>
+                      {item.customNotes ? (
+                        <p className="mt-0.5 text-[11px] italic text-on-surface-variant">
+                          Personalización: {item.customNotes}
+                        </p>
+                      ) : null}
                       <p className="text-[11px] text-on-surface-variant">
                         {item.specificationsDimensions ||
                           `${item.dimensions.lengthCm} × ${item.dimensions.widthCm} × ${item.dimensions.heightCm} cm`}
@@ -318,11 +323,6 @@ export function CartDrawer() {
                       {item.variantDescription ? (
                         <p className="mt-1 text-[11px] text-secondary">
                           {item.variantDescription}
-                        </p>
-                      ) : null}
-                      {item.customNotes ? (
-                        <p className="mt-1 text-[11px] text-secondary">
-                          {item.customNotes}
                         </p>
                       ) : null}
                       <p className="mt-1 text-sm font-semibold text-primary">
