@@ -2,6 +2,7 @@ import { moneyToNumber } from "@/components/ui/money-input";
 import { topicLabel, type PowerSource, type Product } from "@/types/product";
 import { formatProductPrice } from "./format-price";
 import { normalizePackOptions, validatePackOptions } from "./packs";
+import { slugify } from "./slug";
 import { validateProductSpecs } from "./product-specs";
 
 export type VariantFormRow = {
@@ -224,10 +225,16 @@ const measureLabels = {
 export function validateProductForm(
   form: ProductFormState,
   photoCount: number,
+  /** Slugs de productos existentes que no se pueden repetir (vacío al editar). */
+  takenSlugs: ReadonlySet<string> = new Set(),
 ): ProductFormErrors {
   const errors: ProductFormErrors = {};
 
-  if (!form.title.trim()) errors.title = "Completá el título.";
+  if (!form.title.trim()) {
+    errors.title = "Completá el título.";
+  } else if (takenSlugs.has(slugify(form.title))) {
+    errors.title = "Ya existe un producto con ese título.";
+  }
   if (!form.fullDescription.trim()) {
     errors.fullDescription = "Completá la descripción.";
   }

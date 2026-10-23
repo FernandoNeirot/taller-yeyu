@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import type { MaterialCatalogItem } from "@/features/quotes/types";
 import type { Product } from "@/types/product";
@@ -35,8 +35,22 @@ export function ProductManager({
   const [visibilityFilter, setVisibilityFilter] =
     useState<VisibilityFilter>("all");
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
-  const form = useProductForm({ accessories });
+  const existingSlugs = useMemo(
+    () => products.map((product) => product.slug),
+    [products],
+  );
+  const topicSuggestions = useMemo(
+    () =>
+      [...new Set(products.flatMap((product) => product.topics))].sort((a, b) =>
+        a.localeCompare(b, "es"),
+      ),
+    [products],
+  );
+  const form = useProductForm({ accessories, existingSlugs });
   const [state, action, pending] = useActionState(saveProductAction, null);
+  // El error del servidor es de un envío puntual: al reabrir el formulario no debe reaparecer.
+  const [dismissedState, setDismissedState] = useState(state);
+  const [notice, setNotice] = useState("");
   const [deleteState, deleteAction, deletePending] = useActionState(
     deleteProductAction,
     null,
@@ -84,9 +98,18 @@ export function ProductManager({
           : [...prev, saved];
         return [...next].sort((a, b) => a.title.localeCompare(b.title, "es"));
       });
-      form.close();
+      setNotice(`Guardado: ${saved.title}`);
+      // "Guardar y crear otro" deja el formulario abierto y vacío.
+      if (state?.createAnother) form.startCreate();
+      else form.close();
     }
   }
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(""), 5000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   if (deleteState !== prevDeleteState) {
     setPrevDeleteState(deleteState);
@@ -129,6 +152,7 @@ export function ProductManager({
               type="button"
               onClick={() => {
                 setPreviewProduct(null);
+                setDismissedState(state);
                 form.startCreate();
               }}
               className="inline-flex items-center justify-center gap-1 rounded-lg bg-primary-container px-4 py-3 text-white font-label-caps text-label-caps tracking-widest uppercase hover:bg-secondary-container transition-colors"
@@ -142,6 +166,14 @@ export function ProductManager({
           </div>
         </div>
 
+        {notice && !form.isOpen ? (
+          <div
+            role="status"
+            className="mb-sm rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-on-surface"
+          >
+            {notice}
+          </div>
+        ) : null}
         {deleteState?.error ? (
           <div className="mb-sm rounded-lg border border-error/40 bg-error-container/20 px-4 py-3 text-sm text-error">
             {deleteState.error}
@@ -354,6 +386,7 @@ export function ProductManager({
                       type="button"
                       onClick={() => {
                         setPreviewProduct(null);
+                        setDismissedState(state);
                         form.startEdit(product);
                       }}
                       className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10"
@@ -361,6 +394,19 @@ export function ProductManager({
                       title="Editar"
                     >
                       <MaterialIcon name="edit" className="text-base" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewProduct(null);
+                        setDismissedState(state);
+                        form.startDuplicate(product);
+                      }}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10"
+                      aria-label={`Duplicar ${product.title}`}
+                      title="Duplicar (crea uno nuevo con los mismos datos, sin fotos)"
+                    >
+                      <MaterialIcon name="content_copy" className="text-base" />
                     </button>
                     <form
                       action={deleteAction}
@@ -398,7 +444,9 @@ export function ProductManager({
         accessories={accessories}
         action={action}
         pending={pending}
-        serverError={state?.error}
+        serverError={state === dismissedState ? undefined : state?.error}
+        notice={notice}
+        topicSuggestions={topicSuggestions}
       />
 
       {previewProduct ? (

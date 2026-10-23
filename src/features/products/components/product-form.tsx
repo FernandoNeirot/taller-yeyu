@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useSyncExternalStore } from "react";
+import { useEffect, useId, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { MoneyInput } from "@/components/ui/money-input";
@@ -9,10 +9,12 @@ import {
   catalogCategories,
   powerSourceLabels,
   powerSources,
+  topicLabel,
   type PowerSource,
 } from "@/types/product";
 import type { ProductFormController } from "../hooks/use-product-form";
 import { formatProductPrice } from "../lib/format-price";
+import { slugify } from "../lib/slug";
 import {
   errorSection,
   packSummary,
@@ -52,6 +54,10 @@ type ProductFormProps = {
   action: (formData: FormData) => void;
   pending: boolean;
   serverError?: string;
+  /** Confirmación del último guardado (útil con "Guardar y crear otro"). */
+  notice?: string;
+  /** Temáticas ya usadas en otros productos, para sumarlas con un clic. */
+  topicSuggestions?: string[];
 };
 
 /** Modal con el formulario completo de alta/edición de un producto. */
@@ -61,6 +67,8 @@ export function ProductForm({
   action,
   pending,
   serverError,
+  notice,
+  topicSuggestions = [],
 }: ProductFormProps) {
   const {
     isOpen,
@@ -72,9 +80,11 @@ export function ProductForm({
     toggleCategory,
     setHasLighting,
     toggleSection,
-    close,
+    requestClose,
   } = controller;
   const titleId = useId();
+  const formRef = useRef<HTMLFormElement>(null);
+  const serverErrorRef = useRef<HTMLDivElement>(null);
   const isClient = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -97,15 +107,39 @@ export function ProductForm({
       if (document.querySelector("[data-price-calculator]")) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      close();
+      requestClose();
     }
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [isOpen, close]);
+  }, [isOpen, requestClose]);
+
+  // El error del servidor aparece arriba: llevarlo a la vista aunque el botón esté abajo.
+  useEffect(() => {
+    if (serverError) {
+      serverErrorRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }, [serverError]);
 
   if (!isOpen || !isClient) return null;
 
   const hasPacks = form.packOptions.length > 0;
+  const selectedTopics = new Set(
+    form.topics.split(/[,\n]/).map((item) => slugify(item)).filter(Boolean),
+  );
+  const pendingSuggestions = topicSuggestions.filter(
+    (topic) => !selectedTopics.has(topic),
+  );
+
+  /** Lleva el foco al primer campo con error (las secciones ya se abren solas). */
+  function focusFirstError() {
+    window.setTimeout(() => {
+      const target =
+        formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]') ??
+        formRef.current?.querySelector<HTMLElement>('p[role="alert"]');
+      target?.scrollIntoView({ block: "center", behavior: "smooth" });
+      target?.focus({ preventScroll: true });
+    }, 60);
+  }
 
   const section = (id: FormSectionId) => ({
     open: openSections[id],
@@ -131,7 +165,7 @@ export function ProductForm({
           <button
             type="button"
             aria-label="Cerrar"
-            onClick={close}
+            onClick={requestClose}
             className="touch-target inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface"
           >
             <MaterialIcon name="close" />
@@ -139,14 +173,37 @@ export function ProductForm({
         </div>
 
         <form
+          ref={formRef}
           action={action}
           noValidate
           onSubmit={(event) => {
-            if (!controller.validate()) event.preventDefault();
+            if (!controller.validate()) {
+              event.preventDefault();
+              focusFirstError();
+            }
+          }}
+          onKeyDown={(event) => {
+            // Ctrl/Cmd + Enter guarda sin tener que ir hasta el botón.
+            if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+              event.preventDefault();
+              formRef.current?.requestSubmit();
+            }
           }}
           className="flex flex-col gap-sm"
         >
-          {serverError ? <FormBanner>{serverError}</FormBanner> : null}
+          {notice ? (
+            <div
+              role="status"
+              className="rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-on-surface"
+            >
+              {notice}
+            </div>
+          ) : null}
+          {serverError ? (
+            <div ref={serverErrorRef}>
+              <FormBanner>{serverError}</FormBanner>
+            </div>
+          ) : null}
           {controller.imageError ? (
             <FormBanner>{controller.imageError}</FormBanner>
           ) : null}
@@ -177,6 +234,7 @@ export function ProductForm({
               <span className="text-sm text-on-surface-variant">Título</span>
               <input
                 name="title"
+                autoFocus={!editingId}
                 value={form.title}
                 aria-invalid={Boolean(errors.title)}
                 onChange={(event) => updateForm({ title: event.target.value })}
@@ -312,6 +370,27 @@ export function ProductForm({
                 onChange={(event) => updateForm({ topics: event.target.value })}
                 className={fieldClass()}
               />
+              {pendingSuggestions.length > 0 ? (
+                <span className="flex flex-wrap items-center gap-1.5 text-xs text-on-surface-variant">
+                  Ya usadas:
+                  {pendingSuggestions.map((topic) => (
+                    <button
+                      key={topic}
+                      type="button"
+                      onClick={() =>
+                        updateForm({
+                          topics: form.topics.trim()
+                            ? `${form.topics.trim().replace(/,\s*$/, "")}, ${topicLabel(topic)}`
+                            : topicLabel(topic),
+                        })
+                      }
+                      className="rounded-full border border-outline-variant/40 px-2.5 py-1 text-on-surface hover:bg-surface-container-high"
+                    >
+                      + {topicLabel(topic)}
+                    </button>
+                  ))}
+                </span>
+              ) : null}
             </label>
           </FormSection>
 
@@ -457,9 +536,12 @@ export function ProductForm({
             onRemoveNew={controller.removeNewImage}
           />
 
-          <div className="mt-sm flex gap-sm">
+          {/* Barra fija: guardar siempre a mano, sin recorrer todo el formulario. */}
+          <div className="sticky bottom-0 -mx-6 -mb-6 mt-sm flex flex-wrap gap-sm rounded-b-2xl border-t border-outline-variant/30 bg-surface-container px-6 py-3">
             <button
               type="submit"
+              name="intent"
+              value="save"
               disabled={pending}
               className="flex-1 rounded-lg bg-primary-container px-6 py-3 font-label-caps text-label-caps uppercase tracking-widest text-white transition-colors hover:bg-secondary-container disabled:opacity-50"
             >
@@ -469,9 +551,20 @@ export function ProductForm({
                   ? "Guardar cambios"
                   : "Crear producto"}
             </button>
+            {editingId ? null : (
+              <button
+                type="submit"
+                name="intent"
+                value="another"
+                disabled={pending}
+                className="rounded-lg border border-primary/50 px-4 py-3 font-label-caps text-label-caps uppercase tracking-widest text-primary hover:bg-primary/10 disabled:opacity-50"
+              >
+                Guardar y crear otro
+              </button>
+            )}
             <button
               type="button"
-              onClick={close}
+              onClick={requestClose}
               className="rounded-lg border border-outline-variant/40 px-4 py-3 font-label-caps text-label-caps uppercase tracking-widest text-on-surface-variant"
             >
               Cancelar

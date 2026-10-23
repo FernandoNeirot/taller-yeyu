@@ -43,32 +43,30 @@ export async function uploadProductImageBuffers(
   }
 
   const bucket = getAdminBucket();
-  const urls: string[] = [];
 
-  for (const source of buffers) {
-    const webp = await compressToWebp(source);
-    const path = `talleryeu-productos/${slug}/${crypto.randomUUID()}.webp`;
-    const stored = bucket.file(path);
-    const token = crypto.randomUUID();
+  // En paralelo: comprimir y subir 8 fotos una por una era lo más lento del guardado.
+  return Promise.all(
+    buffers.map(async (source) => {
+      const webp = await compressToWebp(source);
+      const path = `talleryeu-productos/${slug}/${crypto.randomUUID()}.webp`;
+      const stored = bucket.file(path);
+      const token = crypto.randomUUID();
 
-    await stored.save(webp, {
-      contentType: "image/webp",
-      resumable: false,
-      metadata: {
-        cacheControl: "public, max-age=31536000",
+      await stored.save(webp, {
+        contentType: "image/webp",
+        resumable: false,
         metadata: {
-          firebaseStorageDownloadTokens: token,
+          cacheControl: "public, max-age=31536000",
+          metadata: {
+            firebaseStorageDownloadTokens: token,
+          },
         },
-      },
-    });
+      });
 
-    const encoded = encodeURIComponent(path);
-    urls.push(
-      `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encoded}?alt=media&token=${token}`,
-    );
-  }
-
-  return urls;
+      const encoded = encodeURIComponent(path);
+      return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encoded}?alt=media&token=${token}`;
+    }),
+  );
 }
 
 function storagePathFromUrl(url: string) {

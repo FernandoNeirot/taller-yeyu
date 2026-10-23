@@ -37,6 +37,21 @@ function revokeAll(files: NewProductImage[]) {
   files.forEach((file) => URL.revokeObjectURL(file.preview));
 }
 
+/** Foto del formulario para detectar cambios sin guardar (ignora los ids de filas). */
+function snapshot(
+  form: ProductFormState,
+  costQuote: CostQuoteFormState,
+  existingImages: string[],
+  newFileCount: number,
+) {
+  return JSON.stringify(
+    { form, costQuote, existingImages, newFileCount },
+    (key, value) => (key === "id" ? undefined : value),
+  );
+}
+
+const emptySnapshot = snapshot(emptyProductForm, emptyCostQuoteForm, [], 0);
+
 /**
  * Estado del formulario de producto (datos, cotizador y fotos).
  * Los componentes `ProductForm`, `ProductCostSection` y `ProductImageUploader`
@@ -44,8 +59,11 @@ function revokeAll(files: NewProductImage[]) {
  */
 export function useProductForm({
   accessories,
+  existingSlugs = [],
 }: {
   accessories: MaterialCatalogItem[];
+  /** Ids de los productos que ya existen: un producto nuevo no puede repetirlos. */
+  existingSlugs?: string[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -57,6 +75,7 @@ export function useProductForm({
   const [newFiles, setNewFiles] = useState<NewProductImage[]>([]);
   const [imageError, setImageError] = useState("");
   const [showErrors, setShowErrors] = useState(false);
+  const [baseline, setBaseline] = useState(emptySnapshot);
 
   // Las vistas previas se liberan al quitar/reiniciar y al desmontar.
   const newFilesRef = useRef(newFiles);
@@ -68,10 +87,16 @@ export function useProductForm({
   const photoCount = existingImages.length + newFiles.length;
   const remainingSlots = MAX_PRODUCT_IMAGES - photoCount;
 
-  const errors = useMemo(
-    () => validateProductForm(form, photoCount),
-    [form, photoCount],
+  const takenSlugs = useMemo(
+    () => (editingId ? new Set<string>() : new Set(existingSlugs)),
+    [editingId, existingSlugs],
   );
+  const errors = useMemo(
+    () => validateProductForm(form, photoCount, takenSlugs),
+    [form, photoCount, takenSlugs],
+  );
+  const isDirty =
+    snapshot(form, costQuote, existingImages, newFiles.length) !== baseline;
   const visibleErrors: ProductFormErrors = showErrors ? errors : {};
   const quoteTotal = costQuoteFormTotal(costQuote, accessories);
   const quoteMinutes = costQuoteMinutes(costQuote);
@@ -163,6 +188,7 @@ export function useProductForm({
     });
     setImageError("");
     setShowErrors(false);
+    setBaseline(emptySnapshot);
   }, []);
 
   const close = useCallback(() => {
@@ -170,29 +196,64 @@ export function useProductForm({
     setIsOpen(false);
   }, [resetFields]);
 
+  /** Cierra pidiendo confirmación si hay cambios sin guardar. */
+  const requestClose = useCallback(() => {
+    if (isDirty && !window.confirm("Hay cambios sin guardar. ¿Cerrar igual?")) {
+      return;
+    }
+    close();
+  }, [close, isDirty]);
+
   const startCreate = useCallback(() => {
     resetFields();
     setIsOpen(true);
   }, [resetFields]);
 
-  const startEdit = useCallback((product: Product) => {
-    setForm(productToForm(product));
-    setCostQuote(costQuoteToForm(product.costQuote));
-    setOpenSections({
-      ...defaultOpenSections,
-      price: Boolean(product.quantityPrices?.length || product.variants?.length),
-      quote: Boolean(product.costQuote),
-    });
-    setEditingId(productId(product));
-    setExistingImages(product.galleryImages.slice(0, MAX_PRODUCT_IMAGES));
-    setNewFiles((current) => {
-      revokeAll(current);
-      return [];
-    });
-    setImageError("");
-    setShowErrors(false);
-    setIsOpen(true);
-  }, []);
+  /** Abre el formulario con los datos de un producto (para editarlo o duplicarlo). */
+  const openWithProduct = useCallback(
+    (product: Product, mode: "edit" | "duplicate") => {
+      const nextForm = productToForm(product);
+      const nextQuote = costQuoteToForm(product.costQuote);
+      // Una copia no comparte fotos con el original: borrar uno rompería el otro.
+      const images =
+        mode === "edit" ? product.galleryImages.slice(0, MAX_PRODUCT_IMAGES) : [];
+
+      setForm(nextForm);
+      setCostQuote(nextQuote);
+      setOpenSections({
+        ...defaultOpenSections,
+        price: Boolean(
+          product.packOptions?.length ||
+            product.quantityPrices?.length ||
+            product.variants?.length,
+        ),
+        quote: Boolean(product.costQuote),
+        photos: mode === "duplicate",
+      });
+      setEditingId(mode === "edit" ? productId(product) : null);
+      setExistingImages(images);
+      setNewFiles((current) => {
+        revokeAll(current);
+        return [];
+      });
+      setImageError("");
+      setShowErrors(false);
+      setBaseline(snapshot(nextForm, nextQuote, images, 0));
+      setIsOpen(true);
+    },
+    [],
+  );
+
+  const startEdit = useCallback(
+    (product: Product) => openWithProduct(product, "edit"),
+    [openWithProduct],
+  );
+
+  /** Producto nuevo con los datos de otro, sin fotos: solo falta cambiar el título. */
+  const startDuplicate = useCallback(
+    (product: Product) => openWithProduct(product, "duplicate"),
+    [openWithProduct],
+  );
 
   /** Refresca el formulario si el producto que se edita cambió desde la lista. */
   const syncEditedProduct = useCallback(
@@ -357,8 +418,11 @@ export function useProductForm({
     removeExistingImage,
     removeNewImage,
     // ciclo de vida
+    isDirty,
     startCreate,
     startEdit,
+    startDuplicate,
+    requestClose,
     resetFields,
     close,
     syncEditedProduct,

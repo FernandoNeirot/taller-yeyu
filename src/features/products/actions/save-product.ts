@@ -13,6 +13,7 @@ import { normalizeVariants } from "../lib/variants";
 import {
   createProduct,
   isCatalogCategory,
+  productSlugExists,
   parseTopicList,
   slugify,
   updateProduct,
@@ -24,6 +25,8 @@ import { MAX_PRODUCT_IMAGES } from "../utils/compress-image";
 export type SaveProductState = {
   error?: string;
   product?: Product;
+  /** Se guardó con "Guardar y crear otro": el formulario sigue abierto y vacío. */
+  createAnother?: boolean;
 };
 
 const measureFields = [
@@ -177,6 +180,11 @@ export async function saveProductAction(
     return { error: "Agregá al menos una foto." };
   }
 
+  // Antes de subir fotos: si el título ya existe, no hace falta gastar tiempo ni Storage.
+  if (!id && (await productSlugExists(slugify(parsed.input.title)))) {
+    return { error: "Ya existe un producto con ese título." };
+  }
+
   try {
     const uploaded = await uploadProductImageBuffers(
       files,
@@ -201,7 +209,7 @@ export async function saveProductAction(
       ? await updateProduct(id, input, allImages)
       : await createProduct(input, allImages);
 
-    return { product };
+    return { product, createAnother: formData.get("intent") === "another" };
   } catch (error) {
     console.error("No se pudo guardar el producto.", error);
     return {

@@ -12,6 +12,7 @@ import {
 import { catalogCategories, type Product } from "@/types/product";
 import type { ProductInput } from "../types";
 import { normalizePackOptions } from "../lib/packs";
+import { slugify } from "../lib/slug";
 import { mapCatalogDoc } from "./map-catalog-product";
 import { deleteProductImages } from "./upload-product-images";
 
@@ -19,14 +20,7 @@ const catalogCategoryIds = new Set<string>(
   catalogCategories.map((item) => item.id),
 );
 
-export function slugify(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+export { slugify };
 
 export function parseTopicList(value: string) {
   return [
@@ -231,6 +225,16 @@ async function getProductForMutation(id: string) {
 
   if (!existing.exists) return null;
   return mapCatalogDoc(id, existing.data() ?? {});
+}
+
+/** ¿Ya hay un producto con este id? Se usa para validar antes de subir fotos. */
+export async function productSlugExists(slug: string) {
+  if (!slug) return false;
+  const doc = await getAdminFirestore()
+    .collection(PRODUCTS_COLLECTION)
+    .doc(slug)
+    .get();
+  return doc.exists;
 }
 
 export async function createProduct(input: ProductInput, images: string[]) {
