@@ -216,7 +216,7 @@ export function useProductForm({
       const nextQuote = costQuoteToForm(product.costQuote);
       // Una copia no comparte fotos con el original: borrar uno rompería el otro.
       const images =
-        mode === "edit" ? product.galleryImages.slice(0, MAX_PRODUCT_IMAGES) : [];
+        mode === "edit" ? [...new Set(product.galleryImages)].slice(0, MAX_PRODUCT_IMAGES) : [];
 
       setForm(nextForm);
       setCostQuote(nextQuote);

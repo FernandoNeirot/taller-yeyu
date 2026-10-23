@@ -284,16 +284,16 @@ export function ProductForm({
               />
               <FieldError message={errors.thickness} />
             </label>
-            <div className="flex flex-wrap items-end gap-md">
-              <label className="inline-flex items-center gap-xs">
-                <input
-                  name="hasLighting"
-                  type="checkbox"
-                  checked={form.hasLighting}
-                  onChange={(event) => setHasLighting(event.target.checked)}
-                />
-                <span className="text-on-surface">Con luz</span>
-              </label>
+            <label className="inline-flex w-fit items-center gap-xs">
+              <input
+                name="hasLighting"
+                type="checkbox"
+                checked={form.hasLighting}
+                onChange={(event) => setHasLighting(event.target.checked)}
+              />
+              <span className="text-on-surface">Con luz</span>
+            </label>
+            {form.hasLighting ? (
               <label className="flex flex-col gap-xs">
                 <span className="text-sm text-on-surface-variant">
                   Alimentación
@@ -301,25 +301,25 @@ export function ProductForm({
                 <select
                   name="powerSource"
                   value={form.powerSource}
-                  disabled={!form.hasLighting}
                   aria-invalid={Boolean(errors.powerSource)}
                   onChange={(event) =>
                     updateForm({ powerSource: event.target.value as PowerSource })
                   }
                   className={fieldClass(errors.powerSource)}
                 >
-                  {powerSources.map((source) => (
-                    <option key={source} value={source}>
-                      {powerSourceLabels[source]}
-                    </option>
-                  ))}
+                  {powerSources
+                    .filter((source) => source !== "ninguno")
+                    .map((source) => (
+                      <option key={source} value={source}>
+                        {powerSourceLabels[source]}
+                      </option>
+                    ))}
                 </select>
-                {/* Un select deshabilitado no se envía: mandamos "ninguno" aparte. */}
-                {form.hasLighting ? null : (
-                  <input type="hidden" name="powerSource" value="ninguno" />
-                )}
               </label>
-            </div>
+            ) : (
+              // Sin luz no hay alimentación: se envía "ninguno" sin mostrar un campo vacío de sentido.
+              <input type="hidden" name="powerSource" value="ninguno" />
+            )}
             <FieldError message={errors.powerSource} />
           </FormSection>
 

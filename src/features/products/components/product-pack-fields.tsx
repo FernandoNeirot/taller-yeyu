@@ -68,7 +68,7 @@ export function ProductPackFields({ form, onChange, error }: PackFieldsProps) {
             key={row.id}
             className="grid gap-xs rounded-lg border border-outline-variant/20 p-sm"
           >
-            <div className="grid gap-sm sm:grid-cols-[7rem_1fr_auto]">
+            <div className="grid gap-sm sm:grid-cols-[10.5rem_1fr_auto]">
               <label className="flex flex-col gap-xs">
                 <span className="text-sm text-on-surface-variant">Cantidad</span>
                 <select

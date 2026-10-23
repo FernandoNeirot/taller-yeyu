@@ -248,6 +248,7 @@ export function ProductCostQuoteFields({
   const [customUnit, setCustomUnit] = useState<"unidad" | "minuto">("unidad");
   const [customPrice, setCustomPrice] = useState("");
   const [formError, setFormError] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const selected = useMemo(
     () => materials.find((item) => item.id === catalogId),
@@ -261,6 +262,31 @@ export function ProductCostQuoteFields({
   const amounts = new Map(
     (payload?.lines ?? []).map((line) => [line.id, line.amount]),
   );
+
+  function updateLine(id: string, patch: Partial<CostQuoteLineForm>) {
+    onChange({
+      lines: value.lines.map((line) =>
+        line.id === id ? { ...line, ...patch } : line,
+      ),
+    });
+  }
+
+  function removeLine(id: string) {
+    onChange({ lines: value.lines.filter((line) => line.id !== id) });
+    if (editingId === id) setEditingId(null);
+  }
+
+  function editor(line: CostQuoteLineForm) {
+    if (editingId !== line.id) return null;
+    return (
+      <CostLineEditor
+        line={line}
+        amount={amounts.get(line.id) ?? 0}
+        onChange={(patch) => updateLine(line.id, patch)}
+        onDone={() => setEditingId(null)}
+      />
+    );
+  }
 
   function addLine(line: CostQuoteLineForm) {
     onChange({ lines: [...value.lines, line] });
@@ -419,17 +445,26 @@ export function ProductCostQuoteFields({
                     </dd>
                   </div>
                 </dl>
-                <button
-                  type="button"
-                  onClick={() =>
-                    onChange({
-                      lines: value.lines.filter((item) => item.id !== line.id),
-                    })
-                  }
-                  className="mt-sm inline-flex min-h-11 items-center text-sm text-on-surface-variant hover:text-error"
-                >
-                  Quitar
-                </button>
+                <div className="mt-sm flex items-center gap-md">
+                  <button
+                    type="button"
+                    aria-expanded={editingId === line.id}
+                    onClick={() =>
+                      setEditingId(editingId === line.id ? null : line.id)
+                    }
+                    className="inline-flex min-h-11 items-center text-sm text-primary hover:underline"
+                  >
+                    {editingId === line.id ? "Cerrar" : "Editar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeLine(line.id)}
+                    className="inline-flex min-h-11 items-center text-sm text-on-surface-variant hover:text-error"
+                  >
+                    Quitar
+                  </button>
+                </div>
+                {editor(line)}
               </li>
             ))}
           </ul>
@@ -455,17 +490,26 @@ export function ProductCostQuoteFields({
                   <span className="text-right font-semibold text-on-surface">
                     {formatProductPrice(amounts.get(line.id) ?? 0)}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onChange({
-                        lines: value.lines.filter((item) => item.id !== line.id),
-                      })
-                    }
-                    className="text-xs text-on-surface-variant hover:text-error"
-                  >
-                    Quitar
-                  </button>
+                  <span className="flex items-center gap-sm">
+                    <button
+                      type="button"
+                      aria-expanded={editingId === line.id}
+                      onClick={() =>
+                        setEditingId(editingId === line.id ? null : line.id)
+                      }
+                      className="text-xs text-primary hover:underline"
+                    >
+                      {editingId === line.id ? "Cerrar" : "Editar"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeLine(line.id)}
+                      className="text-xs text-on-surface-variant hover:text-error"
+                    >
+                      Quitar
+                    </button>
+                  </span>
+                  <div className="col-span-full">{editor(line)}</div>
                 </li>
               ))}
             </ul>
@@ -624,6 +668,115 @@ export function ProductCostQuoteFields({
       <p className="border-t border-outline-variant/25 pt-sm font-semibold text-on-surface">
         Costo estimado: {formatProductPrice(payload?.totalAmount ?? 0)}
       </p>
+    </div>
+  );
+}
+
+const quantityFieldLabel: Record<ProductCostLineUnit, string> = {
+  tabla: "Cantidad de tablas",
+  minuto: "Minutos",
+  gramo: "Gramos",
+  cm: "Cantidad (cm)",
+  unidad: "Cantidad",
+};
+
+/** Edición en el lugar de una línea ya agregada; los cambios se aplican al instante. */
+function CostLineEditor({
+  line,
+  amount,
+  onChange,
+  onDone,
+}: {
+  line: CostQuoteLineForm;
+  amount: number;
+  onChange: (patch: Partial<CostQuoteLineForm>) => void;
+  onDone: () => void;
+}) {
+  const isCustom = line.kind === "custom";
+  const isBoard = line.unit === "tabla";
+
+  return (
+    <div className="mt-sm flex flex-col gap-sm rounded-lg border border-primary/30 bg-surface-container-low/60 p-sm">
+      {isCustom ? (
+        <label className="flex flex-col gap-xs">
+          <span className="text-xs text-on-surface-variant">Descripción</span>
+          <input
+            value={line.description}
+            onChange={(event) => onChange({ description: event.target.value })}
+            className={fieldClassName}
+          />
+        </label>
+      ) : null}
+      <div className="grid grid-cols-1 gap-sm sm:grid-cols-3">
+        {isBoard ? (
+          <>
+            <NumberField
+              label="Ancho (cm)"
+              value={line.widthCm}
+              onChange={(next) => onChange({ widthCm: next })}
+            />
+            <NumberField
+              label="Largo (cm)"
+              value={line.lengthCm}
+              onChange={(next) => onChange({ lengthCm: next })}
+            />
+          </>
+        ) : null}
+        <NumberField
+          label={quantityFieldLabel[line.unit]}
+          value={line.quantity}
+          onChange={(next) => onChange({ quantity: next })}
+        />
+        {line.kind === "wood" ? (
+          <label className="flex flex-col gap-xs">
+            <span className="text-xs text-on-surface-variant">Frente</span>
+            <select
+              value={line.face}
+              onChange={(event) =>
+                onChange({
+                  face: isWoodFaceType(event.target.value)
+                    ? event.target.value
+                    : "",
+                })
+              }
+              className={fieldClassName}
+            >
+              <option value="">Elegí…</option>
+              <option value="natural">Natural</option>
+              <option value="white">Frente blanco</option>
+            </select>
+          </label>
+        ) : null}
+        {isCustom ? (
+          <label className="flex flex-col gap-xs">
+            <span className="text-xs text-on-surface-variant">
+              {line.unit === "minuto" ? "Precio por minuto" : "Precio por unidad"}
+            </span>
+            <MoneyInput
+              value={line.unitPrice}
+              onChange={(next) => onChange({ unitPrice: next })}
+            />
+          </label>
+        ) : null}
+      </div>
+      {isCustom ? null : (
+        <p className="text-xs text-on-surface-variant">
+          El precio por unidad sale del material cargado: si cambia en
+          materiales, se actualiza solo.
+        </p>
+      )}
+      <div className="flex items-center justify-between gap-sm">
+        <p className="text-sm font-semibold text-on-surface">
+          Precio: {formatProductPrice(amount)}
+        </p>
+        <button
+          type="button"
+          onClick={onDone}
+          className="rounded-lg bg-primary-container px-4 py-2 text-sm font-semibold text-white hover:bg-secondary-container"
+        >
+          Listo
+        </button>
+      </div>
     </div>
   );
 }

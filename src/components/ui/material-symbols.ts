@@ -11,6 +11,7 @@ const ICON_NAMES = [
   "chevron_left",
   "chevron_right",
   "close",
+  "content_copy",
   "delete",
   "draw",
   "edit",

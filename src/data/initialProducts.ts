@@ -28,7 +28,7 @@ function createProduct(product: SeedProduct): Product {
     ...product,
     id: product.slug,
     featuredImage: image,
-    galleryImages: product.galleryImages ?? [image, image],
+    galleryImages: product.galleryImages ?? [image],
     isActive: true,
     createdAt: CREATED_AT,
   };

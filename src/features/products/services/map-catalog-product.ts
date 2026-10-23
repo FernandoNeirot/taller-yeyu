@@ -33,7 +33,10 @@ export function mapCatalogDoc(
   const featuredImage = String(
     data.featuredImage ?? data.image ?? "/principal.png",
   );
-  const galleryImages = toStringArray(data.galleryImages ?? data.images);
+  // Sin repetidas: la URL es la identidad de cada foto en la galería y en el formulario.
+  const galleryImages = [
+    ...new Set(toStringArray(data.galleryImages ?? data.images)),
+  ];
   // ISO string: el resultado pasa por la caché de Next, que serializa a JSON.
   const createdAtDate = data.createdAt?.toDate?.();
   const createdAt: string = createdAtDate
