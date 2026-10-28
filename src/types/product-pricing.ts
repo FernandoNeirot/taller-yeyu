@@ -1,61 +1,28 @@
-import type { MaterialSubcategory } from "@/features/finance/types";
+import type { MeasureType } from "./material";
 
-export type WoodFaceType = "natural" | "white";
-
-export type ProductCostAccessory = {
-  id: string;
+/**
+ * Una línea del cotizador de un producto: un material y cuánto se usa.
+ * `quantityUsed` está en la unidad del material: cm² (área), unidades o minutos.
+ */
+export type QuoteItem = {
   materialId: string;
-  materialName: string;
-  quantity: number;
-  unitPrice: number;
-  measureType?: "unidad" | "centimetro";
-  amount: number;
-};
-
-export type ProductCostWood = {
-  id: string;
-  quantity?: number;
+  name: string;
+  measureType: MeasureType;
+  quantityUsed: number;
+  calculatedCost: number;
+  /** Solo en materiales de área: medidas con las que se calculó `quantityUsed`. */
   widthCm?: number;
-  lengthCm?: number;
-  face?: WoodFaceType;
-  amount?: number;
-};
-
-export type ProductCostLineUnit = "unidad" | "minuto" | "cm" | "gramo" | "tabla";
-
-export type ProductCostLine = {
-  id: string;
-  kind: "wood" | "catalog" | "custom";
-  catalogType?: MaterialSubcategory;
-  materialId?: string;
-  description: string;
-  quantity: number;
-  unit: ProductCostLineUnit;
-  unitPrice: number;
-  amount: number;
-  widthCm?: number;
-  lengthCm?: number;
-  face?: WoodFaceType;
+  heightCm?: number;
 };
 
 export type ProductCostQuote = {
-  lines?: ProductCostLine[];
-  woods?: ProductCostWood[];
-  woodQuantity?: number;
-  woodWidthCm?: number;
-  woodLengthCm?: number;
-  woodFace?: WoodFaceType;
-  woodAmount?: number;
-  machineMinutes?: number;
-  machineHourlyRate?: number;
-  machineAmount?: number;
-  laborMinutes?: number;
-  laborHourlyRate?: number;
-  laborAmount?: number;
-  accessories?: ProductCostAccessory[];
-  usesPaint?: boolean;
-  paintAmount?: number;
-  totalAmount?: number;
+  items: QuoteItem[];
+  /** Gasto de bolsillo: suma de los materiales de área y de unidad. */
+  totalMaterialCost: number;
+  /** Retribución: suma de los materiales de tiempo (máquina, mano de obra). */
+  totalTimeCost: number;
+  /** `totalMaterialCost` + `totalTimeCost`. */
+  totalAmount: number;
 };
 
 export type ProductQuantityPrice = {

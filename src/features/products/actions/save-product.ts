@@ -1,10 +1,12 @@
 "use server";
 
 import { requireAdmin } from "@/features/admin/services/auth";
-import { getMaterials } from "@/features/finance/services/venture-finance";
-import { buildMaterialCatalog } from "@/features/quotes/types";
 import { isPowerSource } from "@/types/product";
-import { finalizeCostQuote, parseCostQuoteJson } from "../lib/cost-quote";
+import {
+  finalizeCostQuote,
+  parseQuoteItemInputs,
+} from "@/features/materials/lib/quote-items";
+import { getMaterialCatalog } from "@/features/materials/services/materials";
 import { formatMeasuresSummary } from "../lib/measures";
 import { normalizePackOptions, validatePackOptions } from "../lib/packs";
 import { validateProductSpecs } from "../lib/product-specs";
@@ -194,12 +196,12 @@ export async function saveProductAction(
       0,
       MAX_PRODUCT_IMAGES,
     );
-    const accessories = buildMaterialCatalog(await getMaterials());
+    const materials = await getMaterialCatalog();
     const input: ProductInput = {
       ...parsed.input,
       costQuote: finalizeCostQuote(
-        parseCostQuoteJson(formData.get("costQuote")) ?? {},
-        accessories,
+        parseQuoteItemInputs(formData.get("costQuote")),
+        materials,
       ),
     };
 

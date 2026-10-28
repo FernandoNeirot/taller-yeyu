@@ -27,6 +27,13 @@ const modules = [
     color: "bg-secondary-container",
   },
   {
+    title: "Materiales",
+    description: "Costos de materiales para cotizar",
+    icon: "handyman",
+    href: "/admin/materiales",
+    color: "bg-secondary-container",
+  },
+  {
     title: "Cotizador",
     description: "Cotizaciones y presupuestos",
     icon: "calculate",

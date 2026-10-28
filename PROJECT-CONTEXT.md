@@ -36,7 +36,7 @@ features/            lógica por dominio (ver abajo)
 lib/                 firebase-admin, mercadopago, andreani, whatsapp, seo/ (metadata, json-ld, site)
 types/product.ts     tipo Product + categorías del catálogo (compartido)
 ```
-Fuera de `src/`: `scripts/` (seed de productos y de usuarios admin, optimización de imágenes, favicon) y `README-PRODUCTOS.md` (guía para cargar productos).
+Fuera de `src/`: `scripts/` (seed de productos, materiales, juegos didácticos y usuarios admin, optimización de imágenes, favicon) y `README-PRODUCTOS.md` (guía para cargar productos).
 
 ## Organización por features (`src/features/<dominio>/`)
 Cada feature usa las subcarpetas que necesita: `actions/` (Server Actions), `services/` (acceso a datos, server-only), `components/`, `lib/` (lógica pura), `hooks/`, `types/`.
@@ -48,7 +48,8 @@ Cada feature usa las subcarpetas que necesita: `actions/` (Server Actions), `ser
 | **checkout** | Resolución del checkout en servidor (recalcula precios/envío), creación/actualización de órdenes. `flags.ts` tiene `CHECKOUT_PAYMENTS_ENABLED = false`: pagos online apagados hasta tener keys de MP/Andreani; hoy el flujo real es WhatsApp. |
 | **admin** | Login usuario/contraseña (usuarios en Firestore), sesión por **cookie propia firmada con HMAC** (`admin_session`, 24h), `requireAdmin()` / `getSession()`. No hay middleware/proxy: la protección se hace por página/layout/acción. |
 | **finance** | Movimientos de ingreso/egreso en dos libros: **familia** y **emprendimiento** (categorías fijas), reportes y descarga en PDF. |
-| **quotes** | Cotizador: arma costos con materiales (por cm², gramos, unidad) tomados del módulo financiero y guarda cotizaciones. |
+| **materials** | Catálogo de materiales de costo (`/admin/materiales`, colección `materials`): `Material` con `measureType` (`area_cm2`, `unit`, `time_minutes`), `totalCost`, `totalUnits` y `costPerUnit` calculado. También tiene el editor de líneas (`QuoteItemsEditor`) y el cálculo (`lib/quote-items.ts`) que comparten el cotizador y el formulario de producto. |
+| **quotes** | Cotizador: arma costos con los materiales del catálogo (`QuoteItem[]`: ancho×alto, unidades o minutos) y guarda cotizaciones. |
 
 ## Flujos de datos clave
 1. **Lectura de productos**: Server Component → `get-products` / `get-catalog-products` (Firestore con caché en memoria) → `ProductsHydration` (client) hace `dehydrate` de React Query → los componentes cliente usan `useProducts()`. El `queryFn` lanza error a propósito: los datos **siempre** vienen prehidratados desde el servidor.
@@ -60,7 +61,7 @@ Cada feature usa las subcarpetas que necesita: `actions/` (Server Actions), `ser
 `ADMIN_SESSION_SECRET`, `ADMIN_BOOTSTRAP_PASSWORD`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `NEXT_PUBLIC_MP_PUBLIC_KEY`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_BASE_URL`, `NEXT_PUBLIC_WHATSAPP_NUMBER`, `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`.
 
 ## Puntos a tener en cuenta para el refactor
-- **Archivos muy grandes** (candidatos a dividir): `product-manager.tsx` (~1550 líneas), `venture-finance-panel.tsx` (~1160), `financial-control.tsx` (~685), `product-cost-quote.tsx` (~650), `CartDrawer.tsx` (~620), `quote-builder.tsx` (~590).
+- **Archivos muy grandes** (candidatos a dividir): `product-manager.tsx` (~1550 líneas), `venture-finance-panel.tsx` (~1160), `financial-control.tsx` (~685), `CartDrawer.tsx` (~620), `quote-builder.tsx` (~200).
 - **Duplicación / inconsistencias**: existen `src/components/product/ProductCard.tsx` y `src/features/products/components/product-card.tsx`; en `components/` se mezclan PascalCase y kebab-case (`CartDrawer.tsx` vs `cart-button.tsx`); los componentes de cart/home viven en `components/` mientras el resto del dominio está en `features/`.
 - **Tipos repartidos**: `Product` está en `src/types/product.ts` y se re-exporta desde `features/products/types`; ese tipo importa tipos de `features/products/lib/*` (dependencia circular entre capas).
 - **Caché en memoria de productos** (a nivel módulo): poco confiable en serverless/Vercel (cada instancia tiene la suya); se complementa con `revalidatePath`.

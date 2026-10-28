@@ -52,6 +52,8 @@ export const FAMILY_FINANCE_COLLECTION = "taller-yeyu-financiero-familiar";
 export const VENTURE_FINANCE_COLLECTION =
   "taller-yeyu-financiero-emprendimiento";
 export const MATERIALS_COLLECTION = "taller-yeyu-materiales";
+/** Catálogo de materiales del cotizador (costo del pack y lo que rinde). */
+export const COST_MATERIALS_COLLECTION = "materials";
 export const QUOTES_COLLECTION = "taller-yeyu-cotizaciones";
 export const ADMIN_USERS_COLLECTION = "taller-yeyu-admin-usuarios";
 export const ORDERS_COLLECTION = "talleryeu-pedidos";

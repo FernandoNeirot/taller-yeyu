@@ -1,10 +1,4 @@
 import { catalogCategories, isPowerSource, type PowerSource } from "@/types/product";
-import {
-  DEFAULT_LABOR_HOURLY_RATE,
-  DEFAULT_MACHINE_HOURLY_RATE,
-  isWoodFaceType,
-  type WoodFaceType,
-} from "./cost-quote";
 
 export const PRODUCT_CREATE_JSON_EXAMPLE = `{
   "title": "Cartel de bienvenida",
@@ -31,16 +25,11 @@ export const PRODUCT_CREATE_JSON_EXAMPLE = `{
     { "description": "Pintado", "price": 18000 }
   ],
   "costQuote": {
-    "woods": [
-      { "quantity": 1, "widthCm": 30, "lengthCm": 40, "face": "natural" }
-    ],
-    "machineMinutes": 12,
-    "machineHourlyRate": 6000,
-    "laborMinutes": 20,
-    "laborHourlyRate": 4000,
-    "accessories": [],
-    "usesPaint": false,
-    "paintAmount": null
+    "items": [
+      { "materialName": "Madera MDF 3 mm s/cara blanca", "widthCm": 30, "heightCm": 40 },
+      { "materialName": "Máquina láser", "quantityUsed": 12 },
+      { "materialName": "Bolsita 9x20", "quantityUsed": 1 }
+    ]
   }
 }`;
 
@@ -66,19 +55,14 @@ export type ParsedProductCreateJson = {
   quantityPrices: { quantity: string; price: string }[];
   variants: { description: string; price: string }[];
   costQuote: {
-    woods: {
-      quantity: string;
+    items: {
+      materialId: string;
+      materialName: string;
       widthCm: string;
-      lengthCm: string;
-      face: "" | WoodFaceType;
+      heightCm: string;
+      /** Unidades o minutos (y el área en cm² si no se cargan ancho y alto). */
+      quantityUsed: string;
     }[];
-    machineMinutes: string;
-    machineHourlyRate: string;
-    laborMinutes: string;
-    laborHourlyRate: string;
-    accessories: { materialId: string; materialName: string; quantity: string }[];
-    usesPaint: boolean;
-    paintAmount: string;
   } | null;
 };
 
@@ -252,45 +236,23 @@ export function parseProductCreateJson(raw: string): {
 function parseCostQuote(value: unknown): ParsedProductCreateJson["costQuote"] {
   if (value == null) return null;
   const quote = asRecord(value, "El cotizador");
-  const woods = Array.isArray(quote.woods)
-    ? quote.woods.map((entry) => {
-        const row = asRecord(entry, "Una pieza de madera");
-        const rawFace = text(row.face);
-        const face: "" | WoodFaceType = isWoodFaceType(rawFace) ? rawFace : "";
-        return {
-          quantity: optionalNumber(row.quantity, "La cantidad de madera"),
-          widthCm: optionalNumber(row.widthCm, "El ancho de la madera"),
-          lengthCm: optionalNumber(row.lengthCm, "El largo de la madera"),
-          face,
-        };
-      })
-    : [];
-
-  const accessories = Array.isArray(quote.accessories)
-    ? quote.accessories.flatMap((entry) => {
-        const row = asRecord(entry, "Un accesorio");
-        const quantity = optionalNumber(row.quantity, "La cantidad del accesorio");
+  const items = Array.isArray(quote.items)
+    ? quote.items.flatMap((entry) => {
+        const row = asRecord(entry, "Un material del cotizador");
         const materialId = text(row.materialId);
         const materialName = text(row.materialName ?? row.name);
-        if ((!materialId && !materialName) || !quantity || Number(quantity) <= 0) {
-          return [];
-        }
-        return [{ materialId, materialName, quantity }];
+        if (!materialId && !materialName) return [];
+        return [
+          {
+            materialId,
+            materialName,
+            widthCm: optionalNumber(row.widthCm, "El ancho"),
+            heightCm: optionalNumber(row.heightCm, "El alto"),
+            quantityUsed: optionalNumber(row.quantityUsed, "La cantidad usada"),
+          },
+        ];
       })
     : [];
 
-  return {
-    woods,
-    machineMinutes: optionalNumber(quote.machineMinutes, "Los minutos de máquina"),
-    machineHourlyRate:
-      optionalNumber(quote.machineHourlyRate, "El valor hora de máquina") ||
-      String(DEFAULT_MACHINE_HOURLY_RATE),
-    laborMinutes: optionalNumber(quote.laborMinutes, "Los minutos de mano de obra"),
-    laborHourlyRate:
-      optionalNumber(quote.laborHourlyRate, "El valor hora de mano de obra") ||
-      String(DEFAULT_LABOR_HOURLY_RATE),
-    accessories,
-    usesPaint: quote.usesPaint === true,
-    paintAmount: optionalNumber(quote.paintAmount, "El monto de pintura"),
-  };
+  return { items };
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { MaterialCatalogItem } from "@/features/quotes/types";
+import { emptyQuoteRow } from "@/features/materials/lib/quote-rows";
+import type { Material } from "@/types/material";
 import type { Product } from "@/types/product";
 import {
   costQuoteFormTotal,
@@ -58,10 +59,10 @@ const emptySnapshot = snapshot(emptyProductForm, emptyCostQuoteForm, [], 0);
  * solo leen de acá y llaman a estas acciones.
  */
 export function useProductForm({
-  accessories,
+  materials,
   existingSlugs = [],
 }: {
-  accessories: MaterialCatalogItem[];
+  materials: Material[];
   /** Ids de los productos que ya existen: un producto nuevo no puede repetirlos. */
   existingSlugs?: string[];
 }) {
@@ -98,8 +99,8 @@ export function useProductForm({
   const isDirty =
     snapshot(form, costQuote, existingImages, newFiles.length) !== baseline;
   const visibleErrors: ProductFormErrors = showErrors ? errors : {};
-  const quoteTotal = costQuoteFormTotal(costQuote, accessories);
-  const quoteMinutes = costQuoteMinutes(costQuote);
+  const quoteTotal = costQuoteFormTotal(costQuote, materials);
+  const quoteMinutes = costQuoteMinutes(costQuote, materials);
 
   // ── Campos ────────────────────────────────────────────────────────────
 
@@ -295,55 +296,29 @@ export function useProductForm({
         );
       }
 
-      const nextQuote = quote
-        ? costQuoteToForm({
-            woods: quote.woods.flatMap((wood) => {
-              const quantity = Number(wood.quantity);
-              const widthCm = Number(wood.widthCm);
-              const lengthCm = Number(wood.lengthCm);
-              if (!wood.face && !quantity && !widthCm && !lengthCm) return [];
-              return [
-                {
-                  id: newRowId(),
-                  quantity: quantity || undefined,
-                  widthCm: widthCm || undefined,
-                  lengthCm: lengthCm || undefined,
-                  face: wood.face || undefined,
-                },
-              ];
-            }),
-            machineMinutes: Number(quote.machineMinutes) || undefined,
-            machineHourlyRate: Number(quote.machineHourlyRate) || undefined,
-            laborMinutes: Number(quote.laborMinutes) || undefined,
-            laborHourlyRate: Number(quote.laborHourlyRate) || undefined,
-            accessories: quote.accessories.flatMap((row) => {
-              const material = accessories.find((item) => {
-                if (row.materialId && item.id === row.materialId) return true;
-                const name = normalizeSearch(row.materialName);
-                return Boolean(name) && normalizeSearch(item.name) === name;
-              });
-              if (!material) {
-                const label = row.materialName || row.materialId;
-                importWarnings.push(`No encontré el accesorio "${label}".`);
-                return [];
-              }
-              const quantity = Number(row.quantity) || 0;
-              return [
-                {
-                  id: newRowId(),
-                  materialId: material.id,
-                  materialName: material.name,
-                  quantity,
-                  unitPrice: material.unitPrice ?? 0,
-                  measureType: material.measureType,
-                  amount: quantity * (material.unitPrice ?? 0),
-                },
-              ];
-            }),
-            usesPaint: quote.usesPaint,
-            paintAmount: Number(quote.paintAmount) || undefined,
-          })
-        : emptyCostQuoteForm;
+      const nextQuote: CostQuoteFormState = {
+        rows: (quote?.items ?? []).flatMap((row) => {
+          const material = materials.find((item) => {
+            if (row.materialId && item.id === row.materialId) return true;
+            const name = normalizeSearch(row.materialName);
+            return Boolean(name) && normalizeSearch(item.name) === name;
+          });
+          if (!material) {
+            const label = row.materialName || row.materialId;
+            importWarnings.push(`No encontré el material "${label}".`);
+            return [];
+          }
+          return [
+            {
+              ...emptyQuoteRow(),
+              materialId: material.id,
+              widthCm: row.widthCm,
+              heightCm: row.heightCm,
+              quantity: row.quantityUsed,
+            },
+          ];
+        }),
+      };
 
       setForm({
         title: product.title,
@@ -390,7 +365,7 @@ export function useProductForm({
       });
       return importWarnings;
     },
-    [accessories],
+    [materials],
   );
 
   return {

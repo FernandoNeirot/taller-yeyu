@@ -2,7 +2,15 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/ui/material-icon";
-import type { MaterialCatalogItem } from "@/features/quotes/types";
+import {
+  RowActionLabel,
+  RowActionsMenu,
+  rowActionClass,
+  rowDangerActionClass,
+  rowIconActionClass,
+} from "@/components/ui/row-actions-menu";
+import { formatMoney } from "@/features/materials/lib/format";
+import type { Material } from "@/types/material";
 import type { Product } from "@/types/product";
 import { deleteProductAction } from "../actions/delete-product";
 import { saveProductAction } from "../actions/save-product";
@@ -25,10 +33,10 @@ const visibilityFilters: { id: VisibilityFilter; label: string }[] = [
 
 export function ProductManager({
   products: initialList,
-  accessories = [],
+  materials = [],
 }: {
   products: Product[];
-  accessories?: MaterialCatalogItem[];
+  materials?: Material[];
 }) {
   const [products, setProducts] = useState(initialList);
   const [query, setQuery] = useState("");
@@ -46,7 +54,7 @@ export function ProductManager({
       ),
     [products],
   );
-  const form = useProductForm({ accessories, existingSlugs });
+  const form = useProductForm({ materials, existingSlugs });
   const [state, action, pending] = useActionState(saveProductAction, null);
   // El error del servidor es de un envío puntual: al reabrir el formulario no debe reaparecer.
   const [dismissedState, setDismissedState] = useState(state);
@@ -277,8 +285,8 @@ export function ProductManager({
                   key={id}
                   className={
                     id === form.editingId && form.isOpen
-                      ? "rounded-xl border border-primary/40 bg-primary/10 p-sm"
-                      : "rounded-xl border border-outline-variant/20 bg-surface-container-low p-sm"
+                      ? "relative rounded-xl border border-primary/40 bg-primary/10 p-sm"
+                      : "relative rounded-xl border border-outline-variant/20 bg-surface-container-low p-sm"
                   }
                   style={{
                     display: "flex",
@@ -287,7 +295,7 @@ export function ProductManager({
                     width: "100%",
                   }}
                 >
-                  <div style={{ width: "100%" }}>
+                  <div className="pr-10 sm:pr-0" style={{ width: "100%" }}>
                     <p
                       className="font-headline-md text-on-surface"
                       style={{ overflowWrap: "anywhere" }}
@@ -330,28 +338,45 @@ export function ProductManager({
                       </p>
                     ) : null}
                     {product.costQuote?.totalAmount ? (
-                      <p className="mt-1 text-sm text-on-surface-variant">
-                        Costo {formatProductPrice(product.costQuote.totalAmount)}
-                      </p>
+                      <dl className="mt-1 flex flex-col gap-0.5 text-sm text-on-surface-variant sm:flex-row sm:flex-wrap sm:gap-x-md">
+                        <div className="flex justify-between gap-sm sm:justify-start">
+                          <dt>Materiales</dt>
+                          <dd className="text-on-surface">
+                            {formatMoney(product.costQuote.totalMaterialCost ?? 0)}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-sm sm:justify-start">
+                          <dt>Tiempo</dt>
+                          <dd className="text-on-surface">
+                            {formatMoney(product.costQuote.totalTimeCost ?? 0)}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-sm sm:justify-start">
+                          <dt>Total</dt>
+                          <dd className="font-semibold text-on-surface">
+                            {formatMoney(product.costQuote.totalAmount)}
+                          </dd>
+                        </div>
+                      </dl>
                     ) : null}
                   </div>
-                  <div
-                    className="flex flex-wrap items-center gap-xs"
-                    style={{ width: "100%" }}
+                  <RowActionsMenu
+                    label={`Acciones de ${product.title}`}
+                    className="absolute right-2 top-2 sm:static"
                   >
                     <button
                       type="button"
                       onClick={() => setPreviewProduct(product)}
-                      className="inline-flex h-8 items-center gap-1 rounded-full px-2 text-primary hover:bg-primary/10"
+                      className={rowActionClass}
                       aria-label={`Ver ${product.title}`}
                       title="Ver datos"
                     >
                       <MaterialIcon name="visibility" className="text-base" />
-                      <span className="font-label-caps text-label-caps tracking-widest">
+                      <span className="text-sm sm:font-label-caps sm:text-label-caps sm:tracking-widest">
                         Ver
                       </span>
                     </button>
-                    <form action={visibilityAction}>
+                    <form action={visibilityAction} className="w-full sm:w-auto">
                       <input type="hidden" name="id" value={id} />
                       <input
                         type="hidden"
@@ -361,7 +386,7 @@ export function ProductManager({
                       <button
                         type="submit"
                         disabled={visibilityPending}
-                        className="inline-flex h-8 items-center gap-1 rounded-full px-2 text-primary hover:bg-primary/10 disabled:opacity-50"
+                        className={rowActionClass}
                         aria-label={
                           hidden
                             ? `Publicar ${product.title} en la galería`
@@ -377,7 +402,7 @@ export function ProductManager({
                           name={hidden ? "publish" : "unpublished"}
                           className="text-base"
                         />
-                        <span className="font-label-caps text-label-caps tracking-widest">
+                        <span className="text-sm sm:font-label-caps sm:text-label-caps sm:tracking-widest">
                           {hidden ? "Publicar" : "Ocultar"}
                         </span>
                       </button>
@@ -389,11 +414,12 @@ export function ProductManager({
                         setDismissedState(state);
                         form.startEdit(product);
                       }}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10"
+                      className={rowIconActionClass}
                       aria-label={`Editar ${product.title}`}
                       title="Editar"
                     >
                       <MaterialIcon name="edit" className="text-base" />
+                      <RowActionLabel>Editar</RowActionLabel>
                     </button>
                     <button
                       type="button"
@@ -402,14 +428,16 @@ export function ProductManager({
                         setDismissedState(state);
                         form.startDuplicate(product);
                       }}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-primary/10"
+                      className={rowIconActionClass}
                       aria-label={`Duplicar ${product.title}`}
                       title="Duplicar (crea uno nuevo con los mismos datos, sin fotos)"
                     >
                       <MaterialIcon name="content_copy" className="text-base" />
+                      <RowActionLabel>Duplicar</RowActionLabel>
                     </button>
                     <form
                       action={deleteAction}
+                      className="w-full sm:w-auto"
                       onSubmit={(event) => {
                         if (
                           !window.confirm(
@@ -424,14 +452,15 @@ export function ProductManager({
                       <button
                         type="submit"
                         disabled={deletePending}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-error hover:bg-error/10 disabled:opacity-50"
+                        className={rowDangerActionClass}
                         aria-label={`Eliminar ${product.title}`}
                         title="Eliminar"
                       >
                         <MaterialIcon name="delete" className="text-base" />
+                        <RowActionLabel>Eliminar</RowActionLabel>
                       </button>
                     </form>
-                  </div>
+                  </RowActionsMenu>
                 </div>
               );
             })}
@@ -441,7 +470,7 @@ export function ProductManager({
 
       <ProductForm
         controller={form}
-        accessories={accessories}
+        materials={materials}
         action={action}
         pending={pending}
         serverError={state === dismissedState ? undefined : state?.error}

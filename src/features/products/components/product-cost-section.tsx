@@ -1,6 +1,6 @@
 "use client";
 
-import type { MaterialCatalogItem } from "@/features/quotes/types";
+import type { Material } from "@/types/material";
 import { formatProductPrice } from "../lib/format-price";
 import {
   ProductCostQuoteFields,
@@ -11,7 +11,7 @@ import { FormSection } from "./product-form-ui";
 type ProductCostSectionProps = {
   value: CostQuoteFormState;
   onChange: (value: CostQuoteFormState) => void;
-  materials: MaterialCatalogItem[];
+  materials: Material[];
   total: number;
   minutes: number;
   open: boolean;

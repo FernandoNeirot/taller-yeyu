@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { MoneyInput } from "@/components/ui/money-input";
-import type { MaterialCatalogItem } from "@/features/quotes/types";
+import type { Material } from "@/types/material";
 import {
   catalogCategories,
   powerSourceLabels,
@@ -50,7 +50,7 @@ function sectionHasError(errors: ProductFormErrors, section: FormSectionId) {
 
 type ProductFormProps = {
   controller: ProductFormController;
-  accessories: MaterialCatalogItem[];
+  materials: Material[];
   action: (formData: FormData) => void;
   pending: boolean;
   serverError?: string;
@@ -63,7 +63,7 @@ type ProductFormProps = {
 /** Modal con el formulario completo de alta/edición de un producto. */
 export function ProductForm({
   controller,
-  accessories,
+  materials,
   action,
   pending,
   serverError,
@@ -517,7 +517,7 @@ export function ProductForm({
           <ProductCostSection
             value={controller.costQuote}
             onChange={controller.setCostQuote}
-            materials={accessories}
+            materials={materials}
             total={controller.quoteTotal}
             minutes={controller.quoteMinutes}
             open={openSections.quote}

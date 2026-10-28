@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdmin } from "@/features/admin/services/auth";
-import { getMaterials } from "@/features/finance/services/venture-finance";
+import { getMaterialCatalog } from "@/features/materials/services/materials";
 import { QuoteBuilder } from "@/features/quotes/components/quote-builder";
 import { getQuotes } from "@/features/quotes/services/quotes";
 
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default async function AdminQuotesPage() {
   await requireAdmin();
-  const [materials, quotes] = await Promise.all([getMaterials(), getQuotes()]);
+  const [materials, quotes] = await Promise.all([getMaterialCatalog(), getQuotes()]);
 
   return (
     <main className="min-h-screen px-container-margin py-xl max-w-6xl mx-auto">
@@ -37,7 +37,7 @@ export default async function AdminQuotesPage() {
           Cotizador
         </h1>
         <p className="font-body-md text-body-md text-on-surface-variant">
-          Armá un presupuesto con maderas, pinturas y accesorios del catálogo.
+          Armá un presupuesto con los materiales del catálogo.
         </p>
       </div>
 

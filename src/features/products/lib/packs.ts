@@ -4,7 +4,7 @@ import { normalizeQuantityPrices } from "./quantity-prices";
 export type { ProductPackOption };
 
 /** Cantidades de unidades que se pueden ofrecer como pack. */
-export const PACK_QUANTITY_CHOICES = [10, 15, 20, 25, 30] as const;
+export const PACK_QUANTITY_CHOICES = [6, 10, 12, 15, 18, 20, 24, 25, 30] as const;
 
 export function isPackQuantityChoice(quantity: number) {
   return (PACK_QUANTITY_CHOICES as readonly number[]).includes(quantity);

@@ -1,6 +1,6 @@
 import { type DocumentData } from "firebase-admin/firestore";
 import { isPowerSource, type Product } from "@/types/product";
-import { mapStoredCostQuote } from "../lib/cost-quote";
+import { mapStoredCostQuote } from "@/features/materials/lib/quote-items";
 import { normalizePackOptions } from "../lib/packs";
 import { normalizeQuantityPrices } from "../lib/quantity-prices";
 import { normalizeVariants } from "../lib/variants";

@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed:products": "node --env-file=.env scripts/seed-talleryeu-productos.mjs",
+    "seed:materials": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env scripts/seed-materials.ts",
+    "seed:games": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env scripts/seed-juegos-didacticos.mjs",
     "seed:admin-users": "node --env-file=.env scripts/seed-admin-users.mjs"
   },
   "dependencies": {

@@ -1,14 +1,7 @@
-import {
-  DEFAULT_LABOR_HOURLY_RATE,
-  DEFAULT_MACHINE_HOURLY_RATE,
-  computeAccessoryAmount,
-  computeCostQuoteTotal,
-  computeMachineAmount,
-  computeWoodAmount,
-  type ProductCostQuote,
-  type WoodFaceType,
-} from "@/features/products/lib/cost-quote";
+import { finalizeCostQuote } from "@/features/materials/lib/quote-items";
 import type { Product } from "@/types/product";
+import { didacticGameSeeds } from "./didacticGamesSeed";
+import { initialMaterials, MATERIAL_IDS } from "./initialMaterials";
 
 const PLACEHOLDER_IMAGE = "https://via.placeholder.com/500";
 const CREATED_AT = "2026-09-14";
@@ -35,61 +28,28 @@ function createProduct(product: SeedProduct): Product {
 }
 
 type SeedCostQuote = {
-  wood: { widthCm: number; lengthCm: number; quantity?: number; face: WoodFaceType };
+  /** Plancha de MDF que usa el producto. */
+  wood: { widthCm: number; lengthCm: number };
   machineMinutes: number;
-  laborMinutes: number;
-  accessories?: { name: string; quantity: number; unitPrice: number }[];
-  paintAmount?: number;
 };
 
-/** Arma un costQuote con los importes calculados igual que el cotizador. */
-function createCostQuote(input: SeedCostQuote): ProductCostQuote {
-  const woodAmount = computeWoodAmount({
-    quantity: input.wood.quantity ?? 1,
-    widthCm: input.wood.widthCm,
-    lengthCm: input.wood.lengthCm,
-    face: input.wood.face,
-  });
-  const machineAmount = computeMachineAmount({
-    minutes: input.machineMinutes,
-    hourlyRate: DEFAULT_MACHINE_HOURLY_RATE,
-  });
-  const laborAmount = computeMachineAmount({
-    minutes: input.laborMinutes,
-    hourlyRate: DEFAULT_LABOR_HOURLY_RATE,
-  });
-  const quote: ProductCostQuote = {
-    woods: [
+/**
+ * Cotizador del seed con los materiales iniciales: MDF por superficie y máquina
+ * láser por minuto. Mano de obra, pintura y accesorios sueltos se cargan desde
+ * el admin con los materiales del catálogo.
+ */
+function createCostQuote(input: SeedCostQuote) {
+  return finalizeCostQuote(
+    [
       {
-        id: "wood-1",
-        quantity: input.wood.quantity ?? 1,
+        materialId: MATERIAL_IDS.mdf,
         widthCm: input.wood.widthCm,
-        lengthCm: input.wood.lengthCm,
-        face: input.wood.face,
-        amount: woodAmount,
+        heightCm: input.wood.lengthCm,
       },
+      { materialId: MATERIAL_IDS.laser, quantityUsed: input.machineMinutes },
     ],
-    woodAmount,
-    machineMinutes: input.machineMinutes,
-    machineHourlyRate: DEFAULT_MACHINE_HOURLY_RATE,
-    machineAmount,
-    laborMinutes: input.laborMinutes,
-    laborHourlyRate: DEFAULT_LABOR_HOURLY_RATE,
-    laborAmount,
-    accessories: (input.accessories ?? []).map((item, index) => ({
-      id: `accessory-${index + 1}`,
-      materialId: `seed-${index + 1}`,
-      materialName: item.name,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      measureType: "unidad" as const,
-      amount: computeAccessoryAmount(item.quantity, item.unitPrice),
-    })),
-    usesPaint: Boolean(input.paintAmount),
-    paintAmount: input.paintAmount,
-  };
-  quote.totalAmount = computeCostQuoteTotal(quote);
-  return quote;
+    initialMaterials,
+  );
 }
 
 export const initialProducts: Product[] = [
@@ -123,11 +83,8 @@ export const initialProducts: Product[] = [
     weightGrams: 180,
     dimensions: { heightCm: 15, widthCm: 15, lengthCm: 1 },
     costQuote: createCostQuote({
-      wood: { widthCm: 15, lengthCm: 15, face: "natural" },
+      wood: { widthCm: 15, lengthCm: 15 },
       machineMinutes: 6,
-      laborMinutes: 10,
-      accessories: [{ name: "Bolsita de presentación", quantity: 1, unitPrice: 150 }],
-      paintAmount: 400,
     }),
   }),
   createProduct({
@@ -159,10 +116,8 @@ export const initialProducts: Product[] = [
     weightGrams: 120,
     dimensions: { heightCm: 6, widthCm: 12, lengthCm: 6 },
     costQuote: createCostQuote({
-      wood: { widthCm: 25, lengthCm: 20, face: "natural" },
+      wood: { widthCm: 25, lengthCm: 20 },
       machineMinutes: 20,
-      laborMinutes: 15,
-      accessories: [{ name: "Argolla para llavero", quantity: 10, unitPrice: 120 }],
     }),
   }),
 
@@ -195,14 +150,8 @@ export const initialProducts: Product[] = [
     weightGrams: 60,
     dimensions: { heightCm: 10, widthCm: 10, lengthCm: 3 },
     costQuote: createCostQuote({
-      wood: { widthCm: 10, lengthCm: 20, face: "natural" },
+      wood: { widthCm: 10, lengthCm: 20 },
       machineMinutes: 5,
-      laborMinutes: 8,
-      accessories: [
-        { name: "Vidrio / acetato 6x6", quantity: 1, unitPrice: 150 },
-        { name: "Bolsita de presentación", quantity: 1, unitPrice: 150 },
-      ],
-      paintAmount: 250,
     }),
   }),
 
@@ -231,13 +180,8 @@ export const initialProducts: Product[] = [
     weightGrams: 250,
     dimensions: { heightCm: 20, widthCm: 28, lengthCm: 1 },
     costQuote: createCostQuote({
-      wood: { widthCm: 28, lengthCm: 20, face: "white" },
+      wood: { widthCm: 28, lengthCm: 20 },
       machineMinutes: 15,
-      laborMinutes: 20,
-      accessories: [
-        { name: "Impresión adhesiva", quantity: 1, unitPrice: 900 },
-        { name: "Bolsa de tela", quantity: 1, unitPrice: 600 },
-      ],
     }),
   }),
   createProduct({
@@ -264,10 +208,8 @@ export const initialProducts: Product[] = [
     weightGrams: 320,
     dimensions: { heightCm: 6, widthCm: 22, lengthCm: 16 },
     costQuote: createCostQuote({
-      wood: { widthCm: 40, lengthCm: 30, face: "white" },
+      wood: { widthCm: 40, lengthCm: 30 },
       machineMinutes: 25,
-      laborMinutes: 25,
-      accessories: [{ name: "Impresión adhesiva", quantity: 1, unitPrice: 1200 }],
     }),
   }),
 
@@ -297,14 +239,8 @@ export const initialProducts: Product[] = [
     weightGrams: 600,
     dimensions: { heightCm: 28, widthCm: 28, lengthCm: 5 },
     costQuote: createCostQuote({
-      wood: { widthCm: 60, lengthCm: 40, face: "natural" },
+      wood: { widthCm: 60, lengthCm: 40 },
       machineMinutes: 35,
-      laborMinutes: 60,
-      accessories: [
-        { name: "Tira LED cálida", quantity: 1, unitPrice: 2200 },
-        { name: "Transformador 12V + cable", quantity: 1, unitPrice: 3800 },
-      ],
-      paintAmount: 1500,
     }),
   }),
   createProduct({
@@ -336,14 +272,8 @@ export const initialProducts: Product[] = [
     weightGrams: 350,
     dimensions: { heightCm: 20, widthCm: 14, lengthCm: 5 },
     costQuote: createCostQuote({
-      wood: { widthCm: 40, lengthCm: 30, face: "natural" },
+      wood: { widthCm: 40, lengthCm: 30 },
       machineMinutes: 25,
-      laborMinutes: 40,
-      accessories: [
-        { name: "Tira LED a pila", quantity: 1, unitPrice: 1800 },
-        { name: "Portapilas con interruptor", quantity: 1, unitPrice: 900 },
-      ],
-      paintAmount: 800,
     }),
   }),
 
@@ -373,11 +303,8 @@ export const initialProducts: Product[] = [
     weightGrams: 400,
     dimensions: { heightCm: 30, widthCm: 30, lengthCm: 2 },
     costQuote: createCostQuote({
-      wood: { widthCm: 30, lengthCm: 60, face: "natural" },
+      wood: { widthCm: 30, lengthCm: 60 },
       machineMinutes: 30,
-      laborMinutes: 30,
-      accessories: [{ name: "Ojal para colgar", quantity: 1, unitPrice: 100 }],
-      paintAmount: 700,
     }),
   }),
   createProduct({
@@ -405,11 +332,8 @@ export const initialProducts: Product[] = [
     weightGrams: 300,
     dimensions: { heightCm: 10, widthCm: 30, lengthCm: 4 },
     costQuote: createCostQuote({
-      wood: { widthCm: 30, lengthCm: 10, face: "natural" },
+      wood: { widthCm: 30, lengthCm: 10 },
       machineMinutes: 10,
-      laborMinutes: 15,
-      accessories: [{ name: "Gancho metálico", quantity: 5, unitPrice: 250 }],
-      paintAmount: 300,
     }),
   }),
 
@@ -438,14 +362,8 @@ export const initialProducts: Product[] = [
     weightGrams: 280,
     dimensions: { heightCm: 23, widthCm: 18, lengthCm: 4 },
     costQuote: createCostQuote({
-      wood: { widthCm: 30, lengthCm: 25, face: "natural" },
+      wood: { widthCm: 30, lengthCm: 25 },
       machineMinutes: 18,
-      laborMinutes: 25,
-      accessories: [
-        { name: "Vidrio 10x15", quantity: 1, unitPrice: 900 },
-        { name: "Ojal para colgar", quantity: 1, unitPrice: 100 },
-      ],
-      paintAmount: 600,
     }),
   }),
 
@@ -474,11 +392,8 @@ export const initialProducts: Product[] = [
     weightGrams: 450,
     dimensions: { heightCm: 20, widthCm: 30, lengthCm: 3 },
     costQuote: createCostQuote({
-      wood: { widthCm: 40, lengthCm: 30, face: "natural" },
+      wood: { widthCm: 40, lengthCm: 30 },
       machineMinutes: 20,
-      laborMinutes: 30,
-      accessories: [{ name: "Gancho metálico", quantity: 6, unitPrice: 250 }],
-      paintAmount: 700,
     }),
   }),
   createProduct({
@@ -506,11 +421,8 @@ export const initialProducts: Product[] = [
     weightGrams: 380,
     dimensions: { heightCm: 30, widthCm: 30, lengthCm: 2 },
     costQuote: createCostQuote({
-      wood: { widthCm: 30, lengthCm: 60, face: "natural" },
+      wood: { widthCm: 30, lengthCm: 60 },
       machineMinutes: 28,
-      laborMinutes: 35,
-      accessories: [{ name: "Ojal para colgar", quantity: 1, unitPrice: 100 }],
-      paintAmount: 900,
     }),
   }),
 
@@ -539,11 +451,8 @@ export const initialProducts: Product[] = [
     weightGrams: 220,
     dimensions: { heightCm: 25, widthCm: 35, lengthCm: 1 },
     costQuote: createCostQuote({
-      wood: { widthCm: 35, lengthCm: 25, face: "white" },
+      wood: { widthCm: 35, lengthCm: 25 },
       machineMinutes: 15,
-      laborMinutes: 25,
-      accessories: [{ name: "Cinta de raso", quantity: 1, unitPrice: 300 }],
-      paintAmount: 600,
     }),
   }),
   createProduct({
@@ -575,10 +484,11 @@ export const initialProducts: Product[] = [
     weightGrams: 90,
     dimensions: { heightCm: 14, widthCm: 14, lengthCm: 1 },
     costQuote: createCostQuote({
-      wood: { widthCm: 14, lengthCm: 14, face: "natural" },
+      wood: { widthCm: 14, lengthCm: 14 },
       machineMinutes: 4,
-      laborMinutes: 5,
-      paintAmount: 200,
     }),
   }),
+
+  // ── Juegos Didácticos 9x9 (se venden por packs) ──────────────────────
+  ...didacticGameSeeds.map(createProduct),
 ];

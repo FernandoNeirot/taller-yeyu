@@ -201,7 +201,8 @@ async function loadProductsFromFirebase(): Promise<Product[]> {
  */
 const getCachedProducts = unstable_cache(
   loadProductsFromFirebase,
-  ["catalog-products"],
+  // Subir la versión descarta lo cacheado con otra forma de producto (ej. costQuote).
+  ["catalog-products", "v2"],
   {
     tags: [PRODUCTS_CACHE_TAG],
     revalidate: PRODUCTS_CACHE_REVALIDATE_SECONDS,
