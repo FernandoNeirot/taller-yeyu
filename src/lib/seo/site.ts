@@ -81,10 +81,13 @@ export function getTelephone() {
   return raw ? `+${raw}` : undefined;
 }
 
+/** Token de Search Console (es público: va en el HTML). La variable de entorno lo pisa. */
+const DEFAULT_GOOGLE_VERIFICATION = "eZU5ei_oBlongrni8WB7HPiyy2tS-HMqrTAS7N_0iR0";
+
 export function getGoogleVerification() {
   const value = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim();
   if (!value || value === "xxx") {
-    return undefined;
+    return DEFAULT_GOOGLE_VERIFICATION;
   }
 
   return value;
