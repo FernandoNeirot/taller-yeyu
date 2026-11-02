@@ -55,6 +55,8 @@ export interface Product {
   variants?: ProductVariant[];
   isActive: boolean;
   createdAt: Date | string;
+  /** Última edición; alimenta `lastModified` del sitemap. */
+  updatedAt?: string;
   weightGrams?: number;
   dimensions?: {
     heightCm: number;

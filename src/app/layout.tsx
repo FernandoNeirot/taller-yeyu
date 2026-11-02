@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import { DeferredMaterialSymbols } from "@/components/ui/deferred-material-symbols";
-import { JsonLd, getSiteJsonLd } from "@/lib/seo/json-ld";
 import { shareImages } from "@/lib/seo/metadata";
 import {
   getGoogleVerification,
@@ -96,7 +95,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full font-sans antialiased bg-background text-on-background">
         <DeferredMaterialSymbols />
-        <JsonLd data={getSiteJsonLd()} />
         <Providers>
           {children}
         </Providers>

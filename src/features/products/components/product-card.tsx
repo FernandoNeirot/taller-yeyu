@@ -71,7 +71,7 @@ export function ProductCard({
             className="relative size-28 shrink-0 overflow-hidden rounded-lg"
           >
             <Image
-              alt=""
+              alt={product.title}
               src={product.featuredImage}
               fill
               priority={priority}
@@ -120,7 +120,7 @@ export function ProductCard({
           >
             <div className="relative aspect-4/3 w-full shrink-0 overflow-hidden">
               <Image
-                alt=""
+                alt={product.title}
                 src={product.featuredImage}
                 fill
                 priority={priority}

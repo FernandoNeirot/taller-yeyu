@@ -67,7 +67,7 @@ export function ProductGallery({ product }: { product: Product }) {
               }}
             >
               <Image
-                alt={imageIndex === 0 ? "" : `${product.title} — foto ${imageIndex + 1}`}
+                alt={imageIndex === 0 ? product.title : `${product.title} — foto ${imageIndex + 1}`}
                 src={src}
                 fill
                 priority={imageIndex === 0}

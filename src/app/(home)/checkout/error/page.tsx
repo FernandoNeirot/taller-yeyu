@@ -5,6 +5,7 @@ export const metadata = sharePageMetadata({
   title: "Pago no completado",
   description: "El pago con Mercado Pago no se completó.",
   path: "/checkout/error",
+  robots: { index: false, follow: false },
 });
 
 export default function CheckoutErrorPage() {

@@ -116,7 +116,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-md md:gap-xl">
           <div className="w-full md:w-1/2 relative aspect-square md:aspect-auto md:min-h-125">
             <Image
-              alt=""
+              alt="Souvenirs y kits para pintar de madera hechos a mano en Taller Yeyu"
               className="object-cover"
               src={PROCESS_IMAGE}
               fill

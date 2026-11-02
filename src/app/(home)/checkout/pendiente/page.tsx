@@ -5,6 +5,7 @@ export const metadata = sharePageMetadata({
   title: "Pago pendiente",
   description: "Tu pago de Mercado Pago está en proceso.",
   path: "/checkout/pendiente",
+  robots: { index: false, follow: false },
 });
 
 export default function CheckoutPendingPage() {

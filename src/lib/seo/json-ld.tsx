@@ -24,11 +24,14 @@ export function getSiteJsonLd() {
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "Organization",
+        "@type": ["Organization", "Store"],
         "@id": `${url}/#organization`,
         name: siteConfig.name,
         url,
         description: siteConfig.description,
+        sameAs: [siteConfig.instagramUrl],
+        areaServed: { "@type": "Country", name: siteConfig.areaServed },
+        slogan: siteConfig.tagline,
         logo: {
           "@type": "ImageObject",
           url: absoluteUrl(siteConfig.logoPath),
@@ -129,6 +132,49 @@ export function getGalleryJsonLd(
   };
 }
 
+/**
+ * Precio simple o rango. Un producto puede venderse solo por variantes o packs
+ * (sin `price` propio), así que se juntan todos los precios cargados.
+ */
+function getProductOffers(product: Product, pageUrl: string) {
+  const prices = [
+    product.price,
+    ...(product.variants ?? []).map((variant) => variant.price),
+    ...(product.packOptions ?? []).map((pack) => pack.price),
+    ...(product.quantityPrices ?? []).map((option) => option.price),
+  ].filter((price): price is number => typeof price === "number" && price > 0);
+
+  if (prices.length === 0) return undefined;
+
+  const lowPrice = Math.min(...prices);
+  const highPrice = Math.max(...prices);
+  const priceValidUntil = new Date(
+    Date.now() + 365 * 24 * 60 * 60 * 1000,
+  )
+    .toISOString()
+    .slice(0, 10);
+  // El catálogo solo publica productos activos, por eso siempre hay stock.
+  const common = {
+    url: pageUrl,
+    priceCurrency: "ARS",
+    availability: "https://schema.org/InStock",
+    itemCondition: "https://schema.org/NewCondition",
+    priceValidUntil,
+  };
+
+  if (lowPrice === highPrice) {
+    return { "@type": "Offer", ...common, price: lowPrice };
+  }
+
+  return {
+    "@type": "AggregateOffer",
+    ...common,
+    lowPrice,
+    highPrice,
+    offerCount: new Set(prices).size,
+  };
+}
+
 export function getProductJsonLd(product: Product) {
   const url = getSiteUrl();
   const pageUrl = productUrl(product.slug);
@@ -137,6 +183,7 @@ export function getProductJsonLd(product: Product) {
   );
   const uniqueImages = [...new Set(images)].map(productImageUrl);
   const category = product.categories[0];
+  const offers = getProductOffers(product, pageUrl);
 
   return {
     "@context": "https://schema.org",
@@ -177,18 +224,7 @@ export function getProductJsonLd(product: Product) {
           name: siteConfig.name,
         },
         ...(category ? { category: categoryLabel(category) } : {}),
-        ...(product.price != null
-          ? {
-              offers: {
-                "@type": "Offer",
-                url: pageUrl,
-                priceCurrency: "ARS",
-                price: product.price,
-                availability: "https://schema.org/InStock",
-                itemCondition: "https://schema.org/NewCondition",
-              },
-            }
-          : {}),
+        ...(offers ? { offers } : {}),
       },
       {
         "@type": "WebPage",

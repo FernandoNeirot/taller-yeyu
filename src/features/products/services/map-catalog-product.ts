@@ -42,6 +42,8 @@ export function mapCatalogDoc(
   const createdAt: string = createdAtDate
     ? createdAtDate.toISOString()
     : String(data.createdAt ?? "");
+  const updatedAtDate = data.updatedAt?.toDate?.();
+  const updatedAt = updatedAtDate ? updatedAtDate.toISOString() : undefined;
   const weightGrams = toPrice(data.weightGrams);
   const packageSize =
     data.dimensions && typeof data.dimensions === "object"
@@ -83,6 +85,7 @@ export function mapCatalogDoc(
     costQuote: mapStoredCostQuote(data.costQuote),
     isActive: data.isActive !== false && data.available !== false,
     createdAt,
+    updatedAt,
     weightGrams,
     dimensions:
       heightCm && widthCm && lengthCm

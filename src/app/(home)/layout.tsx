@@ -1,6 +1,7 @@
 import { Header } from "@/components/layout/header";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { Footer } from "@/components/layout/footer";
+import { JsonLd, getSiteJsonLd } from "@/lib/seo/json-ld";
 
 export default function HomeLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,6 +12,7 @@ export default function HomeLayout({ children }: { children: React.ReactNode }) 
       >
         Saltar al contenido
       </a>
+      <JsonLd data={getSiteJsonLd()} />
       <Header />
       {children}
       <BottomNav />

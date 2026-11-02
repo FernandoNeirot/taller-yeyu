@@ -21,7 +21,7 @@ export function FeaturedProductCard({
     >
       <div className="relative aspect-square w-full overflow-hidden">
         <Image
-          alt=""
+          alt={product.title}
           src={product.featuredImage}
           fill
           loading="lazy"
