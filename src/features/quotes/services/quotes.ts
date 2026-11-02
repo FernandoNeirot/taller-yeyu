@@ -34,6 +34,8 @@ function mapQuoteItem(value: unknown): QuoteItem | null {
       item.widthCm = widthCm;
       item.heightCm = heightCm;
     }
+    const fitsCount = toNumber(data.fitsCount);
+    if (fitsCount > 1 && item.measureType !== "time_minutes") item.fitsCount = fitsCount;
     return item;
   }
 

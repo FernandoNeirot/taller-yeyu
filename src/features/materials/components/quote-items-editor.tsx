@@ -54,7 +54,7 @@ export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditor
 
   function selectMaterial(id: string, materialId: string) {
     // Cambiar de material descarta las medidas: cada tipo pide datos distintos.
-    update(id, { materialId, widthCm: "", heightCm: "", quantity: "" });
+    update(id, { materialId, widthCm: "", heightCm: "", quantity: "", fitsCount: "" });
   }
 
   return (
@@ -121,6 +121,25 @@ export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditor
                   step={material.measureType === "time_minutes" ? "any" : "1"}
                   value={row.quantity}
                   onChange={(event) => update(row.id, { quantity: event.target.value })}
+                  className={numberInputClassName}
+                />
+              </label>
+            ) : null}
+
+            {material && material.measureType !== "time_minutes" ? (
+              <label className="flex flex-col gap-xs">
+                <span className="text-xs text-on-surface-variant">
+                  {material.measureType === "area_cm2"
+                    ? "¿Cuántas unidades entran en esas medidas? (opcional)"
+                    : "¿Cuántas unidades entran en esa cantidad? (opcional)"}
+                </span>
+                <input
+                  type="number"
+                  min="1"
+                  step="any"
+                  placeholder="1"
+                  value={row.fitsCount}
+                  onChange={(event) => update(row.id, { fitsCount: event.target.value })}
                   className={numberInputClassName}
                 />
               </label>

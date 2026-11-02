@@ -13,6 +13,8 @@ export type QuoteItemRow = {
   heightCm: string;
   /** Unidades o minutos. */
   quantity: string;
+  /** Cuántas unidades entran en las medidas/cantidad cargadas. */
+  fitsCount: string;
 };
 
 export function emptyQuoteRow(): QuoteItemRow {
@@ -22,6 +24,7 @@ export function emptyQuoteRow(): QuoteItemRow {
     widthCm: "",
     heightCm: "",
     quantity: "",
+    fitsCount: "",
   };
 }
 
@@ -31,6 +34,7 @@ export function rowToInput(row: QuoteItemRow): QuoteItemInput {
     widthCm: Number(row.widthCm) || undefined,
     heightCm: Number(row.heightCm) || undefined,
     quantityUsed: Number(row.quantity) || undefined,
+    fitsCount: Number(row.fitsCount) || undefined,
   };
 }
 
@@ -41,10 +45,12 @@ export function itemsToRows(items: QuoteItem[] | undefined): QuoteItemRow[] {
     widthCm: item.widthCm ? String(item.widthCm) : "",
     heightCm: item.heightCm ? String(item.heightCm) : "",
     // En área sin medidas guardadas (importación) la cantidad ya es el área.
+    // `quantityUsed` es por unidad: se vuelve a multiplicar para recuperar lo cargado.
     quantity:
       item.measureType === "area_cm2" && item.widthCm && item.heightCm
         ? ""
-        : String(item.quantityUsed),
+        : String(Math.round(item.quantityUsed * (item.fitsCount ?? 1) * 1e6) / 1e6),
+    fitsCount: item.fitsCount ? String(item.fitsCount) : "",
   }));
 }
 

@@ -9,6 +9,8 @@ export type QuoteItemInput = {
   heightCm?: number;
   /** Unidades o minutos. En área se usa solo si no hay ancho y alto. */
   quantityUsed?: number;
+  /** Cuántas unidades entran en lo cargado; el consumo por unidad es lo cargado ÷ esto. */
+  fitsCount?: number;
 };
 
 function positive(value: unknown) {
@@ -20,17 +22,30 @@ function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
 }
 
-/** Área: ancho × alto (cm²). Unidad y tiempo: la cantidad cargada. */
+/** Cuántas unidades entran; solo aplica a área y unidad, y mínimo 1. */
+function effectiveFits(
+  material: Pick<Material, "measureType">,
+  input: Omit<QuoteItemInput, "materialId">,
+) {
+  if (material.measureType === "time_minutes") return 1;
+  return Math.max(positive(input.fitsCount), 1);
+}
+
+/**
+ * Área: ancho × alto (cm²). Unidad y tiempo: la cantidad cargada.
+ * Si entran N unidades en lo cargado, devuelve lo que consume una sola.
+ */
 export function computeQuantityUsed(
   material: Pick<Material, "measureType">,
   input: Omit<QuoteItemInput, "materialId">,
 ) {
+  const fits = effectiveFits(material, input);
   if (material.measureType === "area_cm2") {
     const widthCm = positive(input.widthCm);
     const heightCm = positive(input.heightCm);
-    if (widthCm && heightCm) return widthCm * heightCm;
+    if (widthCm && heightCm) return (widthCm * heightCm) / fits;
   }
-  return positive(input.quantityUsed);
+  return positive(input.quantityUsed) / fits;
 }
 
 export function computeCalculatedCost(
@@ -64,6 +79,9 @@ export function buildQuoteItem(
       item.heightCm = heightCm;
     }
   }
+
+  const fits = effectiveFits(material, input);
+  if (fits > 1) item.fitsCount = fits;
 
   return item;
 }
@@ -133,6 +151,7 @@ export function parseQuoteItemInputs(raw: unknown): QuoteItemInput[] {
         widthCm: positive(data.widthCm) || undefined,
         heightCm: positive(data.heightCm) || undefined,
         quantityUsed: positive(data.quantityUsed) || undefined,
+        fitsCount: positive(data.fitsCount) || undefined,
       },
     ];
   });
@@ -200,6 +219,8 @@ export function mapStoredCostQuote(value: unknown): ProductCostQuote | undefined
       item.widthCm = widthCm;
       item.heightCm = heightCm;
     }
+    const fitsCount = positive(data.fitsCount);
+    if (fitsCount > 1 && measureType !== "time_minutes") item.fitsCount = fitsCount;
     return [item];
   });
 

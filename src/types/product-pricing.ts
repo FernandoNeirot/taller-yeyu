@@ -13,6 +13,11 @@ export type QuoteItem = {
   /** Solo en materiales de área: medidas con las que se calculó `quantityUsed`. */
   widthCm?: number;
   heightCm?: number;
+  /**
+   * Cuántas unidades entran en las medidas/cantidad cargadas: `quantityUsed`
+   * ya es lo que consume una sola unidad (medidas ÷ `fitsCount`).
+   */
+  fitsCount?: number;
 };
 
 export type ProductCostQuote = {
