@@ -29,21 +29,12 @@ export const siteConfig = {
   areaServed: "Argentina",
 } as const;
 
+/**
+ * Dominio canónico para sitemap, canonicals y datos estructurados. Es fijo a
+ * propósito: si saliera de `NEXT_PUBLIC_BASE_URL`, un valor distinto en el hosting
+ * publicaría URLs de otro dominio (Search Console las rechaza como "URL no permitida").
+ */
 export function getSiteUrl() {
-  const fromEnv = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  if (
-    fromEnv &&
-    !fromEnv.includes("localhost") &&
-    !fromEnv.includes("127.0.0.1") &&
-    !fromEnv.includes("vercel.app")
-  ) {
-    try {
-      return new URL(fromEnv).origin;
-    } catch {
-      return PRODUCTION_SITE_URL;
-    }
-  }
-
   return PRODUCTION_SITE_URL;
 }
 
