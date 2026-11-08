@@ -8,6 +8,7 @@ const seedMaterials: SeedMaterial[] = [
     id: "madera-mdf-3mm-cara-blanca",
     name: "Madera MDF 3 mm s/cara blanca",
     measureType: "area_cm2",
+    category: "wood",
     totalCost: 30000,
     totalUnits: 260 * 183,
   },
@@ -15,6 +16,7 @@ const seedMaterials: SeedMaterial[] = [
     id: "papel-autoadhesivo",
     name: "Papel autoadhesivo",
     measureType: "area_cm2",
+    category: "paper",
     totalCost: 15000,
     // 100 hojas de 21x30
     totalUnits: 100 * 21 * 30,
@@ -23,6 +25,7 @@ const seedMaterials: SeedMaterial[] = [
     id: "papel-vinilo-transparente",
     name: "Papel vinilo transparente",
     measureType: "area_cm2",
+    category: "paper",
     totalCost: 11000,
     // 20 hojas de 21x30
     totalUnits: 20 * 21 * 30,

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   measureTypeLabels,
@@ -9,6 +10,7 @@ import {
 } from "@/types/material";
 import { formatMoney, formatNumber } from "../lib/format";
 import { buildQuoteItem, splitQuoteTotals } from "../lib/quote-items";
+import { computeSheetUsage } from "../lib/sheet-usage";
 import {
   emptyQuoteRow,
   rowToInput,
@@ -29,6 +31,9 @@ type QuoteItemsEditorProps = {
  * ancho × alto (área), cantidad (unidad) o minutos (tiempo).
  */
 export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditorProps) {
+  // Solo para planificar (ej: "30 souvenirs"): no se guarda con el cotizador.
+  const [productCount, setProductCount] = useState("1");
+
   if (materials.length === 0) {
     return (
       <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-md text-sm text-on-surface-variant">
@@ -47,6 +52,7 @@ export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditor
     return material ? buildQuoteItem(material, rowToInput(row)) : null;
   });
   const totals = splitQuoteTotals(built.flatMap((item) => (item ? [item] : [])));
+  const products = Math.max(Math.floor(Number(productCount)) || 1, 1);
 
   function update(id: string, patch: Partial<QuoteItemRow>) {
     onChange(rows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
@@ -59,9 +65,25 @@ export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditor
 
   return (
     <div className="flex flex-col gap-sm">
+      <label className="flex flex-col gap-xs">
+        <span className="text-xs text-on-surface-variant">
+          Cantidad de productos (para saber cuánto material necesitás)
+        </span>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          value={productCount}
+          onChange={(event) => setProductCount(event.target.value)}
+          className={numberInputClassName}
+        />
+      </label>
+
       {rows.map((row, index) => {
         const material = byId.get(row.materialId);
         const item = built[index];
+        const sheets =
+          material && item ? computeSheetUsage(material, item.quantityUsed, products) : null;
 
         return (
           <div
@@ -151,16 +173,54 @@ export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditor
                   {item ? (
                     <p>
                       Usa {formatNumber(item.quantityUsed)}{" "}
-                      {measureUnitLabels[material.measureType]}
+                      {measureUnitLabels[material.measureType]} por producto
+                    </p>
+                  ) : null}
+                  {sheets && item ? (
+                    <p>
+                      = {formatNumber(sheets.sheetsPerProduct, 3)} {sheets.unit} (
+                      {sheets.label}) por producto
                     </p>
                   ) : null}
                   <p>
                     {formatMoney(material.costPerUnit, 4)} /{" "}
                     {measureUnitLabels[material.measureType]}
                   </p>
+                  {sheets ? (
+                    <p>
+                      Cada {sheets.unit} de {sheets.label} vale{" "}
+                      {formatMoney(sheets.costPerSheet)}
+                    </p>
+                  ) : null}
                 </div>
                 <p className="font-semibold text-on-surface">
                   {formatMoney(item?.calculatedCost ?? 0)}
+                </p>
+              </div>
+            ) : null}
+
+            {material && item && products > 1 ? (
+              <div className="rounded-lg bg-surface-container px-3 py-2 text-sm flex items-center justify-between gap-sm">
+                <p className="text-on-surface-variant">
+                  Para {products} productos:{" "}
+                  {sheets ? (
+                    <>
+                      {formatNumber(sheets.sheetsNeeded, 2)} {sheets.unit}s → comprás{" "}
+                      <strong className="text-on-surface">
+                        {sheets.sheetsToBuy} {sheets.unit}
+                        {sheets.sheetsToBuy === 1 ? "" : "s"}
+                      </strong>{" "}
+                      ({formatMoney(sheets.sheetsToBuy * sheets.costPerSheet)})
+                    </>
+                  ) : (
+                    <>
+                      {formatNumber(item.quantityUsed * products)}{" "}
+                      {measureUnitLabels[material.measureType]}
+                    </>
+                  )}
+                </p>
+                <p className="font-semibold text-on-surface whitespace-nowrap">
+                  {formatMoney(item.calculatedCost * products)}
                 </p>
               </div>
             ) : null}
@@ -207,11 +267,21 @@ export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditor
           </dd>
         </div>
         <div className="flex items-center justify-between gap-sm border-t border-outline-variant/30 pt-xs">
-          <dt className="font-semibold text-on-surface">Costo Total Base</dt>
+          <dt className="font-semibold text-on-surface">Costo Total Base (por producto)</dt>
           <dd className="font-semibold text-on-surface whitespace-nowrap">
             {formatMoney(totals.totalAmount)}
           </dd>
         </div>
+        {products > 1 ? (
+          <div className="flex items-center justify-between gap-sm">
+            <dt className="font-semibold text-on-surface">
+              Costo total para {products} productos
+            </dt>
+            <dd className="font-semibold text-on-surface whitespace-nowrap">
+              {formatMoney(totals.totalAmount * products)}
+            </dd>
+          </div>
+        ) : null}
       </dl>
     </div>
   );

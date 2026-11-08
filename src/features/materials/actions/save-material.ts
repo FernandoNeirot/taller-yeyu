@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/features/admin/services/auth";
-import { isMeasureType, type Material } from "@/types/material";
+import { isMaterialCategory, isMeasureType, type Material } from "@/types/material";
 import {
   createMaterial,
   deleteMaterial,
@@ -42,7 +42,9 @@ export async function saveMaterialAction(
   if (!(totalUnits > 0)) return { error: "Las unidades totales deben ser mayores a 0." };
 
   try {
-    const input = { name, measureType, totalCost, totalUnits };
+    const rawCategory = String(formData.get("category") ?? "");
+    const category = isMaterialCategory(rawCategory) ? rawCategory : "other";
+    const input = { name, measureType, category, totalCost, totalUnits };
     const material = id
       ? await updateMaterial(id, input)
       : await createMaterial(input);

@@ -10,9 +10,12 @@ import {
 } from "@/components/ui/row-actions-menu";
 import {
   computeCostPerUnit,
+  materialCategories,
+  materialCategoryLabels,
   measureTypeLabels,
   measureTypes,
   measureUnitLabels,
+  type MaterialCategory,
   type MeasureType,
   type Material,
 } from "@/types/material";
@@ -25,6 +28,7 @@ import { formatMoney, formatNumber } from "../lib/format";
 type FormState = {
   name: string;
   measureType: MeasureType;
+  category: MaterialCategory;
   totalCost: string;
   totalUnits: string;
   sheetWidthCm: string;
@@ -35,6 +39,7 @@ type FormState = {
 const emptyForm: FormState = {
   name: "",
   measureType: "unit",
+  category: "other",
   totalCost: "",
   totalUnits: "",
   sheetWidthCm: "",
@@ -56,6 +61,7 @@ function materialToForm(material: Material): FormState {
     ...emptyForm,
     name: material.name,
     measureType: material.measureType,
+    category: material.category ?? "other",
     totalCost: String(material.totalCost),
     totalUnits: String(material.totalUnits),
   };
@@ -185,6 +191,27 @@ export function MaterialManager({ materials: initialList }: { materials: Materia
                 </option>
               ))}
             </select>
+          </label>
+
+          <label className="flex flex-col gap-xs">
+            <span className="text-sm text-on-surface-variant">Tipo de material</span>
+            <select
+              name="category"
+              value={form.category}
+              onChange={(event) =>
+                patch({ category: event.target.value as MaterialCategory })
+              }
+              className={inputClassName}
+            >
+              {materialCategories.map((category) => (
+                <option key={category} value={category}>
+                  {materialCategoryLabels[category]}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-on-surface-variant">
+              Madera usa placa de 30×30 y papel hoja de 21×30 en el cotizador.
+            </span>
           </label>
 
           <label className="flex flex-col gap-xs">
@@ -332,6 +359,9 @@ export function MaterialManager({ materials: initialList }: { materials: Materia
                   <p className="text-on-surface">{material.name}</p>
                   <p className="text-xs text-on-surface-variant">
                     {measureTypeLabels[material.measureType]}
+                    {material.category && material.category !== "other"
+                      ? ` · ${materialCategoryLabels[material.category]}`
+                      : ""}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-x-md gap-y-xs text-sm sm:justify-end">

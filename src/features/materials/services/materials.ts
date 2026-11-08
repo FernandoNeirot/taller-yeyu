@@ -2,6 +2,7 @@ import { FieldValue, type DocumentData } from "firebase-admin/firestore";
 import { COST_MATERIALS_COLLECTION, getAdminFirestore } from "@/lib/firebase-admin";
 import {
   computeCostPerUnit,
+  isMaterialCategory,
   isMeasureType,
   type Material,
 } from "@/types/material";
@@ -23,6 +24,7 @@ function mapMaterialDoc(id: string, data: DocumentData): Material | null {
     id,
     name,
     measureType: data.measureType,
+    category: isMaterialCategory(data.category) ? data.category : "other",
     totalCost,
     totalUnits,
     costPerUnit: computeCostPerUnit(totalCost, totalUnits),
@@ -50,6 +52,7 @@ function toPayload(input: MaterialInput) {
   return {
     name: input.name.trim(),
     measureType: input.measureType,
+    category: input.category ?? "other",
     totalCost: input.totalCost,
     totalUnits: input.totalUnits,
     costPerUnit: computeCostPerUnit(input.totalCost, input.totalUnits),
