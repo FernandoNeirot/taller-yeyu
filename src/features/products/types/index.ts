@@ -1,5 +1,4 @@
 import type {
-  ProductCostQuote,
   ProductPackOption,
   ProductQuantityPrice,
   ProductVariant,
@@ -29,5 +28,6 @@ export type ProductInput = {
   quantityPrices?: ProductQuantityPrice[];
   variants?: ProductVariant[];
   isActive: boolean;
-  costQuote?: ProductCostQuote;
+  /** Cotización vinculada (opcional): id en la colección de cotizaciones. */
+  quoteId?: string;
 };

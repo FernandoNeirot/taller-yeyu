@@ -1,8 +1,5 @@
 // Datos puros (sin alias "@/"): los importa la app y también scripts/seed-juegos-didacticos.mjs.
-import { finalizeCostQuote } from "../features/materials/lib/quote-items.ts";
-import type { QuoteItemInput } from "../features/materials/lib/quote-items.ts";
 import type { Product } from "../types/product";
-import { initialMaterials, MATERIAL_IDS } from "./initialMaterials.ts";
 
 export type DidacticGameSeed = Omit<
   Product,
@@ -25,15 +22,6 @@ function packPricing(unitPrice: number) {
   }));
   return { price: packOptions[0].price, packOptions };
 }
-
-function costQuoteFor(items: QuoteItemInput[]) {
-  return finalizeCostQuote(items, initialMaterials);
-}
-
-const { mdf, laser } = MATERIAL_IDS;
-const bag = "bolsita-9x20";
-const stickers = "papel-autoadhesivo";
-const images = "imagenes";
 
 const topics = ["didactico", "infantil", "juegos"];
 
@@ -62,11 +50,6 @@ export const didacticGameSeeds: DidacticGameSeed[] = [
     ...packPricing(3200),
     weightGrams: 60,
     dimensions: { heightCm: 9, widthCm: 9, lengthCm: 1 },
-    costQuote: costQuoteFor([
-      { materialId: mdf, widthCm: 9, heightCm: 18 },
-      { materialId: laser, quantityUsed: 4 },
-      { materialId: bag, quantityUsed: 1 },
-    ]),
   },
   {
     title: "Tangram 9x9",
@@ -91,11 +74,6 @@ export const didacticGameSeeds: DidacticGameSeed[] = [
     ...packPricing(2800),
     weightGrams: 45,
     dimensions: { heightCm: 9, widthCm: 9, lengthCm: 1 },
-    costQuote: costQuoteFor([
-      { materialId: mdf, widthCm: 9, heightCm: 9 },
-      { materialId: laser, quantityUsed: 3 },
-      { materialId: bag, quantityUsed: 1 },
-    ]),
   },
   {
     title: "Rompecabezas 9x9",
@@ -120,13 +98,6 @@ export const didacticGameSeeds: DidacticGameSeed[] = [
     ...packPricing(3800),
     weightGrams: 55,
     dimensions: { heightCm: 9, widthCm: 9, lengthCm: 1 },
-    costQuote: costQuoteFor([
-      { materialId: mdf, widthCm: 9, heightCm: 9 },
-      { materialId: stickers, widthCm: 9, heightCm: 9 },
-      { materialId: images, quantityUsed: 1 },
-      { materialId: laser, quantityUsed: 5 },
-      { materialId: bag, quantityUsed: 1 },
-    ]),
   },
   {
     title: "Memotest 9x9",
@@ -151,12 +122,5 @@ export const didacticGameSeeds: DidacticGameSeed[] = [
     ...packPricing(4200),
     weightGrams: 90,
     dimensions: { heightCm: 9, widthCm: 9, lengthCm: 2 },
-    costQuote: costQuoteFor([
-      { materialId: mdf, widthCm: 9, heightCm: 20 },
-      { materialId: stickers, widthCm: 9, heightCm: 20 },
-      { materialId: images, quantityUsed: 2 },
-      { materialId: laser, quantityUsed: 7 },
-      { materialId: bag, quantityUsed: 1 },
-    ]),
   },
 ];

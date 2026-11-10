@@ -20,16 +20,6 @@ export type QuoteItem = {
   fitsCount?: number;
 };
 
-export type ProductCostQuote = {
-  items: QuoteItem[];
-  /** Gasto de bolsillo: suma de los materiales de área y de unidad. */
-  totalMaterialCost: number;
-  /** Retribución: suma de los materiales de tiempo (máquina, mano de obra). */
-  totalTimeCost: number;
-  /** `totalMaterialCost` + `totalTimeCost`. */
-  totalAmount: number;
-};
-
 export type ProductQuantityPrice = {
   quantity: number;
   price: number;

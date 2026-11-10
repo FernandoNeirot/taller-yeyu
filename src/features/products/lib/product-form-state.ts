@@ -34,6 +34,8 @@ export type ProductFormState = {
   powerSource: PowerSource;
   customizable: boolean;
   hidden: boolean;
+  /** Id de la cotización vinculada (vacío si no hay). */
+  quoteId: string;
   price: string;
   packOptions: QuantityPriceFormRow[];
   quantityPrices: QuantityPriceFormRow[];
@@ -74,6 +76,7 @@ export const emptyProductForm: ProductFormState = {
   powerSource: "ninguno",
   customizable: true,
   hidden: false,
+  quoteId: "",
   price: "",
   packOptions: [],
   quantityPrices: [],
@@ -129,6 +132,7 @@ export function productToForm(product: Product): ProductFormState {
     powerSource: specs.powerSource,
     customizable: specs.customizable,
     hidden: !product.isActive,
+    quoteId: product.quoteId ?? "",
     price: product.price == null ? "" : String(product.price),
     packOptions: (product.packOptions ?? []).map((option) => ({
       id: newRowId(),

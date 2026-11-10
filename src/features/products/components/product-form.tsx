@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { MaterialIcon } from "@/components/ui/material-icon";
 import { MoneyInput } from "@/components/ui/money-input";
-import type { Material } from "@/types/material";
+import type { QuoteSummary } from "@/features/quotes/types";
 import {
   catalogCategories,
   powerSourceLabels,
@@ -23,7 +23,6 @@ import {
   type FormSectionId,
   type ProductFormErrors,
 } from "../lib/product-form-state";
-import { ProductCostSection } from "./product-cost-section";
 import {
   FieldError,
   FormBanner,
@@ -34,6 +33,7 @@ import { ProductImageUploader } from "./product-image-uploader";
 import { ProductJsonImport } from "./product-json-import";
 import { ProductPackFields } from "./product-pack-fields";
 import { ProductPricingFields } from "./product-pricing-fields";
+import { ProductQuoteLinkSection } from "./product-quote-link-section";
 
 const measureInputs = [
   { name: "heightCm", label: "Alto" },
@@ -50,7 +50,8 @@ function sectionHasError(errors: ProductFormErrors, section: FormSectionId) {
 
 type ProductFormProps = {
   controller: ProductFormController;
-  materials: Material[];
+  /** Cotizaciones disponibles para vincular (opcional). */
+  quotes: QuoteSummary[];
   action: (formData: FormData) => void;
   pending: boolean;
   serverError?: string;
@@ -63,7 +64,7 @@ type ProductFormProps = {
 /** Modal con el formulario completo de alta/edición de un producto. */
 export function ProductForm({
   controller,
-  materials,
+  quotes,
   action,
   pending,
   serverError,
@@ -514,12 +515,10 @@ export function ProductForm({
             </div>
           </FormSection>
 
-          <ProductCostSection
-            value={controller.costQuote}
-            onChange={controller.setCostQuote}
-            materials={materials}
-            total={controller.quoteTotal}
-            minutes={controller.quoteMinutes}
+          <ProductQuoteLinkSection
+            quotes={quotes}
+            value={form.quoteId}
+            onChange={(quoteId) => updateForm({ quoteId })}
             open={openSections.quote}
             onToggle={() => toggleSection("quote")}
           />

@@ -2,11 +2,6 @@
 
 import { requireAdmin } from "@/features/admin/services/auth";
 import { isPowerSource } from "@/types/product";
-import {
-  finalizeCostQuote,
-  parseQuoteItemInputs,
-} from "@/features/materials/lib/quote-items";
-import { getMaterialCatalog } from "@/features/materials/services/materials";
 import { formatMeasuresSummary } from "../lib/measures";
 import { normalizePackOptions, validatePackOptions } from "../lib/packs";
 import { validateProductSpecs } from "../lib/product-specs";
@@ -149,6 +144,7 @@ function parseProductForm(formData: FormData): ParsedForm {
       ),
       variants: normalizeVariants(parseJsonField(formData.get("variants"))),
       isActive: formData.get("hidden") !== "on",
+      quoteId: String(formData.get("quoteId") ?? "").trim() || undefined,
     },
   };
 }
@@ -196,14 +192,7 @@ export async function saveProductAction(
       0,
       MAX_PRODUCT_IMAGES,
     );
-    const materials = await getMaterialCatalog();
-    const input: ProductInput = {
-      ...parsed.input,
-      costQuote: finalizeCostQuote(
-        parseQuoteItemInputs(formData.get("costQuote")),
-        materials,
-      ),
-    };
+    const input: ProductInput = parsed.input;
 
     // createProduct / updateProduct invalidan la caché del catálogo
     // (updateTag) y revalidan /, /galeria, /producto y /admin/productos.

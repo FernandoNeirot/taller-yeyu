@@ -1,9 +1,5 @@
-import type { Material } from "@/types/material";
 import type { QuoteItem } from "@/types/product-pricing";
-import {
-  finalizeQuoteItems,
-  type QuoteItemInput,
-} from "./quote-items";
+import type { QuoteItemInput } from "./quote-items";
 
 /** Estado de una línea en los formularios (todo como texto, tal como se escribe). */
 export type QuoteItemRow = {
@@ -52,10 +48,6 @@ export function itemsToRows(items: QuoteItem[] | undefined): QuoteItemRow[] {
         : String(Math.round(item.quantityUsed * (item.fitsCount ?? 1) * 1e6) / 1e6),
     fitsCount: item.fitsCount ? String(item.fitsCount) : "",
   }));
-}
-
-export function rowsToItems(rows: QuoteItemRow[], materials: Material[]) {
-  return finalizeQuoteItems(rows.map(rowToInput), materials);
 }
 
 /** Lo que viaja al servidor: solo lo cargado; el costo se recalcula allá. */

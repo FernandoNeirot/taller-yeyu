@@ -1,5 +1,5 @@
 import type { Material } from "@/types/material";
-import type { ProductCostQuote, QuoteItem } from "@/types/product-pricing";
+import type { QuoteItem } from "@/types/product-pricing";
 
 /** Lo que se carga en el formulario por cada línea (todo opcional salvo el material). */
 export type QuoteItemInput = {
@@ -86,12 +86,6 @@ export function buildQuoteItem(
   return item;
 }
 
-export function sumQuoteItems(items: Pick<QuoteItem, "calculatedCost">[]) {
-  return roundMoney(
-    items.reduce((sum, item) => sum + (item.calculatedCost ?? 0), 0),
-  );
-}
-
 export type QuoteTotals = {
   totalMaterialCost: number;
   totalTimeCost: number;
@@ -120,13 +114,6 @@ export function splitQuoteTotals(
     totalTimeCost,
     totalAmount: roundMoney(totalMaterialCost + totalTimeCost),
   };
-}
-
-/** Minutos de máquina/trabajo del cotizador (para mostrar el tiempo estimado). */
-export function sumQuoteMinutes(items: QuoteItem[]) {
-  return items
-    .filter((item) => item.measureType === "time_minutes")
-    .reduce((sum, item) => sum + item.quantityUsed, 0);
 }
 
 /** Lee el JSON que manda el formulario; descarta lo que no tenga forma de línea. */
@@ -173,57 +160,4 @@ export function finalizeQuoteItems(
     const item = buildQuoteItem(material, input);
     return item ? [item] : [];
   });
-}
-
-export function finalizeCostQuote(
-  inputs: QuoteItemInput[],
-  materials: Material[],
-): ProductCostQuote | undefined {
-  const items = finalizeQuoteItems(inputs, materials);
-  if (items.length === 0) return undefined;
-  return { items, ...splitQuoteTotals(items) };
-}
-
-/** Lee un costQuote guardado. Los guardados con el formato anterior (sin `items`) se descartan. */
-export function mapStoredCostQuote(value: unknown): ProductCostQuote | undefined {
-  if (!value || typeof value !== "object") return undefined;
-  const raw = (value as { items?: unknown }).items;
-  if (!Array.isArray(raw)) return undefined;
-
-  const items = raw.flatMap((entry): QuoteItem[] => {
-    if (!entry || typeof entry !== "object") return [];
-    const data = entry as Record<string, unknown>;
-    const materialId = String(data.materialId ?? "").trim();
-    const measureType = data.measureType;
-    if (
-      !materialId ||
-      (measureType !== "area_cm2" &&
-        measureType !== "unit" &&
-        measureType !== "time_minutes")
-    ) {
-      return [];
-    }
-    const quantityUsed = positive(data.quantityUsed);
-    if (!quantityUsed) return [];
-
-    const item: QuoteItem = {
-      materialId,
-      name: String(data.name ?? materialId),
-      measureType,
-      quantityUsed,
-      calculatedCost: positive(data.calculatedCost),
-    };
-    const widthCm = positive(data.widthCm);
-    const heightCm = positive(data.heightCm);
-    if (measureType === "area_cm2" && widthCm && heightCm) {
-      item.widthCm = widthCm;
-      item.heightCm = heightCm;
-    }
-    const fitsCount = positive(data.fitsCount);
-    if (fitsCount > 1 && measureType !== "time_minutes") item.fitsCount = fitsCount;
-    return [item];
-  });
-
-  if (items.length === 0) return undefined;
-  return { items, ...splitQuoteTotals(items) };
 }

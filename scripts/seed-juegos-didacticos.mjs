@@ -7,8 +7,6 @@
 //   npm run seed:games -- --dry-run    solo muestra qué haría
 //
 // Los datos salen de src/data/didacticGamesSeed.ts (Node 24 ejecuta el .ts directo).
-// Ojo: el costo del cotizador usa los materiales de src/data/initialMaterials.ts,
-// así que conviene correr antes `npm run seed:materials`.
 import { FieldValue } from "firebase-admin/firestore";
 import { didacticGameSeeds } from "../src/data/didacticGamesSeed.ts";
 import { getDb, parseSeedFlags } from "./lib/admin-db.mjs";
@@ -33,7 +31,6 @@ function toDoc(product) {
     packOptions: product.packOptions ?? null,
     quantityPrices: null,
     variants: null,
-    costQuote: product.costQuote ?? null,
     isActive: true,
     available: true,
     weightGrams: product.weightGrams ?? null,
@@ -47,9 +44,6 @@ if (dryRun) {
       .map((pack) => `x${pack.quantity} $${pack.price}`)
       .join(" · ");
     console.log(`[dry-run] ${product.slug}: ${packs}`);
-    console.log(
-      `          costo unitario $${product.costQuote?.totalAmount} (${product.costQuote?.items.length} materiales)`,
-    );
   }
   console.log(`[dry-run] ${didacticGameSeeds.length} productos, no se escribió nada.`);
   process.exit(0);

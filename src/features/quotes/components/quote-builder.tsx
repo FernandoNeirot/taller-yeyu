@@ -38,6 +38,7 @@ export function QuoteBuilder({
   const [name, setName] = useState("");
   const [date, setDate] = useState(getTodayDate);
   const [rows, setRows] = useState<QuoteItemRow[]>(() => [emptyQuoteRow()]);
+  const [units, setUnits] = useState("1");
   const [quotes, setQuotes] = useState(initialQuotes);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [state, action, pending] = useActionState(saveQuoteAction, null);
@@ -68,6 +69,7 @@ export function QuoteBuilder({
     setName("");
     setDate(getTodayDate());
     setRows([emptyQuoteRow()]);
+    setUnits("1");
     setEditingId(null);
   }
 
@@ -76,6 +78,7 @@ export function QuoteBuilder({
     setName(quote.name);
     setDate(quote.date || getTodayDate());
     setRows(quoteToRows(quote));
+    setUnits(String(quote.units));
   }
 
   return (
@@ -85,8 +88,9 @@ export function QuoteBuilder({
           {editingId ? "Editar cotización" : "Nueva cotización"}
         </h2>
         <p className="text-sm text-on-surface-variant mb-md">
-          Sumá materiales del catálogo. El costo se calcula según superficie,
-          unidades o minutos.
+          Sumá los materiales del catálogo con sus medidas y cuántas unidades
+          entran: se calcula el costo por unidad. Abajo indicás cuántas unidades
+          vas a producir y ves cuánto cuesta la tanda.
         </p>
 
         <form action={action} className="flex flex-col gap-sm">
@@ -106,7 +110,7 @@ export function QuoteBuilder({
               name="name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Ej: Velador de mesa Juan"
+              placeholder="Ej: Llaveros"
               required
               className="w-full rounded-lg border border-outline-variant/40 bg-surface-container-low px-4 py-3 text-on-surface outline-none focus:border-primary"
             />
@@ -121,7 +125,13 @@ export function QuoteBuilder({
             </div>
           ) : null}
 
-          <QuoteItemsEditor rows={rows} materials={materials} onChange={setRows} />
+          <QuoteItemsEditor
+            rows={rows}
+            materials={materials}
+            onChange={setRows}
+            units={units}
+            onUnitsChange={setUnits}
+          />
 
           <div className="flex gap-sm mt-sm">
             <button
@@ -164,9 +174,9 @@ export function QuoteBuilder({
                 <tr className="text-left text-on-surface-variant border-b border-outline-variant/30">
                   <th className="py-2 pr-2">Fecha</th>
                   <th className="py-2 pr-2">Nombre</th>
-                  <th className="py-2 pr-2">Materiales</th>
-                  <th className="py-2 pr-2">Tiempo</th>
-                  <th className="py-2 pr-2">Total</th>
+                  <th className="py-2 pr-2">Por unidad</th>
+                  <th className="py-2 pr-2">Unidades</th>
+                  <th className="py-2 pr-2">Tanda</th>
                   <th className="py-2"> </th>
                 </tr>
               </thead>
@@ -183,13 +193,11 @@ export function QuoteBuilder({
                     <td className="py-2 pr-2">{formatTableDate(quote.date)}</td>
                     <td className="py-2 pr-2">{quote.name}</td>
                     <td className="py-2 pr-2 whitespace-nowrap">
-                      {formatMoney(quote.totalMaterialCost)}
-                    </td>
-                    <td className="py-2 pr-2 whitespace-nowrap">
-                      {formatMoney(quote.totalTimeCost)}
-                    </td>
-                    <td className="py-2 pr-2 whitespace-nowrap font-semibold">
                       {formatMoney(quote.totalAmount)}
+                    </td>
+                    <td className="py-2 pr-2 whitespace-nowrap">{quote.units}</td>
+                    <td className="py-2 pr-2 whitespace-nowrap font-semibold">
+                      {formatMoney(quote.batchCost)}
                     </td>
                     <td className="py-2 w-10">
                       <button

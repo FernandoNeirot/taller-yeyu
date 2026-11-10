@@ -10,7 +10,7 @@ import {
   rowIconActionClass,
 } from "@/components/ui/row-actions-menu";
 import { formatMoney } from "@/features/materials/lib/format";
-import type { Material } from "@/types/material";
+import type { QuoteSummary } from "@/features/quotes/types";
 import type { Product } from "@/types/product";
 import { deleteProductAction } from "../actions/delete-product";
 import { saveProductAction } from "../actions/save-product";
@@ -33,10 +33,10 @@ const visibilityFilters: { id: VisibilityFilter; label: string }[] = [
 
 export function ProductManager({
   products: initialList,
-  materials = [],
+  quotes = [],
 }: {
   products: Product[];
-  materials?: Material[];
+  quotes?: QuoteSummary[];
 }) {
   const [products, setProducts] = useState(initialList);
   const [query, setQuery] = useState("");
@@ -54,7 +54,11 @@ export function ProductManager({
       ),
     [products],
   );
-  const form = useProductForm({ materials, existingSlugs });
+  const quoteById = useMemo(
+    () => new Map(quotes.map((quote) => [quote.id, quote])),
+    [quotes],
+  );
+  const form = useProductForm({ existingSlugs });
   const [state, action, pending] = useActionState(saveProductAction, null);
   // El error del servidor es de un envío puntual: al reabrir el formulario no debe reaparecer.
   const [dismissedState, setDismissedState] = useState(state);
@@ -337,27 +341,14 @@ export function ProductManager({
                           .join(" · ")}
                       </p>
                     ) : null}
-                    {product.costQuote?.totalAmount ? (
-                      <dl className="mt-1 flex flex-col gap-0.5 text-sm text-on-surface-variant sm:flex-row sm:flex-wrap sm:gap-x-md">
-                        <div className="flex justify-between gap-sm sm:justify-start">
-                          <dt>Materiales</dt>
-                          <dd className="text-on-surface">
-                            {formatMoney(product.costQuote.totalMaterialCost ?? 0)}
-                          </dd>
-                        </div>
-                        <div className="flex justify-between gap-sm sm:justify-start">
-                          <dt>Tiempo</dt>
-                          <dd className="text-on-surface">
-                            {formatMoney(product.costQuote.totalTimeCost ?? 0)}
-                          </dd>
-                        </div>
-                        <div className="flex justify-between gap-sm sm:justify-start">
-                          <dt>Total</dt>
-                          <dd className="font-semibold text-on-surface">
-                            {formatMoney(product.costQuote.totalAmount)}
-                          </dd>
-                        </div>
-                      </dl>
+                    {product.quoteId && quoteById.get(product.quoteId) ? (
+                      <p className="mt-1 text-sm text-on-surface-variant">
+                        Cotización {quoteById.get(product.quoteId)?.name}:{" "}
+                        <span className="font-semibold text-on-surface">
+                          {formatMoney(quoteById.get(product.quoteId)?.totalAmount ?? 0)}
+                        </span>{" "}
+                        por unidad
+                      </p>
                     ) : null}
                   </div>
                   <RowActionsMenu
@@ -470,7 +461,7 @@ export function ProductManager({
 
       <ProductForm
         controller={form}
-        materials={materials}
+        quotes={quotes}
         action={action}
         pending={pending}
         serverError={state === dismissedState ? undefined : state?.error}

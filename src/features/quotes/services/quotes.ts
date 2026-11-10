@@ -1,8 +1,9 @@
 import { FieldValue, type DocumentData } from "firebase-admin/firestore";
+import { normalizeUnits } from "@/features/materials/lib/quote-batch";
 import { splitQuoteTotals } from "@/features/materials/lib/quote-items";
 import { isMeasureType, type MeasureType } from "@/types/material";
 import { QUOTES_COLLECTION, getAdminFirestore } from "@/lib/firebase-admin";
-import type { Quote, QuoteInput, QuoteItem } from "../types";
+import type { Quote, QuoteInput, QuoteItem, QuoteSummary } from "../types";
 
 function toNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -64,12 +65,17 @@ function mapQuoteDoc(id: string, data: DocumentData): Quote {
         .filter((item): item is QuoteItem => item !== null)
     : [];
 
+  const totals = splitQuoteTotals(items);
+  const units = normalizeUnits(data.units);
+
   return {
     id,
     name: String(data.name ?? ""),
     date: String(data.date ?? ""),
     items,
-    ...splitQuoteTotals(items),
+    ...totals,
+    units,
+    batchCost: toNumber(data.batchCost) || totals.totalAmount * units,
     createdBy: String(data.createdBy ?? ""),
   };
 }
@@ -89,6 +95,8 @@ function firestoreQuotePayload(
     date: input.date.trim(),
     items: input.items.map((item) => omitUndefined({ ...item })),
     ...splitQuoteTotals(input.items),
+    units: input.units,
+    batchCost: input.batchCost,
     ...extra,
   };
 }
@@ -127,6 +135,8 @@ export async function createQuote(input: QuoteInput, createdBy: string) {
     totalMaterialCost: payload.totalMaterialCost,
     totalTimeCost: payload.totalTimeCost,
     totalAmount: payload.totalAmount,
+    units: input.units,
+    batchCost: input.batchCost,
     createdBy,
   } satisfies Quote;
 }
@@ -152,6 +162,20 @@ export async function updateQuote(id: string, input: QuoteInput) {
     totalMaterialCost: payload.totalMaterialCost,
     totalTimeCost: payload.totalTimeCost,
     totalAmount: payload.totalAmount,
+    units: input.units,
+    batchCost: input.batchCost,
     createdBy: String(existing.data()?.createdBy ?? ""),
   } satisfies Quote;
+}
+
+/** Lista liviana para elegir una cotización al vincularla a un producto. */
+export async function getQuoteSummaries(): Promise<QuoteSummary[]> {
+  const quotes = await getQuotes();
+  return quotes.map(({ id, name, totalAmount, units, batchCost }) => ({
+    id,
+    name,
+    totalAmount,
+    units,
+    batchCost,
+  }));
 }

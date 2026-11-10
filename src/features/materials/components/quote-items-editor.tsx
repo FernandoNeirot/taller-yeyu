@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   measureTypeLabels,
@@ -9,6 +8,7 @@ import {
   type Material,
 } from "@/types/material";
 import { formatMoney, formatNumber } from "../lib/format";
+import { computeBatchItemCost, normalizeUnits } from "../lib/quote-batch";
 import { buildQuoteItem, splitQuoteTotals } from "../lib/quote-items";
 import { computeSheetUsage } from "../lib/sheet-usage";
 import {
@@ -24,16 +24,22 @@ type QuoteItemsEditorProps = {
   rows: QuoteItemRow[];
   onChange: (rows: QuoteItemRow[]) => void;
   materials: Material[];
+  /** Unidades a producir, tal como se escribe (se guarda con la cotización). */
+  units: string;
+  onUnitsChange: (units: string) => void;
 };
 
 /**
  * Líneas de material de un cotizador: según el tipo del material pide
  * ancho × alto (área), cantidad (unidad) o minutos (tiempo).
  */
-export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditorProps) {
-  // Solo para planificar (ej: "30 souvenirs"): no se guarda con el cotizador.
-  const [productCount, setProductCount] = useState("1");
-
+export function QuoteItemsEditor({
+  rows,
+  onChange,
+  materials,
+  units,
+  onUnitsChange,
+}: QuoteItemsEditorProps) {
   if (materials.length === 0) {
     return (
       <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low p-md text-sm text-on-surface-variant">
@@ -52,7 +58,17 @@ export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditor
     return material ? buildQuoteItem(material, rowToInput(row)) : null;
   });
   const totals = splitQuoteTotals(built.flatMap((item) => (item ? [item] : [])));
-  const products = Math.max(Math.floor(Number(productCount)) || 1, 1);
+  const products = normalizeUnits(units);
+
+  // Madera/papel se compran por placa/hoja entera: para N unidades se cobra
+  // el redondeo hacia arriba y el sobrante es material perdido. El resto se prorratea.
+  const batchCosts = rows.map((row, index) => {
+    const material = byId.get(row.materialId);
+    const item = built[index];
+    if (!material || !item) return 0;
+    return computeBatchItemCost(material, item, products);
+  });
+  const batchTotal = batchCosts.reduce((sum, cost) => sum + cost, 0);
 
   function update(id: string, patch: Partial<QuoteItemRow>) {
     onChange(rows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
@@ -65,20 +81,6 @@ export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditor
 
   return (
     <div className="flex flex-col gap-sm">
-      <label className="flex flex-col gap-xs">
-        <span className="text-xs text-on-surface-variant">
-          Cantidad de productos (para saber cuánto material necesitás)
-        </span>
-        <input
-          type="number"
-          min="1"
-          step="1"
-          value={productCount}
-          onChange={(event) => setProductCount(event.target.value)}
-          className={numberInputClassName}
-        />
-      </label>
-
       {rows.map((row, index) => {
         const material = byId.get(row.materialId);
         const item = built[index];
@@ -202,7 +204,7 @@ export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditor
             {material && item && products > 1 ? (
               <div className="rounded-lg bg-surface-container px-3 py-2 text-sm flex items-center justify-between gap-sm">
                 <p className="text-on-surface-variant">
-                  Para {products} productos:{" "}
+                  Para {products} unidades:{" "}
                   {sheets ? (
                     <>
                       {formatNumber(sheets.sheetsNeeded, 2)} {sheets.unit}s → comprás{" "}
@@ -210,7 +212,13 @@ export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditor
                         {sheets.sheetsToBuy} {sheets.unit}
                         {sheets.sheetsToBuy === 1 ? "" : "s"}
                       </strong>{" "}
-                      ({formatMoney(sheets.sheetsToBuy * sheets.costPerSheet)})
+                      ({formatMoney(sheets.batchCost)})
+                      {sheets.wasteCm2 > 0 ? (
+                        <>
+                          {" "}
+                          · sobrante perdido: {formatNumber(sheets.wasteCm2)} cm²
+                        </>
+                      ) : null}
                     </>
                   ) : (
                     <>
@@ -220,7 +228,7 @@ export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditor
                   )}
                 </p>
                 <p className="font-semibold text-on-surface whitespace-nowrap">
-                  {formatMoney(item.calculatedCost * products)}
+                  {formatMoney(batchCosts[index])}
                 </p>
               </div>
             ) : null}
@@ -246,6 +254,21 @@ export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditor
         + Agregar material
       </button>
 
+      <label className="flex flex-col gap-xs">
+        <span className="text-sm font-medium text-on-surface">
+          ¿Cuántas unidades vas a producir?
+        </span>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          name="units"
+          value={units}
+          onChange={(event) => onUnitsChange(event.target.value)}
+          className={numberInputClassName}
+        />
+      </label>
+
       <dl
         aria-label="Resumen de costos"
         className="rounded-xl bg-surface-container-high px-4 py-3 flex flex-col gap-xs text-sm"
@@ -267,7 +290,7 @@ export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditor
           </dd>
         </div>
         <div className="flex items-center justify-between gap-sm border-t border-outline-variant/30 pt-xs">
-          <dt className="font-semibold text-on-surface">Costo Total Base (por producto)</dt>
+          <dt className="font-semibold text-on-surface">Costo por unidad</dt>
           <dd className="font-semibold text-on-surface whitespace-nowrap">
             {formatMoney(totals.totalAmount)}
           </dd>
@@ -275,10 +298,10 @@ export function QuoteItemsEditor({ rows, onChange, materials }: QuoteItemsEditor
         {products > 1 ? (
           <div className="flex items-center justify-between gap-sm">
             <dt className="font-semibold text-on-surface">
-              Costo total para {products} productos
+              Costo total para {products} unidades
             </dt>
             <dd className="font-semibold text-on-surface whitespace-nowrap">
-              {formatMoney(totals.totalAmount * products)}
+              {formatMoney(batchTotal)}
             </dd>
           </div>
         ) : null}

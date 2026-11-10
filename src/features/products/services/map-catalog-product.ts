@@ -1,6 +1,5 @@
 import { type DocumentData } from "firebase-admin/firestore";
 import { isPowerSource, type Product } from "@/types/product";
-import { mapStoredCostQuote } from "@/features/materials/lib/quote-items";
 import { normalizePackOptions } from "../lib/packs";
 import { normalizeQuantityPrices } from "../lib/quantity-prices";
 import { normalizeVariants } from "../lib/variants";
@@ -82,7 +81,10 @@ export function mapCatalogDoc(
     packOptions: normalizePackOptions(data.packOptions),
     quantityPrices: normalizeQuantityPrices(data.quantityPrices),
     variants: normalizeVariants(data.variants),
-    costQuote: mapStoredCostQuote(data.costQuote),
+    quoteId:
+      typeof data.quoteId === "string" && data.quoteId.trim()
+        ? data.quoteId.trim()
+        : undefined,
     isActive: data.isActive !== false && data.available !== false,
     createdAt,
     updatedAt,

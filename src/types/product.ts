@@ -1,5 +1,4 @@
 import type {
-  ProductCostQuote,
   ProductPackOption,
   ProductQuantityPrice,
   ProductVariant,
@@ -28,7 +27,8 @@ export interface Product {
   fullDescription: string;
   categories: string[];
   topics: string[];
-  costQuote?: ProductCostQuote;
+  /** Cotización vinculada (opcional): id en la colección de cotizaciones. */
+  quoteId?: string;
   specifications: {
     material: string;
     dimensions: string;

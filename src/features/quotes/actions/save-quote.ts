@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAdmin } from "@/features/admin/services/auth";
+import { computeBatchTotal, normalizeUnits } from "@/features/materials/lib/quote-batch";
 import {
   finalizeQuoteItems,
   parseQuoteItemInputs,
@@ -42,7 +43,14 @@ export async function saveQuoteAction(
     };
   }
 
-  const input = { name, date, items };
+  const units = normalizeUnits(formData.get("units"));
+  const input = {
+    name,
+    date,
+    items,
+    units,
+    batchCost: computeBatchTotal(items, materials, units),
+  };
 
   try {
     const quote = id

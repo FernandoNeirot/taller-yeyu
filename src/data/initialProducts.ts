@@ -1,7 +1,5 @@
-import { finalizeCostQuote } from "@/features/materials/lib/quote-items";
 import type { Product } from "@/types/product";
 import { didacticGameSeeds } from "./didacticGamesSeed";
-import { initialMaterials, MATERIAL_IDS } from "./initialMaterials";
 
 const PLACEHOLDER_IMAGE = "https://via.placeholder.com/500";
 const CREATED_AT = "2026-09-14";
@@ -27,30 +25,6 @@ function createProduct(product: SeedProduct): Product {
   };
 }
 
-type SeedCostQuote = {
-  /** Plancha de MDF que usa el producto. */
-  wood: { widthCm: number; lengthCm: number };
-  machineMinutes: number;
-};
-
-/**
- * Cotizador del seed con los materiales iniciales: MDF por superficie y máquina
- * láser por minuto. Mano de obra, pintura y accesorios sueltos se cargan desde
- * el admin con los materiales del catálogo.
- */
-function createCostQuote(input: SeedCostQuote) {
-  return finalizeCostQuote(
-    [
-      {
-        materialId: MATERIAL_IDS.mdf,
-        widthCm: input.wood.widthCm,
-        heightCm: input.wood.lengthCm,
-      },
-      { materialId: MATERIAL_IDS.laser, quantityUsed: input.machineMinutes },
-    ],
-    initialMaterials,
-  );
-}
 
 export const initialProducts: Product[] = [
   // ── Souvenirs y Eventos ──────────────────────────────────────────────
@@ -82,10 +56,6 @@ export const initialProducts: Product[] = [
     ],
     weightGrams: 180,
     dimensions: { heightCm: 15, widthCm: 15, lengthCm: 1 },
-    costQuote: createCostQuote({
-      wood: { widthCm: 15, lengthCm: 15 },
-      machineMinutes: 6,
-    }),
   }),
   createProduct({
     title: "Llavero Personalizado",
@@ -115,10 +85,6 @@ export const initialProducts: Product[] = [
     ],
     weightGrams: 120,
     dimensions: { heightCm: 6, widthCm: 12, lengthCm: 6 },
-    costQuote: createCostQuote({
-      wood: { widthCm: 25, lengthCm: 20 },
-      machineMinutes: 20,
-    }),
   }),
 
   createProduct({
@@ -149,10 +115,6 @@ export const initialProducts: Product[] = [
     ],
     weightGrams: 60,
     dimensions: { heightCm: 10, widthCm: 10, lengthCm: 3 },
-    costQuote: createCostQuote({
-      wood: { widthCm: 10, lengthCm: 20 },
-      machineMinutes: 5,
-    }),
   }),
 
   // ── Juegos Didácticos ────────────────────────────────────────────────
@@ -179,10 +141,6 @@ export const initialProducts: Product[] = [
     price: 9500,
     weightGrams: 250,
     dimensions: { heightCm: 20, widthCm: 28, lengthCm: 1 },
-    costQuote: createCostQuote({
-      wood: { widthCm: 28, lengthCm: 20 },
-      machineMinutes: 15,
-    }),
   }),
   createProduct({
     title: "Memotest",
@@ -207,10 +165,6 @@ export const initialProducts: Product[] = [
     price: 11000,
     weightGrams: 320,
     dimensions: { heightCm: 6, widthCm: 22, lengthCm: 16 },
-    costQuote: createCostQuote({
-      wood: { widthCm: 40, lengthCm: 30 },
-      machineMinutes: 25,
-    }),
   }),
 
   // ── Iluminación y Deco ───────────────────────────────────────────────
@@ -238,10 +192,6 @@ export const initialProducts: Product[] = [
     price: 24500,
     weightGrams: 600,
     dimensions: { heightCm: 28, widthCm: 28, lengthCm: 5 },
-    costQuote: createCostQuote({
-      wood: { widthCm: 60, lengthCm: 40 },
-      machineMinutes: 35,
-    }),
   }),
   createProduct({
     title: "Letra 3D con Luz",
@@ -271,10 +221,6 @@ export const initialProducts: Product[] = [
     ],
     weightGrams: 350,
     dimensions: { heightCm: 20, widthCm: 14, lengthCm: 5 },
-    costQuote: createCostQuote({
-      wood: { widthCm: 40, lengthCm: 30 },
-      machineMinutes: 25,
-    }),
   }),
 
   // ── Cuadros y Organizadores ──────────────────────────────────────────
@@ -302,10 +248,6 @@ export const initialProducts: Product[] = [
     price: 13500,
     weightGrams: 400,
     dimensions: { heightCm: 30, widthCm: 30, lengthCm: 2 },
-    costQuote: createCostQuote({
-      wood: { widthCm: 30, lengthCm: 60 },
-      machineMinutes: 30,
-    }),
   }),
   createProduct({
     title: "Portallaveros de 5 Ganchos",
@@ -331,10 +273,6 @@ export const initialProducts: Product[] = [
     price: 8500,
     weightGrams: 300,
     dimensions: { heightCm: 10, widthCm: 30, lengthCm: 4 },
-    costQuote: createCostQuote({
-      wood: { widthCm: 30, lengthCm: 10 },
-      machineMinutes: 10,
-    }),
   }),
 
   createProduct({
@@ -361,10 +299,6 @@ export const initialProducts: Product[] = [
     price: 9800,
     weightGrams: 280,
     dimensions: { heightCm: 23, widthCm: 18, lengthCm: 4 },
-    costQuote: createCostQuote({
-      wood: { widthCm: 30, lengthCm: 25 },
-      machineMinutes: 18,
-    }),
   }),
 
   createProduct({
@@ -391,10 +325,6 @@ export const initialProducts: Product[] = [
     price: 16500,
     weightGrams: 450,
     dimensions: { heightCm: 20, widthCm: 30, lengthCm: 3 },
-    costQuote: createCostQuote({
-      wood: { widthCm: 40, lengthCm: 30 },
-      machineMinutes: 20,
-    }),
   }),
   createProduct({
     title: "Cuadro Camiseta con Nombre y Número",
@@ -420,10 +350,6 @@ export const initialProducts: Product[] = [
     price: 14800,
     weightGrams: 380,
     dimensions: { heightCm: 30, widthCm: 30, lengthCm: 2 },
-    costQuote: createCostQuote({
-      wood: { widthCm: 30, lengthCm: 60 },
-      machineMinutes: 28,
-    }),
   }),
 
   // ── Infantil y Bebés ─────────────────────────────────────────────────
@@ -450,10 +376,6 @@ export const initialProducts: Product[] = [
     price: 12500,
     weightGrams: 220,
     dimensions: { heightCm: 25, widthCm: 35, lengthCm: 1 },
-    costQuote: createCostQuote({
-      wood: { widthCm: 35, lengthCm: 25 },
-      machineMinutes: 15,
-    }),
   }),
   createProduct({
     title: "Letra Plana 14x14",
@@ -483,10 +405,6 @@ export const initialProducts: Product[] = [
     ],
     weightGrams: 90,
     dimensions: { heightCm: 14, widthCm: 14, lengthCm: 1 },
-    costQuote: createCostQuote({
-      wood: { widthCm: 14, lengthCm: 14 },
-      machineMinutes: 4,
-    }),
   }),
 
   // ── Juegos Didácticos 9x9 (se venden por packs) ──────────────────────

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { productHref } from "@/features/products/lib/product-url";
-import { getCatalogProducts } from "@/features/products/services/get-catalog-products";
+import { getProductsStrict } from "@/features/products/services/get-products";
 import { absoluteUrl } from "@/lib/seo/site";
 import type { Product } from "@/types/product";
 
@@ -14,7 +14,8 @@ function productModifiedAt(product: Product) {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const products = await getCatalogProducts();
+  // Si Firestore falla, que falle el sitemap (Google reintenta) en vez de publicar uno vacío.
+  const products = (await getProductsStrict()).filter((product) => product.isActive);
   const entries = products.map((product) => ({
     product,
     lastModified: productModifiedAt(product),

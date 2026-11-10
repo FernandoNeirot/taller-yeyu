@@ -1,22 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { emptyQuoteRow } from "@/features/materials/lib/quote-rows";
-import type { Material } from "@/types/material";
 import type { Product } from "@/types/product";
-import {
-  costQuoteFormTotal,
-  costQuoteMinutes,
-  costQuoteToForm,
-  emptyCostQuoteForm,
-  type CostQuoteFormState,
-} from "../components/product-cost-quote";
 import {
   defaultOpenSections,
   emptyProductForm,
   errorSection,
   newRowId,
-  normalizeSearch,
   productId,
   productToForm,
   validateProductForm,
@@ -41,36 +31,31 @@ function revokeAll(files: NewProductImage[]) {
 /** Foto del formulario para detectar cambios sin guardar (ignora los ids de filas). */
 function snapshot(
   form: ProductFormState,
-  costQuote: CostQuoteFormState,
   existingImages: string[],
   newFileCount: number,
 ) {
   return JSON.stringify(
-    { form, costQuote, existingImages, newFileCount },
+    { form, existingImages, newFileCount },
     (key, value) => (key === "id" ? undefined : value),
   );
 }
 
-const emptySnapshot = snapshot(emptyProductForm, emptyCostQuoteForm, [], 0);
+const emptySnapshot = snapshot(emptyProductForm, [], 0);
 
 /**
- * Estado del formulario de producto (datos, cotizador y fotos).
- * Los componentes `ProductForm`, `ProductCostSection` y `ProductImageUploader`
+ * Estado del formulario de producto (datos y fotos).
+ * Los componentes `ProductForm` y `ProductImageUploader`
  * solo leen de acá y llaman a estas acciones.
  */
 export function useProductForm({
-  materials,
   existingSlugs = [],
 }: {
-  materials: Material[];
   /** Ids de los productos que ya existen: un producto nuevo no puede repetirlos. */
   existingSlugs?: string[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFormState>(emptyProductForm);
-  const [costQuote, setCostQuote] =
-    useState<CostQuoteFormState>(emptyCostQuoteForm);
   const [openSections, setOpenSections] = useState(defaultOpenSections);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<NewProductImage[]>([]);
@@ -96,11 +81,8 @@ export function useProductForm({
     () => validateProductForm(form, photoCount, takenSlugs),
     [form, photoCount, takenSlugs],
   );
-  const isDirty =
-    snapshot(form, costQuote, existingImages, newFiles.length) !== baseline;
+  const isDirty = snapshot(form, existingImages, newFiles.length) !== baseline;
   const visibleErrors: ProductFormErrors = showErrors ? errors : {};
-  const quoteTotal = costQuoteFormTotal(costQuote, materials);
-  const quoteMinutes = costQuoteMinutes(costQuote, materials);
 
   // ── Campos ────────────────────────────────────────────────────────────
 
@@ -179,7 +161,6 @@ export function useProductForm({
   /** Deja el formulario vacío sin tocar si el modal está abierto. */
   const resetFields = useCallback(() => {
     setForm(emptyProductForm);
-    setCostQuote(emptyCostQuoteForm);
     setOpenSections(defaultOpenSections);
     setEditingId(null);
     setExistingImages([]);
@@ -214,13 +195,11 @@ export function useProductForm({
   const openWithProduct = useCallback(
     (product: Product, mode: "edit" | "duplicate") => {
       const nextForm = productToForm(product);
-      const nextQuote = costQuoteToForm(product.costQuote);
       // Una copia no comparte fotos con el original: borrar uno rompería el otro.
       const images =
         mode === "edit" ? [...new Set(product.galleryImages)].slice(0, MAX_PRODUCT_IMAGES) : [];
 
       setForm(nextForm);
-      setCostQuote(nextQuote);
       setOpenSections({
         ...defaultOpenSections,
         price: Boolean(
@@ -228,7 +207,7 @@ export function useProductForm({
             product.quantityPrices?.length ||
             product.variants?.length,
         ),
-        quote: Boolean(product.costQuote),
+        quote: Boolean(product.quoteId),
         photos: mode === "duplicate",
       });
       setEditingId(mode === "edit" ? productId(product) : null);
@@ -239,7 +218,7 @@ export function useProductForm({
       });
       setImageError("");
       setShowErrors(false);
-      setBaseline(snapshot(nextForm, nextQuote, images, 0));
+      setBaseline(snapshot(nextForm, images, 0));
       setIsOpen(true);
     },
     [],
@@ -287,7 +266,6 @@ export function useProductForm({
     (raw: string) => {
       const { product, warnings } = parseProductCreateJson(raw);
       const importWarnings = [...warnings];
-      const quote = product.costQuote;
 
       const thickness = normalizeThickness(product.thickness);
       if (thickness === null) {
@@ -295,30 +273,6 @@ export function useProductForm({
           `Se ignoró el espesor "${product.thickness}". ${THICKNESS_HINT}`,
         );
       }
-
-      const nextQuote: CostQuoteFormState = {
-        rows: (quote?.items ?? []).flatMap((row) => {
-          const material = materials.find((item) => {
-            if (row.materialId && item.id === row.materialId) return true;
-            const name = normalizeSearch(row.materialName);
-            return Boolean(name) && normalizeSearch(item.name) === name;
-          });
-          if (!material) {
-            const label = row.materialName || row.materialId;
-            importWarnings.push(`No encontré el material "${label}".`);
-            return [];
-          }
-          return [
-            {
-              ...emptyQuoteRow(),
-              materialId: material.id,
-              widthCm: row.widthCm,
-              heightCm: row.heightCm,
-              quantity: row.quantityUsed,
-            },
-          ];
-        }),
-      };
 
       setForm({
         title: product.title,
@@ -337,6 +291,7 @@ export function useProductForm({
         powerSource: product.powerSource,
         customizable: product.customizable,
         hidden: product.hidden,
+        quoteId: "",
         price: product.price,
         packOptions: product.packOptions.map((row) => ({
           id: newRowId(),
@@ -354,18 +309,17 @@ export function useProductForm({
           price: row.price,
         })),
       });
-      setCostQuote(nextQuote);
       setOpenSections({
         basic: true,
         classify: true,
         measures: true,
         price: true,
-        quote: quote != null,
+        quote: false,
         photos: true,
       });
       return importWarnings;
     },
-    [materials],
+    [],
   );
 
   return {
@@ -373,20 +327,16 @@ export function useProductForm({
     isOpen,
     editingId,
     form,
-    costQuote,
     openSections,
     existingImages,
     newFiles,
     imageError,
     remainingSlots,
-    quoteTotal,
-    quoteMinutes,
     errors: visibleErrors,
     // campos
     updateForm,
     toggleCategory,
     setHasLighting,
-    setCostQuote,
     toggleSection,
     // fotos
     selectImages,

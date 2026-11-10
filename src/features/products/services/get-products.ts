@@ -107,9 +107,7 @@ function toFirestorePayload(input: ProductInput, images: string[]) {
     quantityPrices:
       !hasPacks && input.quantityPrices?.length ? input.quantityPrices : null,
     variants: !hasPacks && input.variants?.length ? input.variants : null,
-    costQuote: input.costQuote
-      ? (JSON.parse(JSON.stringify(input.costQuote)) as typeof input.costQuote)
-      : null,
+    quoteId: input.quoteId?.trim() || null,
     isActive: input.isActive,
     available: input.isActive,
     dimensions: packageSize,
@@ -138,9 +136,6 @@ export function toSeedDoc(product: Product) {
     packOptions: product.packOptions ?? null,
     quantityPrices: product.quantityPrices ?? null,
     variants: product.variants ?? null,
-    costQuote: product.costQuote
-      ? (JSON.parse(JSON.stringify(product.costQuote)) as typeof product.costQuote)
-      : null,
     isActive: product.isActive,
     available: product.isActive,
     weightGrams: product.weightGrams ?? null,
@@ -202,7 +197,7 @@ async function loadProductsFromFirebase(): Promise<Product[]> {
 const getCachedProducts = unstable_cache(
   loadProductsFromFirebase,
   // Subir la versión descarta lo cacheado con otra forma de producto (ej. costQuote).
-  ["catalog-products", "v2"],
+  ["catalog-products", "v3"],
   {
     tags: [PRODUCTS_CACHE_TAG],
     revalidate: PRODUCTS_CACHE_REVALIDATE_SECONDS,
@@ -216,6 +211,15 @@ export async function getProducts(): Promise<Product[]> {
     console.error("No se pudieron leer los productos de Firestore.", error);
     return [];
   }
+}
+
+/**
+ * Igual que `getProducts`, pero propaga el error de Firestore. Las páginas que
+ * deciden `noindex`/404 la usan para no confundir una lectura fallida con un
+ * producto inexistente (Google lo des-indexaría).
+ */
+export async function getProductsStrict(): Promise<Product[]> {
+  return getCachedProducts();
 }
 
 async function getProductForMutation(id: string) {
@@ -263,7 +267,7 @@ export async function createProduct(input: ProductInput, images: string[]) {
     packOptions: payload.packOptions ?? undefined,
     quantityPrices: payload.quantityPrices ?? undefined,
     variants: payload.variants ?? undefined,
-    costQuote: payload.costQuote ?? undefined,
+    quoteId: payload.quoteId ?? undefined,
     dimensions: payload.dimensions ?? undefined,
     createdAt: new Date().toISOString(),
   } satisfies Product;
@@ -289,6 +293,8 @@ export async function updateProduct(
 
   await getAdminFirestore().collection(PRODUCTS_COLLECTION).doc(id).update({
     ...payload,
+    // Los productos ya no guardan cotizador propio: limpia lo que quedara.
+    costQuote: FieldValue.delete(),
     updatedAt: FieldValue.serverTimestamp(),
   });
 
@@ -299,7 +305,7 @@ export async function updateProduct(
     packOptions: payload.packOptions ?? undefined,
     quantityPrices: payload.quantityPrices ?? undefined,
     variants: payload.variants ?? undefined,
-    costQuote: payload.costQuote ?? undefined,
+    quoteId: payload.quoteId ?? undefined,
     dimensions: payload.dimensions ?? undefined,
     createdAt: current.createdAt,
   } satisfies Product;

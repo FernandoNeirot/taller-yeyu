@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { ProductDetail } from "@/features/products/components/product-detail";
 import {
   productHref,
   productShareImage,
 } from "@/features/products/lib/product-url";
-import { getCatalogProduct } from "@/features/products/services/get-catalog-products";
+import { lookupCatalogProduct } from "@/features/products/services/get-catalog-products";
 import { JsonLd, getProductJsonLd } from "@/lib/seo/json-ld";
 import { sharePageMetadata } from "@/lib/seo/metadata";
 import { categoryLabel } from "@/types/product";
@@ -20,14 +20,21 @@ export async function generateMetadata({
   params,
 }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getCatalogProduct(slug);
+  const lookup = await lookupCatalogProduct(slug);
 
-  if (!product) {
+  if (lookup.status === "moved") {
+    // La página redirige: el metadata no se usa, pero no debe ser noindex.
+    return { title: "Taller Yeyu" };
+  }
+
+  if (lookup.status === "missing") {
     return {
       title: "Producto no encontrado",
       robots: { index: false, follow: false },
     };
   }
+
+  const { product } = lookup;
 
   return sharePageMetadata({
     title: product.title,
@@ -44,11 +51,16 @@ export async function generateMetadata({
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
-  const product = await getCatalogProduct(slug);
+  const lookup = await lookupCatalogProduct(slug);
 
-  if (!product) {
+  if (lookup.status === "moved") {
+    permanentRedirect(productHref(lookup.slug));
+  }
+  if (lookup.status === "missing") {
     notFound();
   }
+
+  const { product } = lookup;
 
   return (
     <main id="contenido" className="w-full">

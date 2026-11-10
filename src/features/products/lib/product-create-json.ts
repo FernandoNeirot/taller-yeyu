@@ -23,14 +23,7 @@ export const PRODUCT_CREATE_JSON_EXAMPLE = `{
   ],
   "variants": [
     { "description": "Pintado", "price": 18000 }
-  ],
-  "costQuote": {
-    "items": [
-      { "materialName": "Madera MDF 3 mm s/cara blanca", "widthCm": 30, "heightCm": 40 },
-      { "materialName": "Máquina láser", "quantityUsed": 12 },
-      { "materialName": "Bolsita 9x20", "quantityUsed": 1 }
-    ]
-  }
+  ]
 }`;
 
 export type ParsedProductCreateJson = {
@@ -54,16 +47,6 @@ export type ParsedProductCreateJson = {
   packOptions: { quantity: string; price: string }[];
   quantityPrices: { quantity: string; price: string }[];
   variants: { description: string; price: string }[];
-  costQuote: {
-    items: {
-      materialId: string;
-      materialName: string;
-      widthCm: string;
-      heightCm: string;
-      /** Unidades o minutos (y el área en cm² si no se cargan ancho y alto). */
-      quantityUsed: string;
-    }[];
-  } | null;
 };
 
 const categoryIds = catalogCategories.map((category) => category.id).join(", ");
@@ -228,31 +211,6 @@ export function parseProductCreateJson(raw: string): {
       packOptions: readQuantityRows(data.packOptions, "Un pack"),
       quantityPrices,
       variants,
-      costQuote: parseCostQuote(data.costQuote),
     },
   };
-}
-
-function parseCostQuote(value: unknown): ParsedProductCreateJson["costQuote"] {
-  if (value == null) return null;
-  const quote = asRecord(value, "El cotizador");
-  const items = Array.isArray(quote.items)
-    ? quote.items.flatMap((entry) => {
-        const row = asRecord(entry, "Un material del cotizador");
-        const materialId = text(row.materialId);
-        const materialName = text(row.materialName ?? row.name);
-        if (!materialId && !materialName) return [];
-        return [
-          {
-            materialId,
-            materialName,
-            widthCm: optionalNumber(row.widthCm, "El ancho"),
-            heightCm: optionalNumber(row.heightCm, "El alto"),
-            quantityUsed: optionalNumber(row.quantityUsed, "La cantidad usada"),
-          },
-        ];
-      })
-    : [];
-
-  return { items };
 }

@@ -12,6 +12,10 @@ export type SheetUsage = {
   sheetsNeeded: number;
   /** Placas/hojas enteras a comprar/cortar para `products` productos. */
   sheetsToBuy: number;
+  /** Costo de las placas/hojas enteras a comprar (incluye el sobrante). */
+  batchCost: number;
+  /** Superficie de las placas compradas que no se usa (material perdido), en cm². */
+  wasteCm2: number;
 };
 
 /**
@@ -30,15 +34,19 @@ export function computeSheetUsage(
   const sheetAreaCm2 = base.widthCm * base.heightCm;
   const sheetsPerProduct = quantityUsed / sheetAreaCm2;
   const sheetsNeeded = sheetsPerProduct * Math.max(products, 1);
+  // El redondeo tolera ruido de punto flotante (ej: 3.0000000001 → 3).
+  const sheetsToBuy = Math.ceil(Math.round(sheetsNeeded * 1e6) / 1e6);
+  const costPerSheet = Math.round(sheetAreaCm2 * material.costPerUnit * 100) / 100;
 
   return {
     label: base.label,
     unit: base.unit,
     sheetAreaCm2,
-    costPerSheet: Math.round(sheetAreaCm2 * material.costPerUnit * 100) / 100,
+    costPerSheet,
     sheetsPerProduct,
     sheetsNeeded,
-    // El redondeo tolera ruido de punto flotante (ej: 3.0000000001 → 3).
-    sheetsToBuy: Math.ceil(Math.round(sheetsNeeded * 1e6) / 1e6),
+    sheetsToBuy,
+    batchCost: Math.round(sheetsToBuy * costPerSheet * 100) / 100,
+    wasteCm2: Math.max(Math.round((sheetsToBuy - sheetsNeeded) * sheetAreaCm2 * 100) / 100, 0),
   };
 }
