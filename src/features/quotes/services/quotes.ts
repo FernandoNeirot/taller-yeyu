@@ -1,6 +1,7 @@
 import { FieldValue, type DocumentData } from "firebase-admin/firestore";
 import { normalizeUnits } from "@/features/materials/lib/quote-batch";
 import { splitQuoteTotals } from "@/features/materials/lib/quote-items";
+import { timestampToIso } from "@/features/materials/lib/format";
 import { isMeasureType, type MeasureType } from "@/types/material";
 import { QUOTES_COLLECTION, getAdminFirestore } from "@/lib/firebase-admin";
 import type { Quote, QuoteInput, QuoteItem, QuoteSummary } from "../types";
@@ -83,6 +84,7 @@ function mapQuoteDoc(id: string, data: DocumentData): Quote {
     units,
     batchCost: toNumber(data.batchCost) || totals.totalAmount * units,
     createdBy: String(data.createdBy ?? ""),
+    updatedAt: timestampToIso(data.updatedAt) ?? timestampToIso(data.createdAt),
   };
 }
 
@@ -144,6 +146,7 @@ export async function createQuote(input: QuoteInput, createdBy: string) {
     units: input.units,
     batchCost: input.batchCost,
     createdBy,
+    updatedAt: new Date().toISOString(),
   } satisfies Quote;
 }
 
@@ -171,7 +174,20 @@ export async function updateQuote(id: string, input: QuoteInput) {
     units: input.units,
     batchCost: input.batchCost,
     createdBy: String(existing.data()?.createdBy ?? ""),
+    updatedAt: new Date().toISOString(),
   } satisfies Quote;
+}
+
+export async function deleteQuote(id: string) {
+  const docRef = getAdminFirestore().collection(QUOTES_COLLECTION).doc(id);
+  const existing = await docRef.get();
+
+  if (!existing.exists) {
+    throw new Error("La cotización no existe.");
+  }
+
+  await docRef.delete();
+  return id;
 }
 
 /** Lista liviana para elegir una cotización al vincularla a un producto. */

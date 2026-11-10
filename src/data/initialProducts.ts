@@ -1,7 +1,7 @@
 import type { Product } from "@/types/product";
 import { didacticGameSeeds } from "./didacticGamesSeed";
 
-const PLACEHOLDER_IMAGE = "https://via.placeholder.com/500";
+const PLACEHOLDER_IMAGE = "/principal.png";
 const CREATED_AT = "2026-09-14";
 
 type SeedProduct = Omit<

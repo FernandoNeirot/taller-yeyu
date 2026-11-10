@@ -4,6 +4,13 @@ import { normalizePackOptions } from "../lib/packs";
 import { normalizeQuantityPrices } from "../lib/quantity-prices";
 import { normalizeVariants } from "../lib/variants";
 
+const FALLBACK_IMAGE = "/principal.png";
+
+/** via.placeholder.com ya no existe: las fotos de relleno viejas pasan a una imagen local. */
+function localImage(url: string) {
+  return url.includes("via.placeholder.com") ? FALLBACK_IMAGE : url;
+}
+
 function toStringArray(value: unknown) {
   return Array.isArray(value) ? value.map(String).filter(Boolean) : [];
 }
@@ -29,12 +36,12 @@ export function mapCatalogDoc(
       : {};
   const title = String(data.title ?? "");
   const description = String(data.fullDescription ?? data.description ?? "");
-  const featuredImage = String(
-    data.featuredImage ?? data.image ?? "/principal.png",
+  const featuredImage = localImage(
+    String(data.featuredImage ?? data.image ?? FALLBACK_IMAGE),
   );
   // Sin repetidas: la URL es la identidad de cada foto en la galería y en el formulario.
   const galleryImages = [
-    ...new Set(toStringArray(data.galleryImages ?? data.images)),
+    ...new Set(toStringArray(data.galleryImages ?? data.images).map(localImage)),
   ];
   // ISO string: el resultado pasa por la caché de Next, que serializa a JSON.
   const createdAtDate = data.createdAt?.toDate?.();

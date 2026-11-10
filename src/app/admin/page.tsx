@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/features/admin/services/auth";
 import { logoutAction } from "@/features/admin/actions/logout-action";
 import { MaterialIcon } from "@/components/ui/material-icon";
+import { FINANCE_MODULE_ENABLED } from "@/features/admin/lib/modules";
 
 export const dynamic = "force-dynamic";
 
@@ -12,13 +13,17 @@ export const metadata: Metadata = {
 };
 
 const modules = [
-  {
-    title: "Control Financiero",
-    description: "Ingresos, egresos y balance general",
-    icon: "account_balance",
-    href: "/admin/financiero",
-    color: "bg-primary-container",
-  },
+  ...(FINANCE_MODULE_ENABLED
+    ? [
+        {
+          title: "Control Financiero",
+          description: "Ingresos, egresos y balance general",
+          icon: "account_balance",
+          href: "/admin/financiero",
+          color: "bg-primary-container",
+        },
+      ]
+    : []),
   {
     title: "Productos",
     description: "Gestión del catálogo de productos",

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { FINANCE_MODULE_ENABLED } from "@/features/admin/lib/modules";
 import { requireAdmin } from "@/features/admin/services/auth";
 import { FinancialControl } from "@/features/admin/components/financial-control";
 import { getFamilyFinanceEntries } from "@/features/finance/services/family-finance";
@@ -13,6 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminFinancialPage() {
+  if (!FINANCE_MODULE_ENABLED) notFound();
   await requireAdmin();
   const [familyEntries, ventureEntries] = await Promise.all([
     getFamilyFinanceEntries(),

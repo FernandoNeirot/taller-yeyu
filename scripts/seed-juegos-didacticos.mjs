@@ -12,7 +12,7 @@ import { didacticGameSeeds } from "../src/data/didacticGamesSeed.ts";
 import { getDb, parseSeedFlags } from "./lib/admin-db.mjs";
 
 const COLLECTION = "talleryeu-productos";
-const PLACEHOLDER_IMAGE = "https://via.placeholder.com/500";
+const PLACEHOLDER_IMAGE = "/principal.png";
 const { dryRun, force } = parseSeedFlags();
 
 /** Mismo documento que arma toSeedDoc() en src/features/products/services/get-products.ts. */

@@ -67,6 +67,8 @@ export interface Material {
   totalUnits: number;
   /** Calculado: totalCost / totalUnits. */
   costPerUnit: number;
+  /** Última edición (ISO). Puede faltar en materiales viejos. */
+  updatedAt?: string;
 }
 
 export function computeCostPerUnit(totalCost: number, totalUnits: number) {

@@ -91,6 +91,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="es-AR"
+      data-scroll-behavior="smooth"
       className={`${playfair.variable} ${inter.variable} h-full`}
     >
       <body className="min-h-full font-sans antialiased bg-background text-on-background">

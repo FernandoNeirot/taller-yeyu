@@ -1,4 +1,5 @@
 import { FieldValue, type DocumentData } from "firebase-admin/firestore";
+import { timestampToIso } from "../lib/format";
 import { COST_MATERIALS_COLLECTION, getAdminFirestore } from "@/lib/firebase-admin";
 import {
   computeCostPerUnit,
@@ -38,6 +39,7 @@ function mapMaterialDoc(id: string, data: DocumentData): Material | null {
     totalCost,
     totalUnits,
     costPerUnit: computeCostPerUnit(totalCost, totalUnits),
+    updatedAt: timestampToIso(data.updatedAt) ?? timestampToIso(data.createdAt),
   };
 }
 
@@ -80,7 +82,12 @@ export async function createMaterial(input: MaterialInput): Promise<Material> {
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-  return { id: docRef.id, ...payload, workArea: input.workArea };
+  return {
+    id: docRef.id,
+    ...payload,
+    workArea: input.workArea,
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 export async function updateMaterial(
@@ -95,7 +102,12 @@ export async function updateMaterial(
   }
 
   await docRef.update({ ...payload, updatedAt: FieldValue.serverTimestamp() });
-  return { id, ...payload, workArea: input.workArea };
+  return {
+    id,
+    ...payload,
+    workArea: input.workArea,
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 export async function deleteMaterial(id: string) {

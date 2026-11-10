@@ -18,6 +18,8 @@ export type Quote = {
   /** Costo de producir `units` unidades (placas/hojas enteras, con el sobrante). */
   batchCost: number;
   createdBy: string;
+  /** Última edición (ISO). Puede faltar en cotizaciones viejas. */
+  updatedAt?: string;
 };
 
 export type QuoteInput = {
