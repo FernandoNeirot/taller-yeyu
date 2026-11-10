@@ -2,9 +2,15 @@ import type { QuoteItem } from "@/types/product-pricing";
 import type { QuoteItemInput } from "./quote-items";
 
 /** Estado de una línea en los formularios (todo como texto, tal como se escribe). */
+/** `measures`: medidas del material + cuántas entran. `piece`: medidas de una unidad. */
+export type QuoteRowMode = "measures" | "piece";
+
 export type QuoteItemRow = {
   id: string;
   materialId: string;
+  mode: QuoteRowMode;
+  pieceWidthCm: string;
+  pieceHeightCm: string;
   widthCm: string;
   heightCm: string;
   /** Unidades o minutos. */
@@ -17,6 +23,9 @@ export function emptyQuoteRow(): QuoteItemRow {
   return {
     id: crypto.randomUUID(),
     materialId: "",
+    mode: "measures",
+    pieceWidthCm: "",
+    pieceHeightCm: "",
     widthCm: "",
     heightCm: "",
     quantity: "",
@@ -25,6 +34,13 @@ export function emptyQuoteRow(): QuoteItemRow {
 }
 
 export function rowToInput(row: QuoteItemRow): QuoteItemInput {
+  if (row.mode === "piece") {
+    return {
+      materialId: row.materialId,
+      pieceWidthCm: Number(row.pieceWidthCm) || undefined,
+      pieceHeightCm: Number(row.pieceHeightCm) || undefined,
+    };
+  }
   return {
     materialId: row.materialId,
     widthCm: Number(row.widthCm) || undefined,
@@ -38,12 +54,16 @@ export function itemsToRows(items: QuoteItem[] | undefined): QuoteItemRow[] {
   return (items ?? []).map((item) => ({
     id: crypto.randomUUID(),
     materialId: item.materialId,
+    mode: item.pieceWidthCm ? "piece" : "measures",
+    pieceWidthCm: item.pieceWidthCm ? String(item.pieceWidthCm) : "",
+    pieceHeightCm: item.pieceHeightCm ? String(item.pieceHeightCm) : "",
     widthCm: item.widthCm ? String(item.widthCm) : "",
     heightCm: item.heightCm ? String(item.heightCm) : "",
     // En área sin medidas guardadas (importación) la cantidad ya es el área.
     // `quantityUsed` es por unidad: se vuelve a multiplicar para recuperar lo cargado.
     quantity:
-      item.measureType === "area_cm2" && item.widthCm && item.heightCm
+      item.measureType === "area_cm2" &&
+      (item.pieceWidthCm || (item.widthCm && item.heightCm))
         ? ""
         : String(Math.round(item.quantityUsed * (item.fitsCount ?? 1) * 1e6) / 1e6),
     fitsCount: item.fitsCount ? String(item.fitsCount) : "",

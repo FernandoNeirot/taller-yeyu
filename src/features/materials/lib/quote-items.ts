@@ -1,3 +1,4 @@
+import { computePieceLayout } from "./piece-layout";
 import type { Material } from "@/types/material";
 import type { QuoteItem } from "@/types/product-pricing";
 
@@ -7,6 +8,9 @@ export type QuoteItemInput = {
   /** Solo materiales de área. */
   widthCm?: number;
   heightCm?: number;
+  /** Modo "una unidad": medidas de la pieza; se calcula cuántas entran por placa/hoja. */
+  pieceWidthCm?: number;
+  pieceHeightCm?: number;
   /** Unidades o minutos. En área se usa solo si no hay ancho y alto. */
   quantityUsed?: number;
   /** Cuántas unidades entran en lo cargado; el consumo por unidad es lo cargado ÷ esto. */
@@ -36,9 +40,27 @@ function effectiveFits(
  * Si entran N unidades en lo cargado, devuelve lo que consume una sola.
  */
 export function computeQuantityUsed(
-  material: Pick<Material, "measureType">,
+  material: Pick<Material, "measureType"> &
+    Partial<Pick<Material, "category" | "workArea">>,
   input: Omit<QuoteItemInput, "materialId">,
 ) {
+  if (
+    material.measureType === "area_cm2" &&
+    (input.pieceWidthCm || input.pieceHeightCm)
+  ) {
+    // Cada unidad consume la placa dividida las que entran: la pérdida (márgenes y
+    // sobrante) queda repartida entre todas las unidades.
+    const layout = computePieceLayout(
+      {
+        category: material.category,
+        measureType: material.measureType,
+        workArea: material.workArea,
+      },
+      input.pieceWidthCm,
+      input.pieceHeightCm,
+    );
+    return layout ? layout.sheetAreaCm2 / layout.perSheet : 0;
+  }
   const fits = effectiveFits(material, input);
   if (material.measureType === "area_cm2") {
     const widthCm = positive(input.widthCm);
@@ -72,16 +94,21 @@ export function buildQuoteItem(
   };
 
   if (material.measureType === "area_cm2") {
+    const pieceWidthCm = positive(input.pieceWidthCm);
+    const pieceHeightCm = positive(input.pieceHeightCm);
     const widthCm = positive(input.widthCm);
     const heightCm = positive(input.heightCm);
-    if (widthCm && heightCm) {
+    if (pieceWidthCm && pieceHeightCm) {
+      item.pieceWidthCm = pieceWidthCm;
+      item.pieceHeightCm = pieceHeightCm;
+    } else if (widthCm && heightCm) {
       item.widthCm = widthCm;
       item.heightCm = heightCm;
     }
   }
 
   const fits = effectiveFits(material, input);
-  if (fits > 1) item.fitsCount = fits;
+  if (fits > 1 && !item.pieceWidthCm) item.fitsCount = fits;
 
   return item;
 }
@@ -137,6 +164,8 @@ export function parseQuoteItemInputs(raw: unknown): QuoteItemInput[] {
         materialId,
         widthCm: positive(data.widthCm) || undefined,
         heightCm: positive(data.heightCm) || undefined,
+        pieceWidthCm: positive(data.pieceWidthCm) || undefined,
+        pieceHeightCm: positive(data.pieceHeightCm) || undefined,
         quantityUsed: positive(data.quantityUsed) || undefined,
         fitsCount: positive(data.fitsCount) || undefined,
       },

@@ -44,12 +44,23 @@ export const materialSheetBases: Partial<
   paper: { label: "Hoja 21×30", unit: "hoja", widthCm: 21, heightCm: 30 },
 };
 
+/** Zona de la placa/hoja donde realmente se trabaja (el resto son márgenes y se pierde). */
+export type WorkArea = { widthCm: number; heightCm: number };
+
+/** Espacio de trabajo sugerido: hoja 21×30 con margen para la impresora. */
+export const defaultWorkArea: WorkArea = { widthCm: 20, heightCm: 28 };
+
 export interface Material {
   id: string;
   name: string;
   measureType: MeasureType;
   /** Madera, papel u otro. Define la placa/hoja base del cotizador. */
   category?: MaterialCategory;
+  /**
+   * Opcional (madera y papel): espacio útil de cada placa/hoja. El cotizador lo
+   * usa para calcular cuántas piezas entran; lo que queda afuera es pérdida.
+   */
+  workArea?: WorkArea;
   /** Lo que se pagó por el pack/plancha. */
   totalCost: number;
   /** Cantidad total que rinde ese pago (ej: 100 hojas de 21x30 = 63000 cm²). */

@@ -35,6 +35,12 @@ function mapQuoteItem(value: unknown): QuoteItem | null {
       item.widthCm = widthCm;
       item.heightCm = heightCm;
     }
+    const pieceWidthCm = toNumber(data.pieceWidthCm);
+    const pieceHeightCm = toNumber(data.pieceHeightCm);
+    if (item.measureType === "area_cm2" && pieceWidthCm && pieceHeightCm) {
+      item.pieceWidthCm = pieceWidthCm;
+      item.pieceHeightCm = pieceHeightCm;
+    }
     const fitsCount = toNumber(data.fitsCount);
     if (fitsCount > 1 && item.measureType !== "time_minutes") item.fitsCount = fitsCount;
     return item;

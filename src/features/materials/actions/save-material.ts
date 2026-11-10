@@ -44,7 +44,20 @@ export async function saveMaterialAction(
   try {
     const rawCategory = String(formData.get("category") ?? "");
     const category = isMaterialCategory(rawCategory) ? rawCategory : "other";
-    const input = { name, measureType, category, totalCost, totalUnits };
+    // El espacio de trabajo solo aplica a madera/papel medidos por superficie.
+    const workWidth = parseNumber(formData.get("workWidthCm"));
+    const workHeight = parseNumber(formData.get("workHeightCm"));
+    const useWorkArea =
+      formData.get("useWorkArea") === "on" &&
+      measureType === "area_cm2" &&
+      category !== "other";
+    if (useWorkArea && !(workWidth > 0 && workHeight > 0)) {
+      return { error: "Cargá el ancho y el alto del espacio de trabajo." };
+    }
+    const workArea = useWorkArea
+      ? { widthCm: workWidth, heightCm: workHeight }
+      : undefined;
+    const input = { name, measureType, category, totalCost, totalUnits, workArea };
     const material = id
       ? await updateMaterial(id, input)
       : await createMaterial(input);

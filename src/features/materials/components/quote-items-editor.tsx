@@ -4,10 +4,17 @@ import Link from "next/link";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   measureTypeLabels,
+  materialSheetBases,
   measureUnitLabels,
   type Material,
 } from "@/types/material";
 import { formatMoney, formatNumber } from "../lib/format";
+import {
+  computePieceLayout,
+  getWorkArea,
+  pieceDoesNotFit,
+  supportsPieceMode,
+} from "../lib/piece-layout";
 import { computeBatchItemCost, normalizeUnits } from "../lib/quote-batch";
 import { buildQuoteItem, splitQuoteTotals } from "../lib/quote-items";
 import { computeSheetUsage } from "../lib/sheet-usage";
@@ -76,7 +83,16 @@ export function QuoteItemsEditor({
 
   function selectMaterial(id: string, materialId: string) {
     // Cambiar de material descarta las medidas: cada tipo pide datos distintos.
-    update(id, { materialId, widthCm: "", heightCm: "", quantity: "", fitsCount: "" });
+    update(id, {
+      materialId,
+      mode: "measures",
+      pieceWidthCm: "",
+      pieceHeightCm: "",
+      widthCm: "",
+      heightCm: "",
+      quantity: "",
+      fitsCount: "",
+    });
   }
 
   return (
@@ -86,6 +102,16 @@ export function QuoteItemsEditor({
         const item = built[index];
         const sheets =
           material && item ? computeSheetUsage(material, item.quantityUsed, products) : null;
+        const canUsePiece = material ? supportsPieceMode(material) : false;
+        const pieceMode = canUsePiece && row.mode === "piece";
+        const layout =
+          material && pieceMode
+            ? computePieceLayout(material, row.pieceWidthCm, row.pieceHeightCm)
+            : null;
+        const noFit =
+          material && pieceMode
+            ? pieceDoesNotFit(material, row.pieceWidthCm, row.pieceHeightCm)
+            : false;
 
         return (
           <div
@@ -107,7 +133,97 @@ export function QuoteItemsEditor({
               />
             </div>
 
-            {material?.measureType === "area_cm2" ? (
+            {canUsePiece ? (
+              <div
+                role="group"
+                aria-label="Cómo cargar las medidas"
+                className="grid grid-cols-2 gap-xs rounded-lg bg-surface-container p-1 text-sm"
+              >
+                {(
+                  [
+                    ["measures", "Medidas del material"],
+                    ["piece", "Medidas de una unidad"],
+                  ] as const
+                ).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={row.mode === mode}
+                    onClick={() => update(row.id, { mode })}
+                    className={
+                      row.mode === mode
+                        ? "rounded-md bg-primary-container px-2 py-2 text-white"
+                        : "rounded-md px-2 py-2 text-on-surface-variant hover:bg-surface-container-high"
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {pieceMode && material ? (
+              <>
+                <div className="grid grid-cols-2 gap-sm">
+                  <label className="flex flex-col gap-xs">
+                    <span className="text-xs text-on-surface-variant">
+                      Ancho de la unidad (cm)
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={row.pieceWidthCm}
+                      onChange={(event) =>
+                        update(row.id, { pieceWidthCm: event.target.value })
+                      }
+                      className={numberInputClassName}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-xs">
+                    <span className="text-xs text-on-surface-variant">
+                      Alto de la unidad (cm)
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={row.pieceHeightCm}
+                      onChange={(event) =>
+                        update(row.id, { pieceHeightCm: event.target.value })
+                      }
+                      className={numberInputClassName}
+                    />
+                  </label>
+                </div>
+                {noFit ? (
+                  <p role="alert" className="text-sm text-error">
+                    La unidad no entra en el espacio de trabajo (
+                    {formatNumber(getWorkArea(material).widthCm)}×
+                    {formatNumber(getWorkArea(material).heightCm)} cm).
+                  </p>
+                ) : null}
+                {layout ? (
+                  <div className="rounded-lg bg-surface-container px-3 py-2 text-sm text-on-surface-variant">
+                    <p>
+                      En el espacio de trabajo de {formatNumber(layout.workWidthCm)}×
+                      {formatNumber(layout.workHeightCm)} cm entran{" "}
+                      <strong className="text-on-surface">{layout.perSheet}</strong>{" "}
+                      ({layout.columns}×{layout.rows}
+                      {layout.rotated ? ", giradas" : ""}) por{" "}
+                      {materialSheetBases[material.category ?? "other"]?.unit ?? "placa"}.
+                    </p>
+                    <p>
+                      Aprovechamiento {formatNumber(layout.usedPercent, 1)}%: la pérdida (
+                      {formatNumber(layout.wastePercent, 1)}%) se suma al costo de cada
+                      unidad.
+                    </p>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+
+            {material?.measureType === "area_cm2" && !pieceMode ? (
               <div className="grid grid-cols-2 gap-sm">
                 <label className="flex flex-col gap-xs">
                   <span className="text-xs text-on-surface-variant">Ancho (cm)</span>
@@ -150,7 +266,7 @@ export function QuoteItemsEditor({
               </label>
             ) : null}
 
-            {material && material.measureType !== "time_minutes" ? (
+            {material && material.measureType !== "time_minutes" && !pieceMode ? (
               <label className="flex flex-col gap-xs">
                 <span className="text-xs text-on-surface-variant">
                   {material.measureType === "area_cm2"

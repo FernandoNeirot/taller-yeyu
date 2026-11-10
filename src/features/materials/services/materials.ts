@@ -5,12 +5,21 @@ import {
   isMaterialCategory,
   isMeasureType,
   type Material,
+  type WorkArea,
 } from "@/types/material";
 
 export type MaterialInput = Omit<Material, "id" | "costPerUnit">;
 
 function toNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function mapWorkArea(value: unknown): WorkArea | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const data = value as Record<string, unknown>;
+  const widthCm = toNumber(data.widthCm);
+  const heightCm = toNumber(data.heightCm);
+  return widthCm > 0 && heightCm > 0 ? { widthCm, heightCm } : undefined;
 }
 
 function mapMaterialDoc(id: string, data: DocumentData): Material | null {
@@ -25,6 +34,7 @@ function mapMaterialDoc(id: string, data: DocumentData): Material | null {
     name,
     measureType: data.measureType,
     category: isMaterialCategory(data.category) ? data.category : "other",
+    workArea: mapWorkArea(data.workArea),
     totalCost,
     totalUnits,
     costPerUnit: computeCostPerUnit(totalCost, totalUnits),
@@ -53,6 +63,7 @@ function toPayload(input: MaterialInput) {
     name: input.name.trim(),
     measureType: input.measureType,
     category: input.category ?? "other",
+    workArea: input.workArea ?? null,
     totalCost: input.totalCost,
     totalUnits: input.totalUnits,
     costPerUnit: computeCostPerUnit(input.totalCost, input.totalUnits),
@@ -69,7 +80,7 @@ export async function createMaterial(input: MaterialInput): Promise<Material> {
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-  return { id: docRef.id, ...payload };
+  return { id: docRef.id, ...payload, workArea: input.workArea };
 }
 
 export async function updateMaterial(
@@ -84,7 +95,7 @@ export async function updateMaterial(
   }
 
   await docRef.update({ ...payload, updatedAt: FieldValue.serverTimestamp() });
-  return { id, ...payload };
+  return { id, ...payload, workArea: input.workArea };
 }
 
 export async function deleteMaterial(id: string) {

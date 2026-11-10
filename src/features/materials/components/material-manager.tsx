@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/row-actions-menu";
 import {
   computeCostPerUnit,
+  defaultWorkArea,
+  materialSheetBases,
   materialCategories,
   materialCategoryLabels,
   measureTypeLabels,
@@ -34,6 +36,9 @@ type FormState = {
   sheetWidthCm: string;
   sheetHeightCm: string;
   sheetCount: string;
+  useWorkArea: boolean;
+  workWidthCm: string;
+  workHeightCm: string;
 };
 
 const emptyForm: FormState = {
@@ -45,6 +50,9 @@ const emptyForm: FormState = {
   sheetWidthCm: "",
   sheetHeightCm: "",
   sheetCount: "1",
+  useWorkArea: false,
+  workWidthCm: String(defaultWorkArea.widthCm),
+  workHeightCm: String(defaultWorkArea.heightCm),
 };
 
 const inputClassName =
@@ -64,6 +72,9 @@ function materialToForm(material: Material): FormState {
     category: material.category ?? "other",
     totalCost: String(material.totalCost),
     totalUnits: String(material.totalUnits),
+    useWorkArea: Boolean(material.workArea),
+    workWidthCm: String(material.workArea?.widthCm ?? defaultWorkArea.widthCm),
+    workHeightCm: String(material.workArea?.heightCm ?? defaultWorkArea.heightCm),
   };
 }
 
@@ -117,6 +128,9 @@ export function MaterialManager({ materials: initialList }: { materials: Materia
     (Number(form.sheetWidthCm) || 0) *
     (Number(form.sheetHeightCm) || 0) *
     (Number(form.sheetCount) || 0);
+
+  const sheetBase =
+    form.measureType === "area_cm2" ? materialSheetBases[form.category] : undefined;
 
   const visible = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -213,6 +227,51 @@ export function MaterialManager({ materials: initialList }: { materials: Materia
               Madera usa placa de 30×30 y papel hoja de 21×30 en el cotizador.
             </span>
           </label>
+
+          {sheetBase ? (
+            <div className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-sm flex flex-col gap-sm">
+              <label className="inline-flex items-center gap-xs">
+                <input
+                  type="checkbox"
+                  name="useWorkArea"
+                  checked={form.useWorkArea}
+                  onChange={(event) => patch({ useWorkArea: event.target.checked })}
+                />
+                <span className="text-sm text-on-surface">
+                  Definir espacio de trabajo
+                </span>
+              </label>
+              <p className="text-xs text-on-surface-variant">
+                {sheetBase.label} ({sheetBase.widthCm}×{sheetBase.heightCm} cm). Si dejás
+                márgenes (ej: para que la impresora no falle), cargá la zona útil: el
+                cotizador calcula cuántas piezas entran ahí y suma el sobrante como
+                pérdida en cada unidad.
+              </p>
+              {form.useWorkArea ? (
+                <div className="grid grid-cols-2 gap-sm">
+                  {(
+                    [
+                      ["workWidthCm", "Ancho útil (cm)"],
+                      ["workHeightCm", "Alto útil (cm)"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <label key={key} className="flex flex-col gap-xs">
+                      <span className="text-xs text-on-surface-variant">{label}</span>
+                      <input
+                        name={key}
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={form[key]}
+                        onChange={(event) => patch({ [key]: event.target.value })}
+                        className="w-full rounded-lg border border-outline-variant/40 bg-surface-container px-3 py-2 text-on-surface"
+                      />
+                    </label>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <label className="flex flex-col gap-xs">
             <span className="text-sm text-on-surface-variant">
@@ -361,6 +420,9 @@ export function MaterialManager({ materials: initialList }: { materials: Materia
                     {measureTypeLabels[material.measureType]}
                     {material.category && material.category !== "other"
                       ? ` · ${materialCategoryLabels[material.category]}`
+                      : ""}
+                    {material.workArea
+                      ? ` · útil ${material.workArea.widthCm}×${material.workArea.heightCm}`
                       : ""}
                   </p>
                 </div>
